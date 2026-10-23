@@ -28,6 +28,7 @@ import {
   Trash2,
   RotateCcw,
   FileText,
+  Share2,
 } from 'lucide-react'
 import AttachmentUploader from './AttachmentUploader'
 import { renderPdfToPages } from '../utils/pdfRenderer'
@@ -44,6 +45,7 @@ import {
 } from '../services/storage'
 import { notify } from '../utils/alert'
 import LetterChatModal from './LetterChatModal'
+import ShareLetterModal from './ShareLetterModal'
 
 export default function LetterDocumentView({
   letter,
@@ -61,6 +63,7 @@ export default function LetterDocumentView({
   const [qrCodes, setQrCodes] = useState({})
   const [isExporting, setIsExporting] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isShareOpen, setIsShareOpen] = useState(false)
 
   const branches = getBranches()
   const users = getUsers()
@@ -846,6 +849,24 @@ export default function LetterDocumentView({
 
           <div className="flex items-center gap-2">
             {getStatusBadge(letter.status)}
+
+            {/* Tombol Bagikan Surat */}
+            {letter.status !== 'draft' && (
+              <button
+                type="button"
+                onClick={() => setIsShareOpen(true)}
+                className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-xs active:scale-95"
+                title="Bagikan surat ke pengguna lain"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Bagikan</span>
+                {letter.sharedWith && letter.sharedWith.length > 0 && (
+                  <span className="bg-violet-900 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                    {letter.sharedWith.length}
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* Tombol Hapus Draft */}
             {letter.status === 'draft' && (
@@ -1697,6 +1718,15 @@ export default function LetterDocumentView({
           initialLetter={letter}
           currentUser={currentUser}
           onClose={() => setIsChatOpen(false)}
+        />
+      )}
+
+      {/* MODAL BAGIKAN SURAT */}
+      {isShareOpen && letter && (
+        <ShareLetterModal
+          letter={letter}
+          currentUser={currentUser}
+          onClose={() => setIsShareOpen(false)}
         />
       )}
     </div>

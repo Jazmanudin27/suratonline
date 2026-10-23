@@ -15,9 +15,11 @@ import {
   Calendar,
   Layers,
   Check,
+  Share2,
 } from 'lucide-react'
 import { canUserApproveLetter } from '../components/ApproverInbox'
 import MobileApprovalModal from './MobileApprovalModal'
+import ShareLetterModal from '../components/ShareLetterModal'
 import { formatDateId } from '../services/storage'
 
 export default function MobileLetterList({
@@ -34,6 +36,7 @@ export default function MobileLetterList({
   const [statusFilter, setStatusFilter] = useState('all') // all, pending, approved, revision
   const [branchFilter, setBranchFilter] = useState('all')
   const [approvingLetter, setApprovingLetter] = useState(null)
+  const [sharingLetter, setSharingLetter] = useState(null)
 
   // Cek apakah user adalah PST (Pusat)
   const isPST =
@@ -237,6 +240,11 @@ export default function MobileLetterList({
                     <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block truncate max-w-full border border-blue-100">
                       {letter.letterNumber || 'Draft Dokumen'}
                     </span>
+                    {letter.sharedWith && letter.sharedWith.some((s) => String(s.userId || s.id) === String(currentUser?.id)) && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-200 ml-1.5 align-middle">
+                        <Share2 size={9} /> Dibagikan
+                      </span>
+                    )}
                     <h3 className="text-xs font-bold text-slate-900 mt-1.5 leading-snug">
                       {letter.title || 'Surat Pengajuan'}
                     </h3>
@@ -305,19 +313,37 @@ export default function MobileLetterList({
 
                 {/* Bottom Actions */}
                 <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                  {/* Chat discussion trigger button */}
-                  <button
-                    onClick={() => onOpenChat(letter)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition active:scale-95"
-                  >
-                    <MessageSquare size={13} className="text-slate-500" />
-                    <span>Diskusi</span>
-                    {commentsCount > 0 && (
-                      <span className="bg-indigo-600 text-white text-[10px] px-1.5 rounded-full font-bold">
-                        {commentsCount}
-                      </span>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {/* Chat discussion trigger button */}
+                    <button
+                      onClick={() => onOpenChat(letter)}
+                      className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition active:scale-95"
+                    >
+                      <MessageSquare size={13} className="text-slate-500" />
+                      <span>Diskusi</span>
+                      {commentsCount > 0 && (
+                        <span className="bg-indigo-600 text-white text-[10px] px-1.5 rounded-full font-bold">
+                          {commentsCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Share letter trigger button */}
+                    <button
+                      type="button"
+                      onClick={() => setSharingLetter(letter)}
+                      className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-semibold transition active:scale-95 border border-violet-200"
+                      title="Bagikan Surat"
+                    >
+                      <Share2 size={13} className="text-violet-600" />
+                      <span>Bagikan</span>
+                      {letter.sharedWith && letter.sharedWith.length > 0 && (
+                        <span className="bg-violet-600 text-white text-[10px] px-1.5 rounded-full font-bold">
+                          {letter.sharedWith.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
 
                   <div className="flex items-center gap-1.5">
                     {/* Tombol Quick Approve jika user approver surat ini */}
@@ -366,6 +392,15 @@ export default function MobileLetterList({
             if (onRequestRevision) onRequestRevision(id, note)
             setApprovingLetter(null)
           }}
+        />
+      )}
+
+      {/* MODAL BAGIKAN SURAT */}
+      {sharingLetter && (
+        <ShareLetterModal
+          letter={sharingLetter}
+          currentUser={currentUser}
+          onClose={() => setSharingLetter(null)}
         />
       )}
     </div>

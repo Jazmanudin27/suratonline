@@ -130,11 +130,32 @@ export default function App() {
       refreshAll()
     }
 
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace(/^#\/?/, '')
-      if (hash && hash !== activeMenu) {
-        setActiveMenuState(hash)
+    const checkViewParam = () => {
+      const urlParams = new URLSearchParams(window.location.search)
+      let viewId = urlParams.get('view')
+      if (!viewId && window.location.hash.includes('view=')) {
+        const hashQuery = window.location.hash.split('?')[1]
+        if (hashQuery) {
+          const hashParams = new URLSearchParams(hashQuery)
+          viewId = hashParams.get('view')
+        }
       }
+      if (viewId) {
+        const all = getLetters()
+        const target = all.find((l) => l.id === viewId)
+        if (target) {
+          setPreviewingLetter(target)
+        }
+      }
+    }
+
+    const handleHashChange = () => {
+      const rawHash = window.location.hash.replace(/^#\/?/, '')
+      const cleanHash = rawHash.split('?')[0]
+      if (cleanHash && cleanHash !== activeMenu) {
+        setActiveMenuState(cleanHash)
+      }
+      checkViewParam()
     }
 
     const handleTemplatesChange = () => {
@@ -147,7 +168,11 @@ export default function App() {
 
     const handleLettersChange = () => {
       setLetters(getLetters())
+      checkViewParam()
     }
+
+    // Periksa parameter view saat pertama kali dimuat
+    setTimeout(checkViewParam, 500)
 
     // Set initial hash if missing
     if (!window.location.hash) {

@@ -17,7 +17,9 @@ import {
   MessageSquare,
   Trash2,
   Printer,
+  Share2,
 } from 'lucide-react'
+import ShareLetterModal from './ShareLetterModal'
 import {
   formatDateId,
   formatDateTimeId,
@@ -102,6 +104,7 @@ export default function LetterList({
   const [templateFilter, setTemplateFilter] = useState('all')
   const [historyLetter, setHistoryLetter] = useState(null)
   const [chatLetter, setChatLetter] = useState(null)
+  const [shareLetter, setShareLetter] = useState(null)
   const [approvalModalLetter, setApprovalModalLetter] = useState(null)
   const [approvalActionType, setApprovalActionType] = useState('approve')
   const [approvalNotes, setApprovalNotes] = useState('')
@@ -525,6 +528,11 @@ export default function LetterList({
                         <span className="font-mono font-black text-indigo-900 block text-xs">
                           {l.letterNumber}
                         </span>
+                        {l.sharedWith && l.sharedWith.some((s) => String(s.userId || s.id) === String(currentUser?.id)) && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-violet-100 text-violet-800 border border-violet-200 mt-0.5 w-fit">
+                            <Share2 className="w-2.5 h-2.5 text-violet-600" /> Dibagikan
+                          </span>
+                        )}
                         <span className="text-[11px] text-slate-700 font-medium flex items-center gap-1 mt-0.5">
                           <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                           <span>Dibuat: {formatDateTimeId(l.createdAt)}</span>
@@ -677,6 +685,21 @@ export default function LetterList({
                               )}
                             </button>
                           )}
+
+                          {/* Tombol Bagikan Akses Surat (Violet/Indigo - Icon Only) */}
+                          <button
+                            type="button"
+                            onClick={() => setShareLetter(l)}
+                            className="p-2 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white rounded-lg transition shadow-xs flex items-center justify-center relative group"
+                            title={`Bagikan Surat ke Pengguna Lain (${l.sharedWith?.length || 0} Dibagikan)`}
+                          >
+                            <Share2 className="w-4 h-4" />
+                            {l.sharedWith && l.sharedWith.length > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 bg-violet-900 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center border-2 border-white shadow-xs">
+                                {l.sharedWith.length}
+                              </span>
+                            )}
+                          </button>
 
                           {/* Tombol Hapus (Merah/Rose - Icon Only, HANYA jika masih status Draf / belum diajukan) */}
                           {l.status === 'draft' && (
@@ -1115,6 +1138,18 @@ export default function LetterList({
           currentUser={currentUser}
           onClose={() => {
             setChatLetter(null)
+            setLocalLetters(getLetters())
+          }}
+        />
+      )}
+
+      {/* MODAL BAGIKAN SURAT */}
+      {shareLetter && (
+        <ShareLetterModal
+          letter={shareLetter}
+          currentUser={currentUser}
+          onClose={() => setShareLetter(null)}
+          onUpdated={() => {
             setLocalLetters(getLetters())
           }}
         />

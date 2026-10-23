@@ -223,4 +223,19 @@ export const api = {
       return []
     }
   },
+
+  // 8. Share Letter (Bagikan Akses Surat ke User Lain)
+  async shareLetter(letterId, sharedWith) {
+    try {
+      const res = await fetch(`${API_BASE}/letters/${letterId}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sharedWith }),
+      })
+      return await res.json()
+    } catch (e) {
+      console.warn('API shareLetter error:', e.message)
+      return { success: false, message: e.message }
+    }
+  },
 }

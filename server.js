@@ -77,6 +77,12 @@ pool.getConnection()
       // Column may already exist
     }
     try {
+      await conn.query(`ALTER TABLE letters ADD COLUMN shared_with JSON NULL`)
+      console.log(' [MySQL] Checked/added shared_with column to letters table')
+    } catch (e) {
+      // Column may already exist
+    }
+    try {
       await conn.query(`
         CREATE TABLE IF NOT EXISTS system_settings (
           key_name VARCHAR(100) NOT NULL PRIMARY KEY,
@@ -536,6 +542,9 @@ app.get('/api/letters', async (req, res) => {
         knownByApprovedBy: fVals.knownByApprovedBy || null,
         knownByNotes: fVals.knownByNotes || null,
         allowedViewers: Array.isArray(fVals.allowedViewers) ? fVals.allowedViewers : [],
+        sharedWith: r.shared_with
+          ? (typeof r.shared_with === 'string' ? JSON.parse(r.shared_with) : r.shared_with)
+          : (Array.isArray(fVals.sharedWith) ? fVals.sharedWith : []),
         content: r.content,
         approvalHistory: typeof r.approval_history === 'string' ? JSON.parse(r.approval_history) : r.approval_history,
         comments: r.comments ? (typeof r.comments === 'string' ? JSON.parse(r.comments) : r.comments) : [],
@@ -544,6 +553,37 @@ app.get('/api/letters', async (req, res) => {
       }
     })
     res.json({ success: true, data: formatted })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+// Bagikan akses surat ke user lain (Share Letter)
+app.post('/api/letters/:id/share', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { sharedWith } = req.body
+    const cleanSharedWith = Array.isArray(sharedWith) ? sharedWith : []
+
+    const [rows] = await pool.query(`SELECT id, field_values FROM letters WHERE id = ?`, [id])
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Surat tidak ditemukan' })
+
+    const fVals = typeof rows[0].field_values === 'string' ? JSON.parse(rows[0].field_values) : rows[0].field_values || {}
+    fVals.sharedWith = cleanSharedWith
+
+    try {
+      await pool.query(
+        `UPDATE letters SET shared_with = ?, field_values = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [JSON.stringify(cleanSharedWith), JSON.stringify(fVals), id]
+      )
+    } catch (colErr) {
+      await pool.query(
+        `UPDATE letters SET field_values = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [JSON.stringify(fVals), id]
+      )
+    }
+
+    res.json({ success: true, message: 'Akses surat berhasil dibagikan', sharedWith: cleanSharedWith })
   } catch (err) {
     res.status(500).json({ success: false, message: err.message })
   }
@@ -639,6 +679,7 @@ app.post('/api/letters', async (req, res) => {
       ...(l.fieldValues || {}),
       attachments: cleanAttachments,
       allowedViewers: Array.isArray(l.allowedViewers) ? l.allowedViewers : (l.fieldValues?.allowedViewers || []),
+      sharedWith: Array.isArray(l.sharedWith) ? l.sharedWith : (l.fieldValues?.sharedWith || []),
     }
     const fieldValues = JSON.stringify(fieldValuesObj)
     const approvalHistory = JSON.stringify(l.approvalHistory || [])

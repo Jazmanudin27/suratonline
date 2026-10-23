@@ -1749,6 +1749,20 @@ export const isLetterVisibleToUser = (letter, currentUser) => {
   })
   if (isDirectViewer) return true
 
+  // 6b. Pengguna yang dibagikan akses secara manual (Fitur Bagikan Surat)
+  const isSharedWith = Array.isArray(letter.sharedWith) && letter.sharedWith.some((s) => {
+    if (typeof s === 'string' || typeof s === 'number') {
+      return String(s) === uid || String(s).toLowerCase() === uName
+    }
+    if (typeof s === 'object' && s !== null) {
+      if (s.id && String(s.id) === uid) return true
+      if (s.userId && String(s.userId) === uid) return true
+      if (s.userName && s.userName.trim().toLowerCase() === uName) return true
+    }
+    return false
+  })
+  if (isSharedWith) return true
+
   // 7. Pengguna Cabang (Melihat surat resmi dari cabangnya sendiri)
   const isPusatExecutive =
     currentUser.kodeJabatan === 'J01' || // Direktur
@@ -1848,6 +1862,48 @@ export const addLetterComment = (letterId, messageText, currentUser = getCurrent
   }
 
   return newComment
+}
+
+// Bagikan akses surat ke pengguna lain
+export const shareLetterWithUsers = async (letterId, targetUsers, currentUser) => {
+  const letters = getLetters()
+  const idx = letters.findIndex((l) => l.id === letterId)
+  if (idx === -1) return false
+
+  const formattedUsers = (Array.isArray(targetUsers) ? targetUsers : []).map((u) => ({
+    userId: u.id || u.userId,
+    userName: u.name || u.userName,
+    branchName: u.branchName || u.branch || '',
+    role: u.role || u.position || '',
+    sharedAt: u.sharedAt || new Date().toISOString(),
+    sharedBy: currentUser?.name || 'User',
+  }))
+
+  const updatedLetter = {
+    ...letters[idx],
+    sharedWith: formattedUsers,
+    fieldValues: {
+      ...(letters[idx].fieldValues || {}),
+      sharedWith: formattedUsers,
+    },
+    updatedAt: new Date().toISOString(),
+  }
+
+  letters[idx] = updatedLetter
+  setStorageItem(STORAGE_KEYS.LETTERS, letters)
+  window.dispatchEvent(new Event('letters_change'))
+
+  // Sync ke backend MySQL
+  try {
+    await api.shareLetter(letterId, formattedUsers)
+  } catch (err) {
+    console.warn('API shareLetter sync warning:', err)
+  }
+
+  // Tambahkan audit log
+  addAuditLog(letterId, currentUser?.name || 'User', 'Bagikan Akses Surat', `Surat dibagikan kepada ${formattedUsers.length} user (${formattedUsers.map((u) => u.userName).join(', ')})`)
+
+  return true
 }
 
 // Reset data to defaults

@@ -27,6 +27,7 @@ import {
   MessageSquare,
   Trash2,
   RotateCcw,
+  FileText,
 } from 'lucide-react'
 import AttachmentUploader from './AttachmentUploader'
 import { renderPdfToPages } from '../utils/pdfRenderer'

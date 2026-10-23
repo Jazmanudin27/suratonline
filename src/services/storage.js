@@ -338,9 +338,11 @@ export const syncWithDatabase = async () => {
         }
       })
 
-      // Pertahankan surat lokal (misal draft baru yang belum tersimpan di MySQL / offline)
+      // Gunakan lettersData dari database MySQL sebagai satu-satunya kebenaran
+      const fakeLetterIds = new Set(['ltr-001', 'ltr-002', 'ltr-003'])
+      const cleanCurrentLetters = currentLetters.filter((l) => l && l.id && !fakeLetterIds.has(l.id))
       const remoteIds = new Set(lettersData.map((r) => r.id))
-      const localOnlyLetters = currentLetters.filter((l) => l && l.id && !remoteIds.has(l.id))
+      const localOnlyLetters = cleanCurrentLetters.filter((l) => l && l.id && !remoteIds.has(l.id) && !fakeLetterIds.has(l.id))
       const finalLetters = [...mergedLetters, ...localOnlyLetters]
 
       setStorageItem(STORAGE_KEYS.LETTERS, finalLetters)
@@ -352,11 +354,36 @@ export const syncWithDatabase = async () => {
 }
 
 export const initializeStorage = async () => {
-  // 1. Hydrate dari IndexedDB terlebih dahulu agar lampiran utuh terbaca sebelum sync API
+  // 1. Bersihkan sisa data dummy / fake lama dari localStorage & IndexedDB jika ada
+  try {
+    const fakeIds = ['ltr-001', 'ltr-002', 'ltr-003']
+    const rawLetters = localStorage.getItem(STORAGE_KEYS.LETTERS)
+    if (rawLetters) {
+      const parsed = JSON.parse(rawLetters)
+      if (Array.isArray(parsed) && parsed.some((p) => fakeIds.includes(p?.id))) {
+        const cleaned = parsed.filter((p) => !fakeIds.includes(p?.id))
+        setStorageItem(STORAGE_KEYS.LETTERS, cleaned)
+      }
+    }
+    const fakeTpls = ['tpl-perdin', 'tpl-service', 'tpl-diskon-crm', 'tpl-cuti']
+    const rawTpls = localStorage.getItem(STORAGE_KEYS.TEMPLATES)
+    if (rawTpls) {
+      const parsedT = JSON.parse(rawTpls)
+      if (Array.isArray(parsedT) && parsedT.some((p) => fakeTpls.includes(p?.id))) {
+        const cleanedT = parsedT.filter((p) => !fakeTpls.includes(p?.id))
+        setStorageItem(STORAGE_KEYS.TEMPLATES, cleanedT)
+      }
+    }
+  } catch (cleanErr) {
+    console.warn('Storage cleanup:', cleanErr.message)
+  }
+
+  // 2. Hydrate dari IndexedDB terlebih dahulu agar lampiran utuh terbaca sebelum sync API
   try {
     const idbLetters = await idbGet(STORAGE_KEYS.LETTERS)
     if (Array.isArray(idbLetters) && idbLetters.length > 0) {
-      lettersMemoryCache = idbLetters
+      const fakeIds = new Set(['ltr-001', 'ltr-002', 'ltr-003'])
+      lettersMemoryCache = idbLetters.filter((l) => l && !fakeIds.has(l.id))
       window.dispatchEvent(new Event('letters_change'))
     }
   } catch (e) {

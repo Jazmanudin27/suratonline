@@ -873,10 +873,11 @@ app.get('/api/audit_logs/:letter_id', async (req, res) => {
 const distPath = path.join(__dirname, 'dist')
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath))
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api') && !req.path.startsWith('/lampiran')) {
-      res.sendFile(path.join(distPath, 'index.html'))
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/lampiran')) {
+      return res.sendFile(path.join(distPath, 'index.html'))
     }
+    next()
   })
 }
 

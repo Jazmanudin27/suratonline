@@ -57,7 +57,6 @@ import {
   getGlobalDefaultViewers,
   saveGlobalDefaultViewers,
 } from '../services/storage'
-import { HRD_JABATAN } from '../data/mockData'
 import { notify } from '../utils/alert'
 
 export default function AdminTemplateManager({ onSelectTemplateForLetter }) {

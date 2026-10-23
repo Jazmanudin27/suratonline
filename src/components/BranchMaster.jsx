@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Building2, Plus, MapPin, Phone, CheckCircle, Search, Edit3, UserCheck, ShieldCheck, User } from 'lucide-react'
 import { getBranches, saveBranch, getUsers } from '../services/storage'
-import { HRD_JABATAN } from '../data/mockData'
 import { notify } from '../utils/alert'
 
 export default function BranchMaster() {

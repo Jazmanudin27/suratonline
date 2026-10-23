@@ -1,4 +1,3 @@
-import { INITIAL_BRANCHES, INITIAL_USERS, INITIAL_TEMPLATES, INITIAL_LETTERS } from '../data/mockData'
 import { api } from './api'
 
 const STORAGE_KEYS = {
@@ -11,6 +10,7 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'suratajuan_audit_logs_v2',
   CATEGORIES: 'suratajuan_categories_v2',
   GLOBAL_DEFAULT_VIEWERS: 'suratajuan_global_default_viewers_v2',
+  JABATAN: 'suratajuan_jabatan_v2',
 }
 
 // Convert month number to Roman numerals
@@ -243,12 +243,13 @@ if (typeof window !== 'undefined') {
 // Initialize seed data and sync from MySQL API
 export const syncWithDatabase = async () => {
   try {
-    const [branchesData, usersData, templatesData, lettersData, globalViewersData] = await Promise.all([
+    const [branchesData, usersData, templatesData, lettersData, globalViewersData, jabatanData] = await Promise.all([
       api.getCabang(),
       api.getUsers(),
       api.getTemplates(),
       api.getLetters(),
       api.getSetting('global_default_viewers'),
+      api.getJabatan(),
     ])
 
     if (Array.isArray(globalViewersData)) {
@@ -257,21 +258,18 @@ export const syncWithDatabase = async () => {
     }
 
     if (Array.isArray(branchesData) && branchesData.length > 0) {
-      // Merge MySQL cabang data with current saved branches to preserve madeBy/knownBy settings
-      const currentSavedBranches = getStorageItem(STORAGE_KEYS.BRANCHES, INITIAL_BRANCHES)
+      // Simpan cabang resmi langsung dari database MySQL
+      const currentSavedBranches = getStorageItem(STORAGE_KEYS.BRANCHES, [])
       const mergedBranches = branchesData.map((remote) => {
         const existing = currentSavedBranches.find(
           (b) => b.id === remote.id || b.code === remote.code || b.id === remote.code
         )
-        const init = INITIAL_BRANCHES.find(
-          (ib) => ib.id === remote.id || ib.code === remote.code
-        )
         return {
           ...remote,
-          madeBy: existing?.madeBy || init?.madeBy || '',
-          madeByPosition: existing?.madeByPosition || init?.madeByPosition || '',
-          knownBy: existing?.knownBy || init?.knownBy || '',
-          knownByPosition: existing?.knownByPosition || init?.knownByPosition || '',
+          madeBy: existing?.madeBy || '',
+          madeByPosition: existing?.madeByPosition || '',
+          knownBy: existing?.knownBy || '',
+          knownByPosition: existing?.knownByPosition || '',
         }
       })
       setStorageItem(STORAGE_KEYS.BRANCHES, mergedBranches)
@@ -281,6 +279,11 @@ export const syncWithDatabase = async () => {
     if (Array.isArray(usersData) && usersData.length > 0) {
       setStorageItem(STORAGE_KEYS.USERS, usersData)
       window.dispatchEvent(new Event('users_change'))
+    }
+
+    if (Array.isArray(jabatanData) && jabatanData.length > 0) {
+      setStorageItem(STORAGE_KEYS.JABATAN, jabatanData)
+      window.dispatchEvent(new Event('jabatan_change'))
     }
 
     if (Array.isArray(templatesData) && templatesData.length > 0) {
@@ -391,16 +394,13 @@ export const initializeStorage = async () => {
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-    setStorageItem(STORAGE_KEYS.USERS, INITIAL_USERS)
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
-    setStorageItem(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0])
+    setStorageItem(STORAGE_KEYS.USERS, [])
   }
   if (!localStorage.getItem(STORAGE_KEYS.BRANCHES)) {
-    setStorageItem(STORAGE_KEYS.BRANCHES, INITIAL_BRANCHES)
+    setStorageItem(STORAGE_KEYS.BRANCHES, [])
   }
   if (!localStorage.getItem(STORAGE_KEYS.TEMPLATES)) {
-    setStorageItem(STORAGE_KEYS.TEMPLATES, INITIAL_TEMPLATES)
+    setStorageItem(STORAGE_KEYS.TEMPLATES, [])
   }
   if (localStorage.getItem(STORAGE_KEYS.LETTERS) === null && !lettersMemoryCache) {
     setStorageItem(STORAGE_KEYS.LETTERS, [])
@@ -411,8 +411,14 @@ export const initializeStorage = async () => {
 }
 
 // User & Auth Management
-export const getUsers = () => getStorageItem(STORAGE_KEYS.USERS, INITIAL_USERS)
-export const getCurrentUser = () => getStorageItem(STORAGE_KEYS.CURRENT_USER, null)
+export const getUsers = () => getStorageItem(STORAGE_KEYS.USERS, [])
+export const getJabatan = () => getStorageItem(STORAGE_KEYS.JABATAN, [])
+export const getCurrentUser = () => {
+  const user = getStorageItem(STORAGE_KEYS.CURRENT_USER, null)
+  if (user) return user
+  const users = getUsers()
+  return users.length > 0 ? users[0] : null
+}
 export const setCurrentUser = (user) => {
   if (user) {
     setStorageItem(STORAGE_KEYS.CURRENT_USER, user)
@@ -429,20 +435,17 @@ export const clearCurrentUser = () => {
 
 // Branches
 export const getBranches = () => {
-  const branches = getStorageItem(STORAGE_KEYS.BRANCHES, INITIAL_BRANCHES)
-  return branches.map((b) => {
-    const init = INITIAL_BRANCHES.find((ib) => ib.id === b.id || ib.code === b.code)
-    return {
-      ...b,
-      madeBy: b.madeBy || init?.madeBy || '',
-      madeByPosition: b.madeByPosition || init?.madeByPosition || '',
-      knownBy: b.knownBy || init?.knownBy || '',
-      knownByPosition: b.knownByPosition || init?.knownByPosition || '',
-      rsmId: b.rsmId || init?.rsmId || '',
-      rsmName: b.rsmName || init?.rsmName || '',
-      regionalName: b.regionalName || init?.regionalName || '',
-    }
-  })
+  const branches = getStorageItem(STORAGE_KEYS.BRANCHES, [])
+  return branches.map((b) => ({
+    ...b,
+    madeBy: b.madeBy || '',
+    madeByPosition: b.madeByPosition || '',
+    knownBy: b.knownBy || '',
+    knownByPosition: b.knownByPosition || '',
+    rsmId: b.rsmId || '',
+    rsmName: b.rsmName || '',
+    regionalName: b.regionalName || '',
+  }))
 }
 
 export const saveBranch = (branch) => {

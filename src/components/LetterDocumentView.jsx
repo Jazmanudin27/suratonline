@@ -981,16 +981,10 @@ export default function LetterDocumentView({
                     )}
                   </div>
 
-                  <div className="mt-0.5 text-center">
-                    <p className="text-xs font-bold text-slate-900 underline decoration-slate-400">
-                      ({submitterName})
-                    </p>
-                    <p className="text-[11px] font-semibold text-slate-700 mt-0.5">
-                      {submitterPosition}
-                    </p>
-                    <p className="text-[10px] text-slate-500 font-mono mt-0.5 font-medium">
-                      {formatDateTimeId(letter.createdAt || new Date())}
-                    </p>
+                  <div className="mt-1 text-center text-[10px] leading-snug text-slate-900">
+                    <p className="font-medium text-slate-600">Nomor Surat: <span className="text-slate-950 font-bold">{letter.letterNumber || '-'}</span></p>
+                    <p className="font-medium text-slate-600 mt-0.5">Waktu Persetujuan: <span className="text-slate-950 font-bold">{formatDateTimeId(letter.createdAt || new Date())}</span></p>
+                    <p className="font-medium text-slate-600 mt-0.5">Orang: <span className="text-slate-950 font-bold">{submitterName}</span></p>
                   </div>
                 </div>
 
@@ -1029,18 +1023,10 @@ export default function LetterDocumentView({
                       )}
                     </div>
 
-                    <div className="mt-1 text-center">
-                      <p className="text-xs font-bold text-slate-900 underline decoration-slate-400">
-                        ({effectiveKnownByName})
-                      </p>
-                      <p className="text-[11px] font-semibold text-slate-600 mt-0.5">
-                        {effectiveKnownByPosition}
-                      </p>
-                      {isKnownByApproved && (
-                        <p className="text-[10px] text-emerald-700 font-mono font-medium mt-0.5">
-                          Approve: {formatDateTimeId(knownByTime)}
-                        </p>
-                      )}
+                    <div className="mt-1 text-center text-[10px] leading-snug text-slate-900">
+                      <p className="font-medium text-slate-600">Nomor Surat: <span className="text-slate-950 font-bold">{letter.letterNumber || '-'}</span></p>
+                      <p className="font-medium text-slate-600 mt-0.5">Waktu Persetujuan: <span className="text-slate-950 font-bold">{isKnownByApproved ? formatDateTimeId(knownByTime) : '-'}</span></p>
+                      <p className="font-medium text-slate-600 mt-0.5">Orang: <span className="text-slate-950 font-bold">{effectiveKnownByName}</span></p>
                     </div>
                   </div>
                 )}
@@ -1137,22 +1123,10 @@ export default function LetterDocumentView({
                                   )}
                                 </div>
 
-                                <div className="mt-2 w-full">
-                                  {/* Format kurung tanda tangan: hanya nama pejabat (tanpa jabatan) */}
-                                  <div className="flex items-center justify-center gap-1 text-slate-900">
-                                    <span className="text-sm font-semibold">(</span>
-                                    <span className="border-b border-slate-700 min-w-[140px] pb-0.5 text-center">
-                                      <span className="text-xs font-bold text-slate-950 block">
-                                        {getApproverDisplayName(step)}
-                                      </span>
-                                    </span>
-                                    <span className="text-sm font-semibold">)</span>
-                                  </div>
-                                  {isApproved && step.date && (
-                                    <p className="text-[10px] text-emerald-800 font-mono font-semibold mt-1">
-                                      Approve: {formatDateTimeId(step.date)}
-                                    </p>
-                                  )}
+                                <div className="mt-1.5 w-full text-center text-[10px] leading-snug text-slate-900">
+                                  <p className="font-medium text-slate-600">Nomor Surat: <span className="text-slate-950 font-bold">{letter.letterNumber || '-'}</span></p>
+                                  <p className="font-medium text-slate-600 mt-0.5">Waktu Persetujuan: <span className="text-slate-950 font-bold">{step.date ? formatDateTimeId(step.date) : '-'}</span></p>
+                                  <p className="font-medium text-slate-600 mt-0.5">Orang: <span className="text-slate-950 font-bold">{getApproverDisplayName(step)}</span></p>
                                 </div>
                               </div>
                             </td>

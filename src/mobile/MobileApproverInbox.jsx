@@ -1,7 +1,20 @@
 import React, { useState } from 'react'
+import {
+  Inbox,
+  Clock,
+  History,
+  Search,
+  MessageSquare,
+  FileText,
+  ShieldCheck,
+  Pencil,
+  CheckCircle,
+  Building2,
+  User,
+  Calendar,
+} from 'lucide-react'
 import { canUserApproveLetter } from '../components/ApproverInbox'
 import MobileApprovalModal from './MobileApprovalModal'
-import { notify } from '../utils/alert'
 import { formatDateId } from '../services/storage'
 
 export default function MobileApproverInbox({
@@ -63,32 +76,34 @@ export default function MobileApproverInbox({
   })
 
   return (
-    <div className="space-y-4 pb-28 px-1">
+    <div className="space-y-3 pb-28 px-1">
       {/* Header Info */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-            <span>📥</span> Inbox Persetujuan
+          <h2 className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
+            <Inbox size={16} className="text-blue-600" />
+            <span>Inbox Persetujuan</span>
           </h2>
-          <p className="text-[11px] font-medium text-slate-500">
-            Masuk sebagai: <strong>{currentUser?.name}</strong> ({currentUser?.position || currentUser?.kodeJabatan || 'Approver'})
+          <p className="text-[11px] font-medium text-slate-400">
+            {currentUser?.name} &bull; {currentUser?.position || currentUser?.kodeJabatan || 'Approver'}
           </p>
         </div>
       </div>
 
       {/* Segmented Control / Tabs */}
-      <div className="bg-slate-200/60 p-1 rounded-2xl flex items-center gap-1 text-xs">
+      <div className="bg-slate-200/70 p-1 rounded-xl flex items-center gap-1 text-xs">
         <button
           onClick={() => setActiveSubTab('pending')}
-          className={`flex-1 py-2 rounded-xl font-extrabold transition flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 text-xs ${
             activeSubTab === 'pending'
-              ? 'bg-white text-rose-600 shadow-sm'
+              ? 'bg-white text-rose-600 shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <span>⏳ Perlu ACC</span>
+          <Clock size={13} className={activeSubTab === 'pending' ? 'text-rose-600' : 'text-slate-400'} />
+          <span>Perlu ACC</span>
           {pendingLetters.length > 0 && (
-            <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
+            <span className="bg-rose-500 text-white text-[10px] min-w-[18px] h-[18px] px-1 rounded-full font-black flex items-center justify-center">
               {pendingLetters.length}
             </span>
           )}
@@ -96,14 +111,15 @@ export default function MobileApproverInbox({
 
         <button
           onClick={() => setActiveSubTab('history')}
-          className={`flex-1 py-2 rounded-xl font-extrabold transition flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5 text-xs ${
             activeSubTab === 'history'
-              ? 'bg-white text-blue-600 shadow-sm'
+              ? 'bg-white text-blue-600 shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <span>📁 Riwayat Saya</span>
-          <span className="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+          <History size={13} className={activeSubTab === 'history' ? 'text-blue-600' : 'text-slate-400'} />
+          <span>Riwayat</span>
+          <span className="bg-slate-100 text-slate-600 text-[10px] min-w-[18px] h-[18px] px-1 rounded-full font-bold flex items-center justify-center">
             {historyLetters.length}
           </span>
         </button>
@@ -111,37 +127,25 @@ export default function MobileApproverInbox({
 
       {/* Search Input */}
       <div className="relative">
+        <Search size={15} className="text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Cari surat di inbox..."
-          className="w-full bg-white rounded-2xl pl-10 pr-4 py-3 text-xs text-slate-800 placeholder-slate-400 shadow-[0_4px_20px_rgba(15,23,42,0.06)] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+          className="w-full bg-white rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 border border-slate-200/80 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
         />
-        <svg
-          className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
       </div>
 
       {/* Cards List */}
       {filteredList.length === 0 ? (
-        <div className="bg-white rounded-3xl p-8 text-center shadow-[0_4px_20px_rgba(15,23,42,0.06)] mt-2">
-          <span className="text-4xl block mb-2">
-            {activeSubTab === 'pending' ? '🎉' : '📂'}
-          </span>
+        <div className="bg-white rounded-2xl p-8 text-center border border-slate-200/70 shadow-xs mt-2">
+          <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+            {activeSubTab === 'pending' ? <CheckCircle size={20} className="text-emerald-500" /> : <History size={20} />}
+          </div>
           <p className="text-xs font-bold text-slate-700">
             {activeSubTab === 'pending'
-              ? 'Tidak ada ajuan yang perlu persetujuan!'
+              ? 'Tidak ada ajuan yang perlu persetujuan'
               : 'Belum ada riwayat persetujuan'}
           </p>
           <p className="text-[11px] text-slate-400 mt-1">
@@ -151,7 +155,7 @@ export default function MobileApproverInbox({
           </p>
         </div>
       ) : (
-        <div className="space-y-3.5">
+        <div className="space-y-3">
           {filteredList.map((letter) => {
             const commentsCount = (letter.comments || []).length
             const isPendingThisUser = canUserApproveLetter(letter, currentUser)
@@ -160,63 +164,63 @@ export default function MobileApproverInbox({
             return (
               <div
                 key={letter.id}
-                className="bg-white rounded-3xl p-4.5 shadow-[0_8px_30px_rgba(15,23,42,0.07)] hover:shadow-[0_12px_36px_rgba(15,23,42,0.11)] transition-all duration-200"
+                className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:border-blue-300 transition-all duration-200"
               >
                 {/* Header Card: Nomor & Current Step */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg inline-block truncate max-w-full">
+                    <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block truncate max-w-full border border-blue-100">
                       {letter.letterNumber || 'Draft'}
                     </span>
-                    <h3 className="text-xs font-bold text-slate-900 mt-2 leading-snug">
+                    <h3 className="text-xs font-bold text-slate-900 mt-1.5 leading-snug">
                       {letter.title || 'Surat Pengajuan'}
                     </h3>
                   </div>
 
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-blue-50 text-blue-700 border border-blue-200">
-                    Step {letter.currentStep || 1} / {letter.totalSteps || 3}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 bg-blue-50 text-blue-700 border border-blue-200">
+                    Step {letter.currentStep || 1}/{letter.totalSteps || 3}
                   </span>
                 </div>
 
                 {/* Metadata */}
-                <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
-                  <div className="truncate">
-                    <span className="text-slate-400">Pemohon:</span>{' '}
-                    <span className="font-semibold text-slate-700">
+                <div className="mt-3 pt-2.5 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+                  <div className="truncate flex items-center gap-1">
+                    <User size={12} className="text-slate-400 shrink-0" />
+                    <span className="font-semibold text-slate-700 truncate">
                       {letter.userName || letter.creatorName || letter.createdBy || '-'}
                     </span>
                   </div>
-                  <div className="truncate text-right">
-                    <span className="text-slate-400">Cabang:</span>{' '}
-                    <span className="font-semibold text-slate-700">
+                  <div className="truncate text-right flex items-center justify-end gap-1">
+                    <Building2 size={12} className="text-slate-400 shrink-0" />
+                    <span className="font-semibold text-slate-700 truncate">
                       {letter.branchName || letter.branchId || letter.branchCode || '-'}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-slate-400">Tanggal:</span>{' '}
-                    <span className="font-semibold text-slate-700">
+                  <div className="flex items-center gap-1">
+                    <Calendar size={12} className="text-slate-400 shrink-0" />
+                    <span className="font-medium text-slate-600">
                       {letter.createdAt ? formatDateId(letter.createdAt) : '-'}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-slate-400">Status:</span>{' '}
-                    <span className="font-bold text-amber-600">
+                    <span className={`font-bold ${isApproved ? 'text-emerald-600' : 'text-amber-600'}`}>
                       {isApproved ? 'Selesai (Sah)' : 'Menunggu ACC'}
                     </span>
                   </div>
                 </div>
 
                 {/* Approver Action Buttons */}
-                <div className="mt-3.5 pt-3 border-t border-slate-100 space-y-2">
+                <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-2">
                   {/* Row 1: Chat Diskusi & Preview Dokumen */}
                   <div className="flex items-center justify-between gap-2">
                     <button
                       onClick={() => onOpenChat(letter)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-xs font-bold transition active:scale-95"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition active:scale-95"
                     >
-                      <span>💬 Diskusi</span>
+                      <MessageSquare size={13} className="text-slate-500" />
+                      <span>Diskusi</span>
                       {commentsCount > 0 && (
-                        <span className="bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                        <span className="bg-indigo-600 text-white text-[10px] px-1.5 rounded-full font-bold">
                           {commentsCount}
                         </span>
                       )}
@@ -224,9 +228,10 @@ export default function MobileApproverInbox({
 
                     <button
                       onClick={() => onPreviewLetter(letter)}
-                      className="px-4 py-1.5 text-xs font-extrabold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition active:scale-95 border border-blue-200"
+                      className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition active:scale-95 border border-blue-200"
                     >
-                      Buka Dokumen
+                      <FileText size={13} />
+                      <span>Buka Dokumen</span>
                     </button>
                   </div>
 
@@ -235,9 +240,9 @@ export default function MobileApproverInbox({
                     <button
                       type="button"
                       onClick={() => setApprovingLetter(letter)}
-                      className="w-full py-2.5 px-4 text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl text-xs font-extrabold transition shadow-md shadow-emerald-500/25 active:scale-98 flex items-center justify-center gap-2"
+                      className="w-full py-2.5 px-4 text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl text-xs font-bold transition shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
                     >
-                      <span>🛡️</span>
+                      <ShieldCheck size={15} />
                       <span>Proses Persetujuan (Approval)</span>
                     </button>
                   )}
@@ -260,9 +265,10 @@ export default function MobileApproverInbox({
                         if (newNote === null) return
                         onUpdateNotes(letter.id, targetIdx !== -1 ? targetIdx : 0, newNote.trim())
                       }}
-                      className="w-full py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition active:scale-95 text-center"
+                      className="w-full py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition active:scale-95 flex items-center justify-center gap-1.5 border border-blue-100"
                     >
-                      ✎ Ubah Catatan Persetujuan
+                      <Pencil size={13} />
+                      <span>Ubah Catatan Persetujuan</span>
                     </button>
                   )}
                 </div>
@@ -295,3 +301,4 @@ export default function MobileApproverInbox({
     </div>
   )
 }
+

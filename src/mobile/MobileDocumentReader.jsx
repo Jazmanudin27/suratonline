@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { ShieldCheck, MessageSquare } from 'lucide-react'
 import LetterDocumentView from '../components/LetterDocumentView'
 import MobileApprovalModal from './MobileApprovalModal'
 import { canUserApproveLetter } from '../components/ApproverInbox'
@@ -195,9 +196,9 @@ export default function MobileDocumentReader({
           <button
             type="button"
             onClick={() => setShowApprovalModal(true)}
-            className="w-full py-2.5 px-4 text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl text-xs font-extrabold transition shadow-md shadow-emerald-500/25 active:scale-98 flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl text-xs font-bold transition shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
           >
-            <span>🛡️</span>
+            <ShieldCheck size={15} />
             <span>Proses Persetujuan (Approval)</span>
           </button>
         )}
@@ -206,11 +207,12 @@ export default function MobileDocumentReader({
         <div className="flex items-center gap-2">
           <button
             onClick={() => onOpenChat(letter)}
-            className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
+            className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
           >
-            <span>💬 Diskusi</span>
+            <MessageSquare size={13} className="text-slate-400" />
+            <span>Diskusi</span>
             {commentsCount > 0 && (
-              <span className="bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+              <span className="bg-indigo-600 text-white text-[10px] px-1.5 rounded-full font-bold">
                 {commentsCount}
               </span>
             )}

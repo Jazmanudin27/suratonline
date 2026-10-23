@@ -1,4 +1,17 @@
 import React, { useState, useMemo } from 'react'
+import {
+  Users,
+  Search,
+  X,
+  Building2,
+  Monitor,
+  LogOut,
+  Check,
+  ChevronRight,
+  Shield,
+  Briefcase,
+  Hash,
+} from 'lucide-react'
 import { getUsers, setCurrentUser as storageSetCurrentUser } from '../services/storage'
 import { notify } from '../utils/alert'
 
@@ -49,71 +62,72 @@ export default function MobileProfile({
     .join('')
 
   return (
-    <div className="space-y-4 pb-28 px-1 animate-fadeIn">
+    <div className="space-y-3 pb-28 px-1 animate-fadeIn">
       {/* Header Profile Card */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm text-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500" />
+      <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs text-center relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-800" />
 
-        <div className="relative z-10 -mt-2 flex flex-col items-center">
-          <div className="w-20 h-20 rounded-3xl bg-white p-1.5 shadow-md">
-            <div className="w-full h-full rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center text-white text-2xl font-black">
+        <div className="relative z-10 -mt-1 flex flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl bg-white p-1 shadow-xs border border-white/60">
+            <div className="w-full h-full rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center text-white text-lg font-black">
               {initials}
             </div>
           </div>
 
-          <h3 className="text-base font-bold text-slate-900 mt-3">
+          <h3 className="text-sm font-bold text-slate-900 mt-2.5">
             {currentUser?.name || 'Pengguna'}
           </h3>
           <p className="text-xs text-slate-500 font-medium">
             {currentUser?.position || currentUser?.role || 'Staff'}
           </p>
 
-          <span className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-            🏢 {currentUser?.branchName ? (currentUser.branchName.toLowerCase().startsWith('cabang') ? currentUser.branchName : `Cabang ${currentUser.branchName}`) : (currentUser?.branchId || 'Pusat')}
+          <span className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <Building2 size={12} className="text-blue-500" />
+            <span>
+              {currentUser?.branchName ? (currentUser.branchName.toLowerCase().startsWith('cabang') ? currentUser.branchName : `Cabang ${currentUser.branchName}`) : (currentUser?.branchId || 'Pusat')}
+            </span>
           </span>
         </div>
       </div>
 
       {/* Quick Switch User Card (Peralihan User Demo / Test) */}
-      <div className="bg-white rounded-2xl p-4 border border-blue-200 shadow-sm space-y-3 relative overflow-hidden">
+      <div className="bg-white rounded-2xl p-4 border border-blue-200/90 shadow-xs space-y-3">
         <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-black">
-              👥
+            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Users size={14} />
             </div>
             <div>
-              <h4 className="text-xs font-extrabold text-slate-900">
-                Peralihan User (Uji Peran)
+              <h4 className="text-xs font-bold text-slate-900">
+                Peralihan Akun (Test)
               </h4>
               <p className="text-[10px] text-slate-400">
-                Ganti user langsung untuk menguji persetujuan atau pembuatan surat.
+                Ganti peran langsung untuk menguji alur surat
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
+          <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
             {filteredUsers.length} User
           </span>
         </div>
 
         {/* Search Input */}
         <div className="relative">
+          <Search size={14} className="text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Cari nama, jabatan, cabang..."
-            className="w-full pl-8 pr-7 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+            className="w-full pl-8 pr-7 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
           />
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none">
-            🔍
-          </span>
           {searchTerm && (
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-0.5"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
             >
-              ✕
+              <X size={12} />
             </button>
           )}
         </div>
@@ -130,9 +144,9 @@ export default function MobileProfile({
               key={tab.id}
               type="button"
               onClick={() => setRoleFilter(tab.id)}
-              className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap ${
+              className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap text-[11px] ${
                 roleFilter === tab.id
-                  ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                  ? 'bg-blue-600 text-white font-bold shadow-xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -142,7 +156,7 @@ export default function MobileProfile({
         </div>
 
         {/* List of Users */}
-        <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/50">
+        <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto rounded-xl border border-slate-200/80 bg-slate-50/50">
           {filteredUsers.length > 0 ? (
             filteredUsers.map((u) => {
               const isCurrent = u.id === currentUser?.id
@@ -151,15 +165,15 @@ export default function MobileProfile({
                   key={u.id}
                   type="button"
                   onClick={() => handleSelectUser(u)}
-                  className={`w-full p-2.5 text-left transition flex items-center justify-between gap-2.5 ${
+                  className={`w-full p-2 text-left transition flex items-center justify-between gap-2 ${
                     isCurrent
-                      ? 'bg-blue-50/90 border-l-4 border-blue-600 cursor-default'
+                      ? 'bg-blue-50/90 border-l-3 border-blue-600 cursor-default'
                       : 'hover:bg-white bg-transparent active:bg-slate-100'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black shrink-0 shadow-2xs ${
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
                         u.role === 'admin_pusat'
                           ? 'bg-purple-100 text-purple-700'
                           : u.role === 'approver'
@@ -171,29 +185,28 @@ export default function MobileProfile({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-slate-900 truncate">
+                        <span className="font-bold text-xs text-slate-800 truncate">
                           {u.name}
                         </span>
                         {isCurrent && (
-                          <span className="text-[9px] bg-emerald-500 text-white font-extrabold px-1.5 py-0.2 rounded-full shadow-2xs shrink-0">
+                          <span className="text-[9px] bg-emerald-500 text-white font-extrabold px-1.5 rounded-full shrink-0">
                             Aktif
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                      <p className="text-[10px] text-slate-400 truncate">
                         {u.position || u.role} &bull; {u.branchName || u.branchId || 'Pusat'}
                       </p>
                     </div>
                   </div>
 
                   {!isCurrent ? (
-                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-lg shrink-0">
-                      Ganti &rarr;
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md shrink-0 inline-flex items-center gap-0.5">
+                      <span>Pilih</span>
+                      <ChevronRight size={10} />
                     </span>
                   ) : (
-                    <span className="text-xs text-emerald-600 font-bold shrink-0">
-                      ✓
-                    </span>
+                    <Check size={14} className="text-emerald-600 shrink-0 stroke-[3]" />
                   )}
                 </button>
               )
@@ -207,36 +220,48 @@ export default function MobileProfile({
       </div>
 
       {/* Account Details */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3">
-        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-2.5">
+        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
           Informasi Akun
         </h4>
 
-        <div className="space-y-2.5 text-xs">
+        <div className="space-y-2 text-xs">
           <div className="flex items-center justify-between py-1 border-b border-slate-100">
-            <span className="text-slate-500">Username / NIK</span>
-            <span className="font-semibold text-slate-800 font-mono">
+            <span className="text-slate-500 flex items-center gap-1.5">
+              <Briefcase size={13} className="text-slate-400" />
+              <span>Username / NIK</span>
+            </span>
+            <span className="font-semibold text-slate-800 font-mono text-[11px]">
               {currentUser?.username || currentUser?.nik || '-'}
             </span>
           </div>
 
           <div className="flex items-center justify-between py-1 border-b border-slate-100">
-            <span className="text-slate-500">Kode Jabatan</span>
-            <span className="font-semibold text-slate-800 font-mono">
+            <span className="text-slate-500 flex items-center gap-1.5">
+              <Hash size={13} className="text-slate-400" />
+              <span>Kode Jabatan</span>
+            </span>
+            <span className="font-semibold text-slate-800 font-mono text-[11px]">
               {currentUser?.kodeJabatan || '-'}
             </span>
           </div>
 
           <div className="flex items-center justify-between py-1 border-b border-slate-100">
-            <span className="text-slate-500">Tingkat Approval</span>
+            <span className="text-slate-500 flex items-center gap-1.5">
+              <Shield size={13} className="text-slate-400" />
+              <span>Tingkat Approval</span>
+            </span>
             <span className="font-semibold text-slate-800">
               Level {currentUser?.approvalLevel || '-'}
             </span>
           </div>
 
           <div className="flex items-center justify-between py-1">
-            <span className="text-slate-500">Role Sistem</span>
-            <span className="font-semibold text-indigo-600 uppercase">
+            <span className="text-slate-500 flex items-center gap-1.5">
+              <Users size={13} className="text-slate-400" />
+              <span>Role Sistem</span>
+            </span>
+            <span className="font-bold text-blue-600 uppercase text-[11px]">
               {currentUser?.role || 'User'}
             </span>
           </div>
@@ -244,21 +269,24 @@ export default function MobileProfile({
       </div>
 
       {/* Action Buttons */}
-      <div className="space-y-2 pt-2">
+      <div className="space-y-2 pt-1">
         <button
           onClick={onSwitchToDesktop}
-          className="w-full py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition active:scale-98"
+          className="w-full py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition active:scale-98"
         >
-          <span>💻</span> Beralih ke Tampilan Desktop
+          <Monitor size={14} />
+          <span>Beralih ke Tampilan Desktop</span>
         </button>
 
         <button
           onClick={onLogout}
-          className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-2xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition active:scale-98"
+          className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition active:scale-98"
         >
-          <span>🚪</span> Keluar dari Akun
+          <LogOut size={14} />
+          <span>Keluar dari Akun</span>
         </button>
       </div>
     </div>
   )
 }
+

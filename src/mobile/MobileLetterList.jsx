@@ -1,4 +1,21 @@
 import React, { useState } from 'react'
+import {
+  Search,
+  X,
+  FolderArchive,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  FileEdit,
+  MessageSquare,
+  FileText,
+  Building2,
+  User,
+  Calendar,
+  Layers,
+  Check,
+} from 'lucide-react'
 import { canUserApproveLetter } from '../components/ApproverInbox'
 import MobileApprovalModal from './MobileApprovalModal'
 import { formatDateId } from '../services/storage'
@@ -45,74 +62,68 @@ export default function MobileLetterList({
     return matchesSearch && matchesStatus
   })
 
+  const filterTabs = [
+    { id: 'all', label: 'Semua', icon: null },
+    { id: 'pending', label: 'Menunggu', icon: Clock },
+    { id: 'approved', label: 'Disetujui', icon: CheckCircle2 },
+    { id: 'revision', label: 'Revisi', icon: AlertCircle },
+    { id: 'rejected', label: 'Ditolak', icon: XCircle },
+    { id: 'draft', label: 'Draf', icon: FileEdit },
+  ]
+
   return (
-    <div className="space-y-4 pb-28 px-1">
+    <div className="space-y-3 pb-28 px-1">
       {/* Header Title & Counter */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-            <span>📁</span> Daftar Arsip Surat
+          <h2 className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
+            <FolderArchive size={16} className="text-blue-600" />
+            <span>Daftar Arsip Surat</span>
           </h2>
-          <p className="text-[11px] font-medium text-slate-500">
-            Total {filteredLetters.length} dokumen arsip
+          <p className="text-[11px] font-medium text-slate-400">
+            Total {filteredLetters.length} dokumen
           </p>
         </div>
       </div>
 
       {/* Search Input Box */}
       <div className="relative">
+        <Search size={15} className="text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Cari nomor, perihal, atau cabang..."
-          className="w-full bg-white rounded-2xl pl-10 pr-4 py-3 text-xs text-slate-800 placeholder-slate-400 shadow-[0_4px_20px_rgba(15,23,42,0.06)] border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+          className="w-full bg-white rounded-xl pl-9 pr-8 py-2.5 text-xs text-slate-800 placeholder-slate-400 border border-slate-200/80 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
         />
-        <svg
-          className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
         {searchTerm && (
           <button
             onClick={() => setSearchTerm('')}
-            className="absolute right-3 top-3 text-xs text-slate-400 hover:text-slate-600 bg-slate-100 rounded-full w-5 h-5 flex items-center justify-center"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-100 rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
           >
-            ✕
+            <X size={10} />
           </button>
         )}
       </div>
 
       {/* Filter Tabs Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
-        {[
-          { id: 'all', label: 'Semua' },
-          { id: 'pending', label: '⏳ Pending' },
-          { id: 'approved', label: '✓ Disetujui' },
-          { id: 'revision', label: '⚠ Revisi' },
-          { id: 'rejected', label: '✕ Ditolak' },
-          { id: 'draft', label: '📝 Draf' },
-        ].map((tab) => {
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+        {filterTabs.map((tab) => {
           const isActive = statusFilter === tab.id
+          const TabIcon = tab.icon
+
           return (
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3.5 py-1.5 rounded-xl font-bold whitespace-nowrap transition active:scale-95 ${
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition active:scale-95 text-[11px] ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
-                  : 'bg-white text-slate-600 shadow-[0_2px_10px_rgba(15,23,42,0.05)] hover:bg-slate-50'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50'
               }`}
             >
-              {tab.label}
+              {TabIcon && <TabIcon size={12} strokeWidth={2.2} />}
+              <span>{tab.label}</span>
             </button>
           )
         })}
@@ -120,15 +131,17 @@ export default function MobileLetterList({
 
       {/* Letters List */}
       {filteredLetters.length === 0 ? (
-        <div className="bg-white rounded-3xl p-8 text-center shadow-[0_4px_20px_rgba(15,23,42,0.06)] mt-2">
-          <span className="text-4xl block mb-2">🔍</span>
+        <div className="bg-white rounded-2xl p-8 text-center border border-slate-200/70 shadow-xs mt-2">
+          <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+            <Search size={18} />
+          </div>
           <p className="text-xs font-bold text-slate-700">Tidak ada dokumen ditemukan</p>
           <p className="text-[11px] text-slate-400 mt-1">
             Coba kata kunci pencarian atau ganti filter status di atas.
           </p>
         </div>
       ) : (
-        <div className="space-y-3.5">
+        <div className="space-y-3">
           {filteredLetters.map((letter) => {
             const isApproved = letter.status === 'approved'
             const isPending = letter.status === 'pending' || letter.status === 'pending_approval' || letter.status === 'submitted'
@@ -144,21 +157,21 @@ export default function MobileLetterList({
             return (
               <div
                 key={letter.id}
-                className="bg-white rounded-3xl p-4.5 shadow-[0_8px_30px_rgba(15,23,42,0.07)] hover:shadow-[0_12px_36px_rgba(15,23,42,0.11)] transition-all duration-200"
+                className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:border-blue-300 transition-all duration-200"
               >
                 {/* Header Card: Nomor Surat & Status */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg inline-block truncate max-w-full">
+                    <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block truncate max-w-full border border-blue-100">
                       {letter.letterNumber || 'Draft Dokumen'}
                     </span>
-                    <h3 className="text-xs font-bold text-slate-900 mt-2 leading-snug">
+                    <h3 className="text-xs font-bold text-slate-900 mt-1.5 leading-snug">
                       {letter.title || 'Surat Pengajuan'}
                     </h3>
                   </div>
 
                   <span
-                    className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shrink-0 ${
+                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
                       isApproved
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : isRejected
@@ -166,84 +179,94 @@ export default function MobileLetterList({
                         : isRevision
                         ? 'bg-amber-50 text-amber-700 border border-amber-200'
                         : isDraft
-                        ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                        ? 'bg-slate-100 text-slate-600 border border-slate-200'
                         : 'bg-blue-50 text-blue-700 border border-blue-200'
                     }`}
                   >
-                    {isApproved
-                      ? '✓ Disetujui'
-                      : isRejected
-                      ? '✕ Ditolak'
-                      : isRevision
-                      ? '⚠ Revisi'
-                      : isDraft
-                      ? '📝 Draf'
-                      : '⏳ Menunggu ACC'}
+                    {isApproved ? (
+                      <>
+                        <CheckCircle2 size={11} /> Disetujui
+                      </>
+                    ) : isRejected ? (
+                      <>
+                        <XCircle size={11} /> Ditolak
+                      </>
+                    ) : isRevision ? (
+                      <>
+                        <AlertCircle size={11} /> Revisi
+                      </>
+                    ) : isDraft ? (
+                      <>
+                        <FileEdit size={11} /> Draf
+                      </>
+                    ) : (
+                      <>
+                        <Clock size={11} /> Menunggu
+                      </>
+                    )}
                   </span>
                 </div>
 
                 {/* Info Metadata */}
-                <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
-                  <div className="truncate">
-                    <span className="text-slate-400">Pemohon:</span>{' '}
-                    <span className="font-semibold text-slate-700">
-                      {creatorName}
-                    </span>
+                <div className="mt-3 pt-2.5 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+                  <div className="truncate flex items-center gap-1">
+                    <User size={12} className="text-slate-400 shrink-0" />
+                    <span className="font-semibold text-slate-700 truncate">{creatorName}</span>
                   </div>
-                  <div className="truncate text-right">
-                    <span className="text-slate-400">Cabang:</span>{' '}
-                    <span className="font-semibold text-slate-700">
-                      {branchName}
-                    </span>
+                  <div className="truncate text-right flex items-center justify-end gap-1">
+                    <Building2 size={12} className="text-slate-400 shrink-0" />
+                    <span className="font-semibold text-slate-700 truncate">{branchName}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-400">Tanggal:</span>{' '}
-                    <span className="font-semibold text-slate-700">
+                  <div className="flex items-center gap-1">
+                    <Calendar size={12} className="text-slate-400 shrink-0" />
+                    <span className="font-medium text-slate-600">
                       {letter.createdAt ? formatDateId(letter.createdAt) : '-'}
                     </span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-slate-400">Tahap:</span>{' '}
+                  <div className="text-right flex items-center justify-end gap-1">
+                    <Layers size={12} className="text-indigo-500 shrink-0" />
                     <span className="font-bold text-indigo-600">
-                      Step {letter.currentStep || 1} / {letter.totalSteps || 3}
+                      Step {letter.currentStep || 1}/{letter.totalSteps || 3}
                     </span>
                   </div>
                 </div>
 
                 {/* Bottom Actions */}
-                <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
                   {/* Chat discussion trigger button */}
                   <button
                     onClick={() => onOpenChat(letter)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-xs font-bold transition active:scale-95"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition active:scale-95"
                   >
-                    <span>💬 Diskusi</span>
+                    <MessageSquare size={13} className="text-slate-500" />
+                    <span>Diskusi</span>
                     {commentsCount > 0 && (
-                      <span className="bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                      <span className="bg-indigo-600 text-white text-[10px] px-1.5 rounded-full font-bold">
                         {commentsCount}
                       </span>
                     )}
                   </button>
 
-                  <div className="flex items-center gap-2">
-                    {/* Tombol Checklist Approval jika perlu ACC */}
+                  <div className="flex items-center gap-1.5">
+                    {/* Tombol Quick Approve jika user approver surat ini */}
                     {isPendingThisUser && onApproveLetter && (
                       <button
                         type="button"
                         onClick={() => setApprovingLetter(letter)}
-                        className="w-8 h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center text-sm font-bold shadow-sm shadow-emerald-500/30 transition active:scale-95"
+                        className="w-8 h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs transition active:scale-95"
                         title="Proses Persetujuan"
                       >
-                        ✓
+                        <Check size={16} strokeWidth={2.5} />
                       </button>
                     )}
 
                     {/* Preview document button */}
                     <button
                       onClick={() => onPreviewLetter(letter)}
-                      className="px-4 py-1.5 text-xs font-extrabold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl shadow-md shadow-blue-500/25 transition active:scale-95"
+                      className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs transition active:scale-95"
                     >
-                      Buka Dokumen
+                      <FileText size={13} />
+                      <span>Buka</span>
                     </button>
                   </div>
                 </div>
@@ -276,3 +299,4 @@ export default function MobileLetterList({
     </div>
   )
 }
+

@@ -215,6 +215,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                 {sharedUsers.map((u) => {
                   const uid = u.userId || u.id
                   const senderName = u.sharedBy || currentUser?.name || 'Sistem'
+                  const shareTime = u.sharedAt ? formatDateTimeId(u.sharedAt) : null
                   const isSender =
                     (u.sharedById && String(u.sharedById) === String(currentUser?.id)) ||
                     (u.sharedBy && currentUser?.name && u.sharedBy.trim().toLowerCase() === currentUser.name.trim().toLowerCase())

@@ -1088,11 +1088,17 @@ export const getEffectiveKnownBy = (letter) => {
   let name = (letter.knownByName || letter.fieldValues?.knownByName || '').trim()
   let position = (letter.knownByPosition || letter.fieldValues?.knownByPosition || '').trim()
 
+  // Prioritaskan nama yang valid di database users
+  const users = getUsers()
+  const candidateUser = users.find((u) => u.name && u.name.trim().toLowerCase() === name.toLowerCase())
+  if (!candidateUser) {
+    name = ''
+  }
+
   const isSameAsCreator = Boolean(creatorName && name && name.toLowerCase() === creatorName.toLowerCase())
 
   // Jika nama Mengetahui kosong ATAU sama persis dengan pembuat surat, alihkan otomatis ke rekanan manager di cabang tsb
   if (!name || isSameAsCreator) {
-    const users = getUsers()
     const branchUsers = users.filter(
       (u) =>
         u.name &&
@@ -1107,30 +1113,23 @@ export const getEffectiveKnownBy = (letter) => {
       if (smmUser) {
         name = smmUser.name
         position = smmUser.position || 'Sales Marketing Manager (SMM)'
-      } else if (currentBranch.madeBy && currentBranch.madeBy.trim().toLowerCase() !== creatorName.toLowerCase()) {
-        name = currentBranch.madeBy.trim()
-        position = currentBranch.madeByPosition || 'Sales Marketing Manager (SMM)'
       }
     } else {
-      // Pembuat adalah SMM (misal Rizki Adam Husaeni) atau staff cabang
       const omUser = branchUsers.find((u) => u.kodeJabatan === 'J08' || /operation\s*manager|\bOM\b/i.test(u.position || ''))
       if (omUser) {
         name = omUser.name
         position = omUser.position || 'Operation Manager (OM)'
-      } else if (currentBranch.knownBy && currentBranch.knownBy.trim().toLowerCase() !== creatorName.toLowerCase()) {
-        name = currentBranch.knownBy.trim()
-        position = currentBranch.knownByPosition || 'Kepala Cabang'
       }
     }
 
     if (!name || (creatorName && name.toLowerCase() === creatorName.toLowerCase())) {
-      const otherManager = branchUsers.find((u) => u.position?.toLowerCase().includes('manager') || ['J05', 'J07', 'J08'].includes(u.kodeJabatan))
+      const otherManager = branchUsers.find((u) => (u.position || '').toLowerCase().includes('manager') || ['J05', 'J07', 'J08'].includes(u.kodeJabatan))
       if (otherManager) {
         name = otherManager.name
         position = otherManager.position || 'Manager Cabang'
       } else {
-        name = isPST ? 'Pimpinan Divisi Terkait' : (currentBranch.knownBy || 'Kepala Cabang')
-        position = isPST ? 'Manajer Terkait' : (currentBranch.knownByPosition || 'Kepala Cabang')
+        name = isPST ? 'Pimpinan Divisi Terkait' : ''
+        position = isPST ? 'Manajer Terkait' : ''
       }
     }
   }

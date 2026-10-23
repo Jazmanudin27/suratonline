@@ -109,26 +109,52 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
     return !isPST // Default: Cabang wajib/aktif, Pusat (PST) opsional/default false
   })
 
+  // Cari rekan manager di cabang yang sama dari database
+  const defaultBranchManager = React.useMemo(() => {
+    if (!currentUser || isPST) return null
+    const bId = currentUser.branchId
+    const cName = (currentUser.name || '').trim().toLowerCase()
+    const branchUsers = users.filter((u) => {
+      if (!u.name || u.name.trim().toLowerCase() === cName) return false
+      return u.branchId === bId
+    })
+
+    const isUserOM = /operation\s*manager|\bOM\b/i.test(currentUser.position || '') || currentUser.kodeJabatan === 'J08'
+    if (isUserOM) {
+      // Jika pemohon OM, pihak mengetahui adalah SMM cabang tsb
+      const smm = branchUsers.find((u) => u.kodeJabatan === 'J07' || /sales\s*marketing|\bSMM\b/i.test(u.position || ''))
+      if (smm) return smm
+    } else {
+      // Jika pemohon SMM atau staff, pihak mengetahui adalah OM cabang tsb
+      const om = branchUsers.find((u) => u.kodeJabatan === 'J08' || /operation\s*manager|\bOM\b/i.test(u.position || ''))
+      if (om) return om
+    }
+
+    // Fallback: manager lain di cabang tersebut
+    return branchUsers.find((u) => (u.position || '').toLowerCase().includes('manager') || ['J05', 'J07', 'J08'].includes(u.kodeJabatan)) || null
+  }, [currentUser, users, isPST])
+
   const [knownByName, setKnownByName] = useState(() => {
     if (initialLetter?.knownByName || initialLetter?.fieldValues?.knownByName) {
       return initialLetter.knownByName || initialLetter.fieldValues?.knownByName
     }
-    // Jika default cabang sama dengan pemohon saat ini, jangan pasang dirinya sendiri sebagai Mengetahui
-    if (currentBranch?.knownBy && currentBranch.knownBy.toLowerCase() === currentUser?.name?.toLowerCase()) {
-      return ''
-    }
-    return currentBranch?.knownBy || ''
+    return defaultBranchManager?.name || ''
   })
 
   const [knownByPosition, setKnownByPosition] = useState(() => {
     if (initialLetter?.knownByPosition || initialLetter?.fieldValues?.knownByPosition) {
       return initialLetter.knownByPosition || initialLetter.fieldValues?.knownByPosition
     }
-    if (currentBranch?.knownBy && currentBranch.knownBy.toLowerCase() === currentUser?.name?.toLowerCase()) {
-      return ''
-    }
-    return currentBranch?.knownByPosition || (isPST ? 'Manajer Terkait' : 'Kepala Cabang')
+    return defaultBranchManager?.position || (isPST ? 'Manajer Terkait' : 'Manager Cabang')
   })
+
+  // Sinkronkan otomatis jika daftar user database baru saja termuat
+  useEffect(() => {
+    if (!initialLetter && defaultBranchManager && !knownByName) {
+      setKnownByName(defaultBranchManager.name)
+      setKnownByPosition(defaultBranchManager.position || 'Manager Cabang')
+    }
+  }, [defaultBranchManager, initialLetter, knownByName])
 
   // State Kustomisasi Jalur & Pejabat Persetujuan (Terutama Fleksibel untuk Pusat / User Tertentu)
   const [customApprovalSteps, setCustomApprovalSteps] = useState(() => {

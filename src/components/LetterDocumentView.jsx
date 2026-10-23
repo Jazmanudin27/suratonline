@@ -69,12 +69,7 @@ export default function LetterDocumentView({
 
   const currentBranch = branches.find(
     (b) => b.id === letter?.branchId || b.name === letter?.branchName || b.code === letter?.branchId
-  ) || {
-    madeBy: 'Anif Ardiana',
-    madeByPosition: 'Sales Marketing Manager (SMM)',
-    knownBy: 'Kepala Cabang',
-    knownByPosition: 'Kepala Cabang',
-  }
+  ) || {}
 
   const attachments = letter?.attachments || letter?.fieldValues?.attachments || []
   const imageAttachments = attachments.filter((file) => {
@@ -533,17 +528,21 @@ export default function LetterDocumentView({
     hasKnownBy = false
   }
 
-  // PRIORITAS UTAMA: Nilai kustom surat -> Settingan Cabang -> Fallback Pejabat
-  let effectiveKnownByName =
-    letter?.knownByName ||
-    letter?.fieldValues?.knownByName ||
-    currentBranch.knownBy ||
-    ''
-  let effectiveKnownByPosition =
-    letter?.knownByPosition ||
-    letter?.fieldValues?.knownByPosition ||
-    currentBranch.knownByPosition ||
-    'Kepala Cabang'
+  // PRIORITAS UTAMA: Nilai kustom surat -> Rekanan Manager di Cabang (dari tabel users database)
+  const branchUsersList = users.filter(
+    (u) =>
+      u.name &&
+      u.name.trim().toLowerCase() !== submitterName.trim().toLowerCase() &&
+      ((u.branchId && (u.branchId === letter?.branchId || u.branchId === currentBranch.code || u.branchId === currentBranch.id)) ||
+      (u.branchName && letter?.branchName && u.branchName.toLowerCase().includes(letter.branchName.toLowerCase().replace('cabang ', ''))))
+  )
+
+  // Cek apakah nama dari letter/currentBranch ada di database users
+  const rawCandidateName = (letter?.knownByName || letter?.fieldValues?.knownByName || '').trim()
+  const candidateUser = users.find((u) => u.name && u.name.trim().toLowerCase() === rawCandidateName.toLowerCase())
+
+  let effectiveKnownByName = candidateUser ? candidateUser.name : ''
+  let effectiveKnownByPosition = candidateUser ? (candidateUser.position || candidateUser.roleLabel || 'Manager Cabang') : (letter?.knownByPosition || letter?.fieldValues?.knownByPosition || '')
 
   // Jika settingan knownBy sama dengan submitter atau belum disetting, gunakan rekanan manager cabang yang bukan pemohon
   if (!effectiveKnownByName || effectiveKnownByName.trim().toLowerCase() === submitterName.trim().toLowerCase()) {
@@ -559,43 +558,32 @@ export default function LetterDocumentView({
     )
 
     if (isSubmitterOM) {
-      if (currentBranch.madeBy && currentBranch.madeBy.trim().toLowerCase() !== submitterName.trim().toLowerCase()) {
-        effectiveKnownByName = currentBranch.madeBy
-        effectiveKnownByPosition = currentBranch.madeByPosition || 'Sales Marketing Manager (SMM)'
-      } else {
-        const branchSMMUser = branchUsers.find((u) => u.kodeJabatan === 'J07' || /sales\s*marketing|\bSMM\b/i.test(u.position || ''))
-        if (branchSMMUser) {
-          effectiveKnownByName = branchSMMUser.name
-          effectiveKnownByPosition = branchSMMUser.position || 'Sales Marketing Manager (SMM)'
-        }
+      const branchSMMUser = branchUsersList.find((u) => u.kodeJabatan === 'J07' || /sales\s*marketing|\bSMM\b/i.test(u.position || ''))
+      if (branchSMMUser) {
+        effectiveKnownByName = branchSMMUser.name
+        effectiveKnownByPosition = branchSMMUser.position || 'Sales Marketing Manager (SMM)'
       }
     } else {
-      const branchOMUser = branchUsers.find((u) => u.kodeJabatan === 'J08' || /operation\s*manager|\bOM\b/i.test(u.position || ''))
+      const branchOMUser = branchUsersList.find((u) => u.kodeJabatan === 'J08' || /operation\s*manager|\bOM\b/i.test(u.position || ''))
       if (branchOMUser) {
         effectiveKnownByName = branchOMUser.name
         effectiveKnownByPosition = branchOMUser.position || 'Operation Manager (OM)'
-      } else if (currentBranch.knownBy && currentBranch.knownBy.trim().toLowerCase() !== submitterName.trim().toLowerCase()) {
-        effectiveKnownByName = currentBranch.knownBy
-        effectiveKnownByPosition = currentBranch.knownByPosition || 'Kepala Cabang'
       }
     }
   }
 
-  // Jika tetap sama dengan pemohon atau kosong, cari manager lain di cabang tersebut
+  // Jika tetap sama dengan pemohon atau kosong, cari manager lain di cabang tersebut dari database
   if (!effectiveKnownByName || effectiveKnownByName.trim().toLowerCase() === submitterName.trim().toLowerCase()) {
-    const otherManager = users.find(
+    const otherManager = branchUsersList.find(
       (u) =>
-        u.name &&
-        u.name.trim().toLowerCase() !== submitterName.trim().toLowerCase() &&
-        u.branchId === (letter?.branchId || currentBranch.id || currentBranch.code) &&
         (u.position?.toLowerCase().includes('manager') || ['J05', 'J07', 'J08'].includes(u.kodeJabatan))
     )
     if (otherManager) {
       effectiveKnownByName = otherManager.name
       effectiveKnownByPosition = otherManager.position || 'Manager Cabang'
     } else {
-      effectiveKnownByName = isPSTBranch ? 'Pimpinan Divisi Terkait' : 'Kepala Cabang'
-      effectiveKnownByPosition = isPSTBranch ? 'Manajer Terkait' : 'Kepala Cabang'
+      effectiveKnownByName = isPSTBranch ? 'Pimpinan Divisi Terkait' : ''
+      effectiveKnownByPosition = isPSTBranch ? 'Manajer Terkait' : ''
     }
   }
 

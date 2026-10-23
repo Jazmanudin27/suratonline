@@ -971,14 +971,14 @@ export default function LetterDocumentView({
               {/* Grid Kolom Tanda Tangan: 2 Kolom (Dibuat & Mengetahui) atau 1 Kolom Tunggal (Dibuat saja) */}
               <div className={`${hasKnownBy ? 'grid grid-cols-2 gap-8 text-center max-w-xl mx-auto' : 'flex justify-end text-center pr-6 sm:pr-10'}`}>
                 {/* KIRI: DIAJUKAN / DIBUAT OLEH (PEMOHON) */}
-                <div className={`flex flex-col items-center justify-between min-h-[190px] ${!hasKnownBy ? 'w-56 sm:w-64' : ''}`}>
-                  <div className="h-6 flex items-center justify-center">
+                <div className={`flex flex-col items-center justify-between min-h-[135px] ${!hasKnownBy ? 'w-56 sm:w-64' : ''}`}>
+                  <div className="h-5 flex items-center justify-center">
                     <p className="text-xs font-bold text-slate-900 leading-none">
                       {hasKnownBy ? 'Dibuat oleh,' : 'Hormat kami,'}
                     </p>
                   </div>
 
-                  <div className="w-32 h-32 sm:w-36 sm:h-36 p-1.5 bg-white border border-slate-300 rounded-lg shadow-xs flex items-center justify-center my-1">
+                  <div className="w-20 h-20 sm:w-22 sm:h-22 p-1 bg-white border border-slate-300 rounded-md shadow-xs flex items-center justify-center my-1">
                     {qrCodes['submitter'] ? (
                       <img
                         src={qrCodes['submitter']}
@@ -987,12 +987,12 @@ export default function LetterDocumentView({
                       />
                     ) : (
                       <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                        <QrIcon className="w-8 h-8 text-slate-400" />
+                        <QrIcon className="w-6 h-6 text-slate-400" />
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-1 text-center">
+                  <div className="mt-0.5 text-center">
                     <p className="text-xs font-bold text-slate-900 underline decoration-slate-400">
                       ({submitterName})
                     </p>
@@ -1007,14 +1007,14 @@ export default function LetterDocumentView({
 
                 {/* KANAN: DIKETAHUI / MENGETAHUI (Hanya jika hasKnownBy aktif) */}
                 {hasKnownBy && (
-                  <div className="flex flex-col items-center justify-between min-h-[190px]">
-                    <div className="h-6 flex items-center justify-center">
+                  <div className="flex flex-col items-center justify-between min-h-[135px]">
+                    <div className="h-5 flex items-center justify-center">
                       <p className="text-xs font-bold text-slate-900 leading-none">Mengetahui,</p>
                     </div>
 
-                    <div className="relative w-32 h-32 sm:w-36 sm:h-36 p-1.5 flex items-center justify-center my-1">
+                    <div className="relative w-20 h-20 sm:w-22 sm:h-22 p-1 flex items-center justify-center my-1">
                       {qrCodes['knownBy'] ? (
-                        <div className="w-full h-full p-1 bg-white border border-slate-300 rounded-lg shadow-xs flex items-center justify-center">
+                        <div className="w-full h-full p-0.5 bg-white border border-slate-300 rounded-md shadow-xs flex items-center justify-center">
                           <img
                             src={qrCodes['knownBy']}
                             alt="QR Mengetahui"
@@ -1121,12 +1121,12 @@ export default function LetterDocumentView({
                         return (
                           <tr key={idx} className="border-b border-slate-900 last:border-b-0">
                             {/* KOLOM 1: KOTAK TANDA TANGAN PEJABAT */}
-                            <td className="w-[34%] border-r border-slate-900 p-4 text-center align-bottom min-h-[160px]">
-                              <div className="flex flex-col items-center justify-between min-h-[150px]">
+                            <td className="w-[34%] border-r border-slate-900 p-3 text-center align-bottom min-h-[125px]">
+                              <div className="flex flex-col items-center justify-between min-h-[115px]">
                                 {/* QR Code Tanda Tangan */}
-                                <div className="flex-1 flex items-center justify-center my-2">
+                                <div className="flex-1 flex items-center justify-center my-1">
                                   {isApproved ? (
-                                    <div className="w-28 h-28 sm:w-32 sm:h-32 p-1 bg-white border border-slate-300 rounded shadow-xs flex items-center justify-center">
+                                    <div className="w-20 h-20 sm:w-22 sm:h-22 p-1 bg-white border border-slate-300 rounded shadow-xs flex items-center justify-center">
                                       {qrCodes[`step_${originalIndex >= 0 ? originalIndex : idx}`] ? (
                                         <img
                                           src={qrCodes[`step_${originalIndex >= 0 ? originalIndex : idx}`]}
@@ -1134,7 +1134,7 @@ export default function LetterDocumentView({
                                           className="w-full h-full object-contain"
                                         />
                                       ) : (
-                                        <QrIcon className="w-8 h-8 text-slate-400" />
+                                        <QrIcon className="w-6 h-6 text-slate-400" />
                                       )}
                                     </div>
                                   ) : (

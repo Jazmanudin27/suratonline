@@ -369,42 +369,6 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
             </p>
           </div>
 
-          {/* 4. TAUTAN LANGSUNG DOKUMEN (URL) */}
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <ExternalLink className="w-3.5 h-3.5 text-indigo-600" />
-              Tautan Langsung Dokumen (URL)
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                readOnly
-                value={shareUrl}
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-700 truncate select-all focus:outline-hidden"
-              />
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shrink-0 ${
-                  isCopied
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95 shadow-xs'
-                }`}
-              >
-                {isCopied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Disalin!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Salin</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Footer Actions */}

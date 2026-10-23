@@ -716,14 +716,10 @@ export default function LetterDocumentView({
           const step = letter.approvalHistory[i]
           if (step.status === 'approved') {
             const verificationPayload = [
-              `VERIFIKASI DIGITAL ${currentBranch?.pt || 'CV Makmur Permata'}`,
-              `No Surat: ${letter.letterNumber || '-'}`,
-              `Perihal: ${displayHal || '-'}`,
-              `Disetujui: ${step.approverName || 'Pejabat Berwenang'} (${step.approverRole || '-'})`,
+              `Nomor Surat: ${letter.letterNumber || '-'}`,
               `Waktu Persetujuan: ${formatDateTimeId(step.date || new Date())}`,
-              step.notes ? `Catatan: ${step.notes}` : '',
-              `Status: RESMI & TERVERIFIKASI SAH`,
-            ].filter(Boolean).join('\n')
+              `Orang: ${step.approverName || 'Pejabat Berwenang'}`,
+            ].join('\n')
 
             try {
               const url = await generateQrWithLogo(verificationPayload)
@@ -738,13 +734,9 @@ export default function LetterDocumentView({
       // Generate submitter verification QR (Dibuat Oleh)
       try {
         const submitterPayload = [
-          `VERIFIKASI DIGITAL ${currentBranch?.pt || 'CV Makmur Permata'}`,
-          `No Surat: ${letter.letterNumber || '-'}`,
-          `Perihal: ${displayHal || '-'}`,
-          `Dibuat Oleh: ${submitterName} (${submitterPosition})`,
-          `Cabang: ${letter.branchName || '-'}`,
-          `Waktu Pembuatan: ${formatDateTimeId(letter.createdAt || new Date())}`,
-          `Status: DOKUMEN RESMI SAH`,
+          `Nomor Surat: ${letter.letterNumber || '-'}`,
+          `Waktu Persetujuan: ${formatDateTimeId(letter.createdAt || new Date())}`,
+          `Orang: ${submitterName}`,
         ].join('\n')
 
         const submitterUrl = await generateQrWithLogo(submitterPayload)
@@ -757,12 +749,9 @@ export default function LetterDocumentView({
       if (hasKnownBy && isKnownByApproved) {
         try {
           const knownByPayload = [
-            `VERIFIKASI DIGITAL ${currentBranch?.pt || 'CV Makmur Permata'}`,
-            `No Surat: ${letter.letterNumber || '-'}`,
-            `Perihal: ${displayHal || '-'}`,
-            `Mengetahui: ${effectiveKnownByName} (${effectiveKnownByPosition})`,
+            `Nomor Surat: ${letter.letterNumber || '-'}`,
             `Waktu Persetujuan: ${formatDateTimeId(knownByTime)}`,
-            `Status: RESMI & TERVERIFIKASI SAH`,
+            `Orang: ${effectiveKnownByName}`,
           ].join('\n')
 
           const knownByUrl = await generateQrWithLogo(knownByPayload)

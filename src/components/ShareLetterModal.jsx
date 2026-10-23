@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   ExternalLink,
 } from 'lucide-react'
-import { getUsers, shareLetterWithUsers } from '../services/storage'
+import { getUsers, shareLetterWithUsers, formatDateTimeId } from '../services/storage'
 import { notify } from '../utils/alert'
 
 export default function ShareLetterModal({ letter, currentUser, onClose, onUpdated }) {
@@ -140,6 +140,22 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
 
         {/* Content Body */}
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-5 bg-slate-50/50">
+          {/* Section: Info Pemilik & Pengirim Dokumen */}
+          <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3 flex items-start gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-slate-700 min-w-0">
+              <p className="font-semibold text-slate-900">
+                Dokumen Asli / Pemilik: <span className="font-bold text-indigo-900">{letter.userName || letter.creatorName || '-'}</span>
+                {letter.branchName && (
+                  <span className="text-slate-500 font-normal"> ({letter.branchName})</span>
+                )}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Pengguna yang ditambahkan ke daftar di bawah akan mendapatkan akses melihat isi surat, lampiran, dan berpartisipasi dalam diskusi.
+              </p>
+            </div>
+          </div>
+
           {/* Section 1: Salin Tautan Langsung */}
           <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs space-y-2">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -197,16 +213,19 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {sharedUsers.map((u) => {
                   const uid = u.userId || u.id
+                  const senderName = u.sharedBy || currentUser?.name || 'Sistem'
+                  const shareTime = u.sharedAt ? formatDateTimeId(u.sharedAt) : null
+
                   return (
                     <div
                       key={uid}
-                      className="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-xl shadow-xs"
+                      className="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-xl shadow-xs gap-2"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0">
                           {(u.userName || 'U').charAt(0).toUpperCase()}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs font-bold text-slate-900 truncate">
                             {u.userName}
                           </p>
@@ -222,13 +241,17 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                               </span>
                             )}
                           </p>
+                          <p className="text-[10px] text-indigo-600 mt-0.5 font-medium truncate">
+                            Dibagikan oleh: <span className="font-bold">{senderName}</span>
+                            {shareTime && <span className="text-slate-400"> &bull; {shareTime}</span>}
+                          </p>
                         </div>
                       </div>
 
                       <button
                         type="button"
                         onClick={() => handleRemoveUser(uid)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0"
                         title="Hapus akses"
                       >
                         <Trash2 className="w-4 h-4" />

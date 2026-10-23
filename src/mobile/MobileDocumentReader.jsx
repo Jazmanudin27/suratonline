@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { ShieldCheck, MessageSquare } from 'lucide-react'
+import { ShieldCheck, MessageSquare, Share2 } from 'lucide-react'
 import LetterDocumentView from '../components/LetterDocumentView'
 import MobileApprovalModal from './MobileApprovalModal'
+import ShareLetterModal from '../components/ShareLetterModal'
 import { canUserApproveLetter } from '../components/ApproverInbox'
 import { notify } from '../utils/alert'
 
@@ -23,6 +24,12 @@ export default function MobileDocumentReader({
   const [fitScale, setFitScale] = useState(0.45)
   const [contentHeight, setContentHeight] = useState(2400)
   const [showApprovalModal, setShowApprovalModal] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [currentLetter, setCurrentLetter] = useState(letter)
+
+  useEffect(() => {
+    setCurrentLetter(letter)
+  }, [letter])
 
   if (!letter) return null
 
@@ -203,10 +210,25 @@ export default function MobileDocumentReader({
           </button>
         )}
 
-        {/* Row Tombol Diskusi & Tutup */}
+        {/* Row Tombol Bagikan, Diskusi & Tutup */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => onOpenChat(letter)}
+            type="button"
+            onClick={() => setShowShareModal(true)}
+            className="py-2.5 px-3 bg-violet-900/60 hover:bg-violet-800 text-violet-200 border border-violet-700/60 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
+            title="Bagikan Surat"
+          >
+            <Share2 size={13} className="text-violet-300" />
+            <span>Bagikan</span>
+            {currentLetter.sharedWith && currentLetter.sharedWith.length > 0 && (
+              <span className="bg-violet-600 text-white text-[10px] px-1.5 rounded-full font-bold">
+                {currentLetter.sharedWith.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => onOpenChat(currentLetter)}
             className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
           >
             <MessageSquare size={13} className="text-slate-400" />
@@ -222,15 +244,30 @@ export default function MobileDocumentReader({
             onClick={onClose}
             className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition active:scale-95 text-center shadow-xs"
           >
-            Selesai / Tutup
+            Tutup
           </button>
         </div>
       </div>
 
+      {/* POPUP MODAL BAGIKAN SURAT */}
+      {showShareModal && (
+        <ShareLetterModal
+          letter={currentLetter}
+          currentUser={currentUser}
+          onClose={() => setShowShareModal(false)}
+          onUpdated={(updatedLetter) => {
+            setCurrentLetter(updatedLetter)
+            if (typeof onUpdateNotes === 'function') {
+              onUpdateNotes(updatedLetter.id, updatedLetter.notes || '')
+            }
+          }}
+        />
+      )}
+
       {/* POPUP MODAL APPROVAL RESMI PERSIS DESKTOP */}
       {showApprovalModal && (
         <MobileApprovalModal
-          letter={letter}
+          letter={currentLetter}
           currentUser={currentUser}
           onClose={() => setShowApprovalModal(false)}
           onApprove={(id, note) => {

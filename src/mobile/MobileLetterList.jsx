@@ -240,11 +240,16 @@ export default function MobileLetterList({
                     <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block truncate max-w-full border border-blue-100">
                       {letter.letterNumber || 'Draft Dokumen'}
                     </span>
-                    {letter.sharedWith && letter.sharedWith.some((s) => String(s.userId || s.id) === String(currentUser?.id)) && (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-200 ml-1.5 align-middle">
-                        <Share2 size={9} /> Dibagikan
-                      </span>
-                    )}
+                    {letter.sharedWith && letter.sharedWith.some((s) => String(s.userId || s.id) === String(currentUser?.id)) && (() => {
+                      const shareEntry = letter.sharedWith.find((s) => String(s.userId || s.id) === String(currentUser?.id))
+                      return (
+                        <div className="mt-1 flex items-center gap-1">
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-200">
+                            <Share2 size={9} /> Dibagikan oleh {shareEntry?.sharedBy || 'Pengguna'}
+                          </span>
+                        </div>
+                      )
+                    })()}
                     <h3 className="text-xs font-bold text-slate-900 mt-1.5 leading-snug">
                       {letter.title || 'Surat Pengajuan'}
                     </h3>

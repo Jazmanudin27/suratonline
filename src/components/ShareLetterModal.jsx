@@ -12,6 +12,8 @@ import {
   Users,
   ShieldCheck,
   ExternalLink,
+  Mail,
+  MessageSquare,
 } from 'lucide-react'
 import { getUsers, shareLetterWithUsers, formatDateTimeId } from '../services/storage'
 import { notify } from '../utils/alert'
@@ -23,6 +25,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
   const initialShared = Array.isArray(letter.sharedWith) ? [...letter.sharedWith] : []
   const [sharedUsers, setSharedUsers] = useState(initialShared)
   const [searchTerm, setSearchTerm] = useState('')
+  const [shareMessage, setShareMessage] = useState('')
   const [isCopied, setIsCopied] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -82,6 +85,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
         sharedAt: new Date().toISOString(),
         sharedBy: currentUser?.name || 'User',
         sharedById: currentUser?.id,
+        note: shareMessage.trim() || undefined,
       },
     ])
   }
@@ -93,9 +97,17 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      const ok = await shareLetterWithUsers(letter.id, sharedUsers, currentUser)
+      // Jika ada pesan baru dan ada user yang baru ditambahkan tanpa note, update note-nya
+      const usersToSave = sharedUsers.map((u) => {
+        if (!u.note && shareMessage.trim() && (u.sharedById === currentUser?.id || !u.sharedById)) {
+          return { ...u, note: shareMessage.trim() }
+        }
+        return u
+      })
+
+      const ok = await shareLetterWithUsers(letter.id, usersToSave, currentUser, shareMessage.trim())
       if (ok) {
-        notify.success('Berhasil', 'Daftar pengguna dibagikan berhasil diperbarui.')
+        notify.success('Berhasil Dibagikan', 'Surat dan pesan berhasil dibagikan ke pengguna terpilih.')
         if (onUpdated) onUpdated()
         onClose()
       } else {
@@ -155,6 +167,24 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                 Pengguna yang ditambahkan ke daftar di bawah akan mendapatkan akses melihat isi surat, lampiran, dan berpartisipasi dalam diskusi.
               </p>
             </div>
+          </div>
+
+          {/* Section: Pesan Pengantar / Deskripsi Berbagi (Seperti Email) */}
+          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-indigo-100 shadow-xs space-y-2">
+            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <Mail className="w-4 h-4 text-indigo-600" />
+              Pesan / Catatan Pengantar (Opsional, seperti Email)
+            </label>
+            <textarea
+              rows={2}
+              value={shareMessage}
+              onChange={(e) => setShareMessage(e.target.value)}
+              placeholder="Tulis pesan atau instruksi untuk penerima... Contoh: Mohon dicek dan bantu tanggapi dokumen penawaran ini."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition resize-none"
+            />
+            <p className="text-[11px] text-slate-400">
+              Pesan ini akan tampil kepada penerima saat membuka surat dan tercatat dalam riwayat pembagian.
+            </p>
           </div>
 
           {/* Section 1: Salin Tautan Langsung */}
@@ -253,6 +283,12 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                             Dibagikan oleh: <span className="font-bold">{senderName}</span>
                             {shareTime && <span className="text-slate-400"> &bull; {shareTime}</span>}
                           </p>
+                          {u.note && (
+                            <div className="mt-1.5 p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10.5px] text-slate-700 italic flex items-start gap-1">
+                              <MessageSquare className="w-3 h-3 text-indigo-500 shrink-0 mt-0.5" />
+                              <span className="line-clamp-2">"{u.note}"</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 

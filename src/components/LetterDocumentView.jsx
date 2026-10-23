@@ -29,6 +29,7 @@ import {
   RotateCcw,
   FileText,
   Share2,
+  Mail,
 } from 'lucide-react'
 import AttachmentUploader from './AttachmentUploader'
 import { renderPdfToPages } from '../utils/pdfRenderer'
@@ -899,6 +900,42 @@ export default function LetterDocumentView({
           </div>
         </div>
       )}
+
+      {/* Banner Khusus jika surat ini dibagikan ke pengguna yang sedang login (seperti email masuk) */}
+      {!isBuilderPreview && letter.sharedWith && letter.sharedWith.some((s) => String(s.userId || s.id) === String(currentUser?.id)) && (() => {
+        const shareInfo = letter.sharedWith.find((s) => String(s.userId || s.id) === String(currentUser?.id))
+        return (
+          <div className="no-print bg-gradient-to-r from-violet-900 via-indigo-900 to-slate-900 border border-violet-500/40 text-white rounded-xl p-3.5 sm:p-4 shadow-md flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-violet-600/30 border border-violet-400/40 flex items-center justify-center text-violet-300 shrink-0">
+              <Mail className="w-5 h-5 text-violet-300" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center justify-between gap-1">
+                <p className="text-xs font-bold text-violet-200">
+                  Surat Dibagikan Kepada Anda
+                </p>
+                {shareInfo?.sharedAt && (
+                  <span className="text-[10px] text-violet-300/80 font-mono">
+                    {formatDateTimeId(shareInfo.sharedAt)}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-200 mt-0.5">
+                Pengirim: <span className="font-bold text-white">{shareInfo?.sharedBy || 'Pengguna'}</span>
+              </p>
+              {shareInfo?.note ? (
+                <div className="mt-2 p-2.5 bg-black/30 border border-violet-500/30 rounded-lg text-xs text-violet-100 italic leading-relaxed">
+                  "{shareInfo.note}"
+                </div>
+              ) : (
+                <p className="text-[11px] text-violet-200/70 mt-1 italic">
+                  Tidak ada pesan pengantar khusus. Anda memiliki hak akses untuk membaca dan berdiskusi pada dokumen ini.
+                </p>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Official Indonesian Letter Document Container (Standard A4 Format) */}
       <div className="bg-slate-200/80 p-2 sm:p-6 rounded-xl flex justify-center overflow-x-auto print:p-0 print:m-0 print:bg-white print:overflow-visible print:rounded-none print:border-none print:shadow-none">

@@ -869,6 +869,18 @@ app.get('/api/audit_logs/:letter_id', async (req, res) => {
   }
 })
 
+// Serve production static frontend if built
+const distPath = path.join(__dirname, 'dist')
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath))
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/lampiran')) {
+      res.sendFile(path.join(distPath, 'index.html'))
+    }
+  })
+}
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 [API Server] Running on http://localhost:${PORT}`)
 })
+

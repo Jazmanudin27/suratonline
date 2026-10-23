@@ -216,12 +216,13 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                   const uid = u.userId || u.id
                   const senderName = u.sharedBy || currentUser?.name || 'Sistem'
                   const shareTime = u.sharedAt ? formatDateTimeId(u.sharedAt) : null
+                  // Tombol delete HANYA muncul untuk orang yang membagikan
+                  const currentUserName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+                  const senderUserName = (u.sharedBy || '').trim().toLowerCase()
                   const isSender =
-                    (u.sharedById && String(u.sharedById) === String(currentUser?.id)) ||
-                    (u.sharedBy && currentUser?.name && u.sharedBy.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
-                  const isLetterOwner = letter.userId && String(letter.userId) === String(currentUser?.id)
-                  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || currentUser?.role === 'SUPERADMIN'
-                  const canDelete = isSender || isLetterOwner || isAdmin
+                    (u.sharedById && currentUser?.id && String(u.sharedById) === String(currentUser.id)) ||
+                    (senderUserName && currentUserName && senderUserName === currentUserName)
+                  const canDelete = Boolean(isSender)
 
                   return (
                     <div

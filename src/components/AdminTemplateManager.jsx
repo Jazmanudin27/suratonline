@@ -224,10 +224,19 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
       notify.warning('Nama Wajib Diisi', 'Silakan isi Nama Template Surat terlebih dahulu.')
       return
     }
-    if (!editingTemplate.code?.trim()) {
-      notify.warning('Kode Wajib Diisi', 'Silakan isi Kode Jenis Surat terlebih dahulu.')
-      return
-    }
+    const autoCode =
+      editingTemplate.code?.trim() ||
+      editingTemplate.name
+        .trim()
+        .replace(/[^A-Za-z0-9]/g, '_')
+        .slice(0, 15)
+        .toUpperCase() ||
+      'SURAT'
+    setEditingTemplate((prev) => ({
+      ...prev,
+      code: autoCode,
+      allowedBranches: prev.allowedBranches?.length ? prev.allowedBranches : ['all'],
+    }))
     setActiveTab('preview')
   }
 
@@ -236,12 +245,21 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
       notify.warning('Nama Template Kosong', 'Nama Template Surat wajib diisi!')
       return
     }
-    if (!editingTemplate.code?.trim()) {
-      notify.warning('Kode Template Kosong', 'Kode Surat wajib diisi!')
-      return
+    const autoCode =
+      editingTemplate.code?.trim() ||
+      editingTemplate.name
+        .trim()
+        .replace(/[^A-Za-z0-9]/g, '_')
+        .slice(0, 15)
+        .toUpperCase() ||
+      'SURAT'
+    const toSave = {
+      ...editingTemplate,
+      code: autoCode,
+      allowedBranches: editingTemplate.allowedBranches?.length ? editingTemplate.allowedBranches : ['all'],
     }
 
-    saveTemplate(editingTemplate)
+    saveTemplate(toSave)
     notify.success('Template Tersimpan', `Template "${editingTemplate.name}" berhasil disimpan ke sistem!`)
     setEditingTemplate(null)
     setIsWordFullscreen(false)
@@ -684,17 +702,6 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                     <FileText className="w-3.5 h-3.5" />
                     <span>Edit Isi Surat (Word)</span>
                   </button>
-
-                  {/* Tombol Kelola Lampiran & Foto */}
-                  <button
-                    type="button"
-                    onClick={() => setShowAttachmentManager(true)}
-                    className="px-3.5 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition border bg-white border-slate-300 hover:bg-slate-50 text-slate-800 shadow-2xs hover:border-indigo-400"
-                    title="Buka popup modal untuk mengunggah dan mengatur foto/dokumen lampiran bawaan template"
-                  >
-                    <Paperclip className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Kelola Lampiran &amp; Foto ({editingTemplate.attachments?.length || 0})</span>
-                  </button>
                 </div>
               </div>
             )}
@@ -730,22 +737,6 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Kode Jenis Surat (Singkat) *</label>
-                    <input
-                      type="text"
-                      value={editingTemplate.code}
-                      onChange={(e) =>
-                        setEditingTemplate({
-                          ...editingTemplate,
-                          code: e.target.value.toUpperCase().replace(/\s/g, ''),
-                        })
-                      }
-                      placeholder="Contoh: MUTASI / CUTI / LEMBUR"
-                      className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold text-slate-800 uppercase focus:ring-2 focus:ring-indigo-500 outline-none"
-                    />
-                  </div>
-
-                  <div>
                     <label className="block font-bold text-slate-700 mb-1">Kategori Ajuan</label>
                     <select
                       value={editingTemplate.category || 'Operasional'}
@@ -760,7 +751,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                     </select>
                   </div>
 
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block font-bold text-slate-700 mb-1">Pola Format Nomor Surat Otomatis</label>
                     <input
                       type="text"
@@ -769,45 +760,8 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                       className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-slate-800 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                     <p className="text-[10px] text-slate-400 mt-1">
-                      Variabel pola: <code className="text-indigo-600">{'{{seq}}'}</code>, <code className="text-indigo-600">{'{{code}}'}</code>, <code className="text-indigo-600">{'{{branch_code}}'}</code>, <code className="text-indigo-600">{'{{roman_month}}'}</code>, <code className="text-indigo-600">{'{{year}}'}</code>
+                      Variabel pola: <code className="text-indigo-600">{'{{seq}}'}</code>, <code className="text-indigo-600">{'{{branch_code}}'}</code>, <code className="text-indigo-600">{'{{roman_month}}'}</code>, <code className="text-indigo-600">{'{{year}}'}</code>
                     </p>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-slate-700 mb-1">Deskripsi Singkat Template</label>
-                    <textarea
-                      rows={2}
-                      value={editingTemplate.description}
-                      onChange={(e) => setEditingTemplate({ ...editingTemplate, description: e.target.value })}
-                      placeholder="Keterangan peruntukan surat ini bagi staf cabang..."
-                      className="w-full p-2.5 rounded-xl border border-slate-300 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-slate-700 mb-1.5">Cabang yang Dapat Menggunakan</label>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-slate-50 cursor-pointer text-xs font-bold">
-                        <input
-                          type="checkbox"
-                          checked={editingTemplate.allowedBranches?.includes('all')}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setEditingTemplate({ ...editingTemplate, allowedBranches: ['all'] })
-                            } else {
-                              setEditingTemplate({ ...editingTemplate, allowedBranches: [] })
-                            }
-                          }}
-                          className="rounded text-indigo-600"
-                        />
-                        <span>Semua Cabang CV Makmur Permata</span>
-                      </label>
-                      {!editingTemplate.allowedBranches?.includes('all') && (
-                        <span className="text-[11px] text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
-                          Pilih cabang secara spesifik di bawah jika tidak dibuka untuk semua cabang.
-                        </span>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -928,63 +882,6 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
           {/* ---------------------------------------------------- */}
           {activeTab === 'preview' && (
             <div className="space-y-4">
-              {/* Modal Kelola Lampiran & Foto Template (Popup Dialog) */}
-              {showAttachmentManager && (
-                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
-                  <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
-                    {/* Header Modal Lampiran */}
-                    <div className="bg-gradient-to-r from-blue-700 to-indigo-800 p-4 text-white flex items-center justify-between shrink-0">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center font-bold">
-                          <Paperclip className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-extrabold text-white">
-                            Kelola Lampiran &amp; Foto Bawaan Template
-                          </h3>
-                          <p className="text-[11px] text-blue-100/80">
-                            Unggah berkas referensi atau foto panduan yang otomatis disertakan pada template ini.
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowAttachmentManager(false)}
-                        className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition"
-                        title="Tutup Modal"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    {/* Body Modal Lampiran */}
-                    <div className="p-4 overflow-y-auto space-y-4 flex-1">
-                      <AttachmentUploader
-                        attachments={editingTemplate.attachments || []}
-                        onChange={(newAtts) =>
-                          setEditingTemplate((prev) => ({ ...prev, attachments: newAtts }))
-                        }
-                      />
-                    </div>
-
-                    {/* Footer Modal Lampiran */}
-                    <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0 text-xs">
-                      <span className="text-slate-600 font-medium">
-                        Total Berkas Lampiran: <strong className="text-indigo-600 font-bold">{editingTemplate.attachments?.length || 0}</strong> file
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowAttachmentManager(false)}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Selesai &amp; Simpan Lampiran</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Lembar Dokumen Surat Resmi (Halaman Pratinjau) */}
               <LetterDocumentView
                 letter={generatePreviewLetter(editingTemplate)}

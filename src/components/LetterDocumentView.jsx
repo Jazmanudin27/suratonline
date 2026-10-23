@@ -624,15 +624,15 @@ export default function LetterDocumentView({
   // Helper: Embed logo in center of QR Code using HTML5 Canvas & ErrorCorrectionLevel 'H'
   const generateQrWithLogo = (text) => {
     return new Promise((resolve) => {
-      // Buat canvas QR Code dengan resolusi tinggi 360px & error correction 'H'
+      // Buat canvas QR Code dengan resolusi tajam 480px, margin 1, dan error correction 'H' (30% recovery)
       const canvas = document.createElement('canvas')
       QRCode.toCanvas(
         canvas,
         text,
         {
           errorCorrectionLevel: 'H',
-          margin: 2,
-          width: 360,
+          margin: 1,
+          width: 480,
           color: {
             dark: '#000000',
             light: '#ffffff',
@@ -646,8 +646,10 @@ export default function LetterDocumentView({
           }
 
           const ctx = canvas.getContext('2d')
-          const size = canvas.width // 360
-          const logoSize = Math.floor(size * 0.19) // ~68px (~19% dari QR, aman untuk Level H dan mudah discan)
+          const size = canvas.width // 480
+          // Ukuran logo 15% dari lebar QR (~72px). Sangat aman untuk Level H (toleransi rusak 30%)
+          // dan tidak memotong modul timing/pola deteksi QR sehingga scanner HP sangat cepat membaca
+          const logoSize = Math.floor(size * 0.15) // ~72px
           const logoX = (size - logoSize) / 2
           const logoY = (size - logoSize) / 2
 
@@ -655,13 +657,13 @@ export default function LetterDocumentView({
           const img = new Image()
           img.crossOrigin = 'anonymous'
           img.onload = () => {
-            // 1. Gambar latar belakang putih (clean white padding)
+            // 1. Gambar latar belakang putih bersih di sekitar logo (quiet zone)
             ctx.fillStyle = '#ffffff'
-            ctx.fillRect(logoX - 4, logoY - 4, logoSize + 8, logoSize + 8)
+            ctx.fillRect(logoX - 3, logoY - 3, logoSize + 6, logoSize + 6)
 
             // 2. Gambar rounded rectangle / border lembut
             ctx.save()
-            const radius = 6
+            const radius = 5
             const x = logoX
             const y = logoY
             const w = logoSize
@@ -687,19 +689,7 @@ export default function LetterDocumentView({
           }
 
           img.onerror = () => {
-            // Fallback jika gambar gagal dimuat
-            ctx.fillStyle = '#ffffff'
-            ctx.fillRect(logoX - 3, logoY - 3, logoSize + 6, logoSize + 6)
-            ctx.fillStyle = '#0f172a'
-            ctx.fillRect(logoX, logoY, logoSize, logoSize)
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'middle'
-            ctx.fillStyle = '#ffffff'
-            ctx.font = 'bold 16px Arial, sans-serif'
-            ctx.fillText('PT', size / 2, size / 2 - 9)
-            ctx.fillStyle = '#34d399'
-            ctx.font = 'bold 12px Arial, sans-serif'
-            ctx.fillText('NMA', size / 2, size / 2 + 11)
+            // Fallback jika logo gagal dimuat (tetap buat QR murni agar bisa discan 100%)
             resolve(canvas.toDataURL('image/png'))
           }
 
@@ -1025,12 +1015,12 @@ export default function LetterDocumentView({
                     </p>
                   </div>
 
-                  <div className="w-20 h-20 sm:w-22 sm:h-22 p-1 bg-white border border-slate-300 rounded-md shadow-xs flex items-center justify-center my-1">
+                  <div className="w-22 h-22 sm:w-24 sm:h-24 p-1 bg-white border border-slate-300 rounded-md shadow-xs flex items-center justify-center my-1 print:border-none print:p-0">
                     {qrCodes['submitter'] ? (
                       <img
                         src={qrCodes['submitter']}
                         alt="QR Dibuat"
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain [image-rendering:crisp-edges]"
                       />
                     ) : (
                       <div className="w-full h-full bg-slate-100 flex items-center justify-center">
@@ -1052,13 +1042,13 @@ export default function LetterDocumentView({
                       <p className="text-xs font-bold text-slate-900 leading-none">Mengetahui,</p>
                     </div>
 
-                    <div className="relative w-20 h-20 sm:w-22 sm:h-22 p-1 flex items-center justify-center my-1">
+                    <div className="relative w-22 h-22 sm:w-24 sm:h-24 p-1 flex items-center justify-center my-1 print:p-0">
                       {qrCodes['knownBy'] ? (
-                        <div className="w-full h-full p-0.5 bg-white border border-slate-300 rounded-md shadow-xs flex items-center justify-center">
+                        <div className="w-full h-full p-0.5 bg-white border border-slate-300 rounded-md shadow-xs flex items-center justify-center print:border-none print:p-0">
                           <img
                             src={qrCodes['knownBy']}
                             alt="QR Mengetahui"
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-contain [image-rendering:crisp-edges]"
                           />
                         </div>
                       ) : (
@@ -1157,12 +1147,12 @@ export default function LetterDocumentView({
                                 {/* QR Code Tanda Tangan */}
                                 <div className="flex-1 flex items-center justify-center my-1">
                                   {isApproved ? (
-                                    <div className="w-20 h-20 sm:w-22 sm:h-22 p-1 bg-white border border-slate-300 rounded shadow-xs flex items-center justify-center">
+                                    <div className="w-22 h-22 sm:w-24 sm:h-24 p-1 bg-white border border-slate-300 rounded shadow-xs flex items-center justify-center print:border-none print:p-0">
                                       {qrCodes[`step_${originalIndex >= 0 ? originalIndex : idx}`] ? (
                                         <img
                                           src={qrCodes[`step_${originalIndex >= 0 ? originalIndex : idx}`]}
                                           alt="QR Persetujuan"
-                                          className="w-full h-full object-contain"
+                                          className="w-full h-full object-contain [image-rendering:crisp-edges]"
                                         />
                                       ) : (
                                         <QrIcon className="w-6 h-6 text-slate-400" />

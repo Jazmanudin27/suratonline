@@ -1585,59 +1585,43 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
               </button>
             </div>
 
-            {/* Modal Toolbar: Search & Branch Filter */}
-            <div className="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row gap-2 shrink-0">
-              <div className="relative flex-1">
+            {/* Modal Toolbar: Search */}
+            <div className="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
+              <div className="relative flex-1 w-full">
                 <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={viewerSearchQuery}
                   onChange={(e) => setViewerSearchQuery(e.target.value)}
-                  placeholder="Cari nama, jabatan, atau cabang..."
+                  placeholder="Cari nama atau jabatan di Kantor Pusat..."
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
                 />
               </div>
-
-              {/* Filter Cabang */}
-              <div className="sm:w-44 shrink-0">
-                <select
-                  value={viewerBranchFilter}
-                  onChange={(e) => setViewerBranchFilter(e.target.value)}
-                  className="w-full py-1.5 px-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                >
-                  <option value="ALL">Semua Cabang ({users.length})</option>
-                  <option value="PST">Kantor Pusat</option>
-                  {branches
-                    .filter((b) => (b.id || b.code) !== 'PST')
-                    .map((b) => (
-                      <option key={b.id || b.code} value={b.id || b.code}>
-                        {b.name || b.nama_cabang}
-                      </option>
-                    ))}
-                </select>
+              <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-[11px] font-semibold text-indigo-700">
+                <span>🏢 Khusus Kantor Pusat</span>
               </div>
             </div>
 
             {/* Modal Body: List Users Grouped by Branch & Sorted by Jabatan */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3 divide-y divide-slate-100">
               {(() => {
-                // Filter users based on query and branch (hanya yang memiliki jabatan valid)
+                // Filter users: HANYA KANTOR PUSAT & yang memiliki jabatan valid
                 const q = viewerSearchQuery.toLowerCase().trim()
                 const filtered = users.filter((u) => {
+                  // Khusus Kantor Pusat saja
+                  const isPusat = u.branchId === 'PST' || (u.branchName && u.branchName.toLowerCase().includes('pusat'))
+                  if (!isPusat) return false
+
                   // Hilangkan user yang tidak memiliki jabatan atau vacant
                   const pos = (u.position || '').trim()
                   if (!pos || pos === '-' || pos.toLowerCase().includes('vacant') || pos.toLowerCase().includes('nonsales')) {
                     return false
                   }
 
-                  if (viewerBranchFilter !== 'ALL' && u.branchId !== viewerBranchFilter) {
-                    return false
-                  }
                   if (!q) return true
                   const matchName = (u.name || '').toLowerCase().includes(q)
                   const matchPos = (u.position || u.roleLabel || '').toLowerCase().includes(q)
-                  const matchBranch = (u.branchName || '').toLowerCase().includes(q)
-                  return matchName || matchPos || matchBranch
+                  return matchName || matchPos
                 })
 
                 if (filtered.length === 0) {

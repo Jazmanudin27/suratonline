@@ -1060,26 +1060,7 @@ export default function LetterDocumentView({
                 )}
               </div>
 
-              {/* TEMBUSAN / HAK AKSES MELIHAT (JIKA ADA) */}
-              {Array.isArray(letter.allowedViewers) && letter.allowedViewers.filter((v) => v.userName || (typeof v === 'string' && v)).length > 0 && (
-                <div className="mt-6 pt-2 border-t border-slate-200 text-[10px] text-slate-600">
-                  <p className="font-bold text-slate-800 uppercase tracking-wider mb-0.5">Tembusan / Arsip Elektronik:</p>
-                  <ol className="list-decimal list-inside space-y-0.5 pl-1">
-                    {letter.allowedViewers
-                      .filter((v) => v.userName || (typeof v === 'string' && v))
-                      .map((v, i) => {
-                        const name = v.userName || (typeof v === 'string' ? v : v.userId)
-                        const pos = v.position ? ` (${v.position})` : ''
-                        return (
-                          <li key={i}>
-                            <span className="font-semibold text-slate-800">{name}</span>
-                            <span className="text-slate-500">{pos}</span>
-                          </li>
-                        )
-                      })}
-                  </ol>
-                </div>
-              )}
+              {/* TEMBUSAN / HAK AKSES MELIHAT - hidden per request */}
               {/* Footer Halaman 1 */}
               <div className="mt-8 pt-3 border-t border-slate-200 flex flex-wrap justify-between items-center text-[10px] text-slate-400 select-none">
                 <span>Sistem Surat Ajuan Online &bull; Dicetak pada: {formatDateId(new Date())}</span>

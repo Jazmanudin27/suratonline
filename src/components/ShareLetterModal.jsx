@@ -30,7 +30,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
   const [shareMessage, setShareMessage] = useState('')
   const [isCopied, setIsCopied] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(true)
 
   // Direct share link
   const shareUrl = `${window.location.origin}/#letters?view=${letter.id}`
@@ -114,7 +114,6 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
         const isMine =
           (u.sharedById && String(u.sharedById) === currentUid) ||
           (u.sharedBy && (u.sharedBy || '').trim().toLowerCase() === currentName)
-        // Jika target milik currentUser, hapus
         return !isMine
       })
     )
@@ -152,7 +151,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
         className={`bg-white flex flex-col shadow-2xl overflow-hidden border border-slate-200 transition-all duration-200 ${
           isFullscreen
             ? 'w-full h-full rounded-none max-w-none max-h-none'
-            : 'rounded-2xl w-full max-w-xl max-h-[92vh]'
+            : 'rounded-2xl w-full max-w-2xl max-h-[92vh]'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -164,7 +163,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
             </div>
             <div>
               <h3 className="font-bold text-base sm:text-lg leading-tight flex items-center gap-2">
-                Bagikan Surat
+                Bagikan Surat (Distribusi Dokumen)
               </h3>
               <p className="text-xs text-indigo-200 mt-0.5 font-mono">
                 {letter.letterNumber || letter.title || 'Dokumen Surat'}
@@ -176,7 +175,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
               type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition"
-              title={isFullscreen ? 'Keluar Layar Penuh' : 'Layar Penuh (Full Screen)'}
+              title={isFullscreen ? 'Kecilkan Modal' : 'Layar Penuh (Full Screen)'}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
@@ -192,8 +191,8 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-5 bg-slate-50/50">
-          {/* Section: Info Pemilik & Pengirim Dokumen */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 bg-slate-50/50">
+          {/* Info Pemilik Dokumen */}
           <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3 flex items-start gap-2.5">
             <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
             <div className="text-xs text-slate-700 min-w-0">
@@ -204,31 +203,174 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                 )}
               </p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Pengguna yang ditambahkan ke daftar di bawah akan mendapatkan akses melihat isi surat, lampiran, dan berpartisipasi dalam diskusi.
+                Pilih karyawan yang ingin ditambahkan ke daftar penerima surat di bawah ini.
               </p>
             </div>
           </div>
 
-          {/* Section: Pesan Pengantar / Deskripsi Berbagi (Seperti Email) */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-indigo-100 shadow-xs space-y-2">
+          {/* 1. BAGIAN ATAS: PENCARIAN & TAMBAH PENGGUNA (USER YANG MAU DITAMBAH) */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <UserPlus className="w-4 h-4 text-emerald-600" />
+                Pilih Karyawan / User yang Mau Ditambahkan
+              </label>
+              <span className="text-[11px] text-slate-400">
+                Tersedia {availableUsers.length} karyawan
+              </span>
+            </div>
+
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Cari berdasarkan nama karyawan, cabang, atau jabatan..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition shadow-xs"
+              />
+            </div>
+
+            {/* List hasil pencarian */}
+            <div className="bg-white border border-slate-200 rounded-xl max-h-52 overflow-y-auto divide-y divide-slate-100 shadow-inner">
+              {availableUsers.length === 0 ? (
+                <div className="p-4 text-center text-xs text-slate-400">
+                  {searchTerm ? 'Tidak ada pengguna yang cocok dengan pencarian' : 'Semua pengguna telah ditambahkan'}
+                </div>
+              ) : (
+                availableUsers.slice(0, 20).map((user) => (
+                  <div
+                    key={user.id}
+                    className="p-2.5 flex items-center justify-between hover:bg-slate-50 transition gap-2"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                      <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs shrink-0">
+                        {(user.name || 'U').charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 truncate">
+                          {user.name}
+                        </p>
+                        <p className="text-[10px] text-slate-500 truncate flex items-center gap-1">
+                          <span>{user.branchName || user.branchId || 'Pusat'}</span>
+                          <span>&bull;</span>
+                          <span>{user.position || user.role || '-'}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleAddUser(user)}
+                      className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white rounded-xl text-xs font-bold flex items-center gap-1 transition shrink-0 active:scale-95 border border-emerald-200 hover:border-transparent shadow-xs"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Tambah</span>
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* 2. BAGIAN TENGAH: KERANJANG PENGGUNA YANG SUDAH DITAMBAH */}
+          <div className="bg-white p-4 rounded-2xl border border-indigo-100 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-indigo-600" />
+                Daftar Pengguna yang Anda Bagikan / Keranjang ({mySharedUsers.length})
+              </label>
+              {mySharedUsers.length > 0 && (
+                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                  {mySharedUsers.length} Penerima Terpilih
+                </span>
+              )}
+            </div>
+
+            {mySharedUsers.length === 0 ? (
+              <div className="p-6 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center text-xs text-slate-400">
+                Keranjang masih kosong. Klik tombol "+ Tambah" pada karyawan di atas untuk memasukkan ke daftar penerima.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {mySharedUsers.map((u) => {
+                  const uid = u.userId || u.id
+                  const shareTime = u.sharedAt ? formatDateTimeId(u.sharedAt) : null
+
+                  return (
+                    <div
+                      key={uid}
+                      className="flex items-center justify-between p-2.5 bg-indigo-50/40 border border-indigo-100 rounded-xl shadow-xs gap-2"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-xs">
+                          {(u.userName || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-slate-900 truncate">
+                            {u.userName}
+                          </p>
+                          <p className="text-[10px] text-slate-500 flex items-center gap-1.5 truncate">
+                            {u.branchName && (
+                              <span className="inline-flex items-center gap-0.5">
+                                <Building2 className="w-2.5 h-2.5" /> {u.branchName}
+                              </span>
+                            )}
+                            {u.role && (
+                              <span className="inline-flex items-center gap-0.5">
+                                &bull; <Briefcase className="w-2.5 h-2.5" /> {u.role}
+                              </span>
+                            )}
+                            {shareTime && (
+                              <span className="text-slate-400 text-[10px]">
+                                &bull; {shareTime}
+                              </span>
+                            )}
+                          </p>
+                          {u.note && (
+                            <div className="mt-1 p-1 bg-white border border-indigo-100 rounded-md text-[10.5px] text-slate-700 italic flex items-start gap-1">
+                              <MessageSquare className="w-3 h-3 text-indigo-500 shrink-0 mt-0.5" />
+                              <span className="line-clamp-1">"{u.note}"</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveUser(uid)}
+                        className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition shrink-0 border border-rose-200"
+                        title="Hapus dari daftar penerima"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 3. BAGIAN BAWAH: KETERANGAN / DESKRIPSI PENGANTAR (SEPERTI EMAIL) */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
             <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
               <Mail className="w-4 h-4 text-indigo-600" />
-              Pesan / Catatan Pengantar (Opsional, seperti Email)
+              Keterangan / Deskripsi Pengantar (Seperti Isi Pesan Email)
             </label>
             <textarea
-              rows={2}
+              rows={3}
               value={shareMessage}
               onChange={(e) => setShareMessage(e.target.value)}
-              placeholder="Tulis pesan atau instruksi untuk penerima... Contoh: Mohon dicek dan bantu tanggapi dokumen penawaran ini."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition resize-none"
+              placeholder="Tulis pesan atau instruksi untuk penerima... Contoh: Mohon dicek dan bantu tanggapi dokumen penawaran ini sebelum akhir bulan."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition resize-none"
             />
             <p className="text-[11px] text-slate-400">
-              Pesan ini akan tampil kepada penerima saat membuka surat dan tercatat dalam riwayat pembagian.
+              Deskripsi ini akan muncul di banner atas pembaca dokumen penerima saat mereka membuka surat.
             </p>
           </div>
 
-          {/* Section 1: Salin Tautan Langsung */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs space-y-2">
+          {/* 4. TAUTAN LANGSUNG DOKUMEN (URL) */}
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
               <ExternalLink className="w-3.5 h-3.5 text-indigo-600" />
               Tautan Langsung Dokumen (URL)
@@ -261,144 +403,6 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                   </>
                 )}
               </button>
-            </div>
-            <p className="text-[11px] text-slate-500">
-              Pengguna yang menerima tautan ini dapat langsung membuka pratinjau surat jika memiliki hak akses / dibagikan.
-            </p>
-          </div>
-
-          {/* Section 2: Daftar Pengguna yang Dibagikan oleh Anda */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-indigo-600" />
-                Pengguna yang Anda Bagikan ({mySharedUsers.length})
-              </label>
-              {sharedUsers.length > mySharedUsers.length && (
-                <span className="text-[10px] text-slate-400">
-                  Total dokumen dibagikan: {sharedUsers.length} user
-                </span>
-              )}
-            </div>
-
-            {mySharedUsers.length === 0 ? (
-              <div className="p-4 bg-white border border-dashed border-slate-300 rounded-xl text-center text-xs text-slate-500">
-                Anda belum membagikan surat ini ke siapa pun. Cari dan tambahkan rekan kerja di bawah.
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                {mySharedUsers.map((u) => {
-                  const uid = u.userId || u.id
-                  const senderName = u.sharedBy || currentUser?.name || 'Anda'
-                  const shareTime = u.sharedAt ? formatDateTimeId(u.sharedAt) : null
-
-                  return (
-                    <div
-                      key={uid}
-                      className="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-xl shadow-xs gap-2"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0">
-                          {(u.userName || 'U').charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-900 truncate">
-                            {u.userName}
-                          </p>
-                          <p className="text-[10px] text-slate-500 flex items-center gap-1.5 truncate">
-                            {u.branchName && (
-                              <span className="inline-flex items-center gap-0.5">
-                                <Building2 className="w-2.5 h-2.5" /> {u.branchName}
-                              </span>
-                            )}
-                            {u.role && (
-                              <span className="inline-flex items-center gap-0.5">
-                                &bull; <Briefcase className="w-2.5 h-2.5" /> {u.role}
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-[10px] text-indigo-600 mt-0.5 font-medium truncate">
-                            Dibagikan oleh: <span className="font-bold">{senderName}</span>
-                            {shareTime && <span className="text-slate-400"> &bull; {shareTime}</span>}
-                          </p>
-                          {u.note && (
-                            <div className="mt-1.5 p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10.5px] text-slate-700 italic flex items-start gap-1">
-                              <MessageSquare className="w-3 h-3 text-indigo-500 shrink-0 mt-0.5" />
-                              <span className="line-clamp-2">"{u.note}"</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveUser(uid)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0"
-                        title="Hapus akses dibagikan"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Section 3: Pencarian dan Tambah Pengguna Baru */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <UserPlus className="w-4 h-4 text-emerald-600" />
-              Pilih Karyawan / User untuk Diberi Akses
-            </label>
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Ketik nama, cabang, atau jabatan..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-              />
-            </div>
-
-            {/* List hasil pencarian */}
-            <div className="bg-white border border-slate-200 rounded-xl max-h-44 overflow-y-auto divide-y divide-slate-100 shadow-inner">
-              {availableUsers.length === 0 ? (
-                <div className="p-3 text-center text-xs text-slate-400">
-                  {searchTerm ? 'Tidak ada pengguna yang cocok' : 'Semua pengguna telah ditambahkan'}
-                </div>
-              ) : (
-                availableUsers.slice(0, 15).map((user) => (
-                  <div
-                    key={user.id}
-                    className="p-2.5 flex items-center justify-between hover:bg-slate-50 transition"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                      <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[11px] shrink-0">
-                        {(user.name || 'U').charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900 truncate">
-                          {user.name}
-                        </p>
-                        <p className="text-[10px] text-slate-500 truncate">
-                          {user.branchName || user.branchId || 'Pusat'} &bull; {user.position || user.role || '-'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleAddUser(user)}
-                      className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition shrink-0 active:scale-95 border border-indigo-200 hover:border-transparent"
-                    >
-                      <UserPlus className="w-3 h-3" />
-                      <span>Tambah</span>
-                    </button>
-                  </div>
-                ))
-              )}
             </div>
           </div>
         </div>

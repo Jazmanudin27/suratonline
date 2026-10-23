@@ -1451,15 +1451,26 @@ export default function LetterDocumentView({
                       <img
                         src={pItem.dataUrl}
                         alt={`${pItem.file.name} Hal ${pItem.pageNumber}`}
-                        className="w-full h-auto max-h-[1040px] object-contain block select-none pointer-events-none"
+                        className="w-full h-auto max-h-[1040px] object-contain block select-none pointer-events-none bg-white"
+                        style={{ backgroundColor: '#ffffff' }}
                       />
                     ) : pItem.fallbackSrc || pItem.file?.url || pItem.file?.dataUrl ? (
-                      <div className="w-full h-full flex-1 flex flex-col items-center">
+                      <div className="w-full h-full flex-1 flex flex-col items-center bg-white">
+                        {/* Iframe hanya tampil di browser web, disembunyikan saat print agar tidak menjadi kotak hitam */}
                         <iframe
                           src={`${pItem.fallbackSrc || pItem.file?.url || pItem.file?.dataUrl}#toolbar=0&navpanes=0`}
                           title={pItem.file?.name || 'Dokumen PDF'}
-                          className="w-full h-[980px] border-0 rounded bg-white"
+                          className="w-full h-[980px] border-0 rounded bg-white print:hidden"
                         />
+                        {/* Lembar khusus cetak jika image rendering belum tersedia */}
+                        <div className="hidden print:flex flex-col items-center justify-center p-12 text-center border-2 border-slate-200 rounded-xl my-8 bg-white text-slate-800 w-full max-w-lg">
+                          <FileText className="w-16 h-16 text-blue-600 mb-4" />
+                          <h4 className="font-bold text-base text-slate-900">{pItem.file?.name || 'Dokumen Lampiran PDF'}</h4>
+                          <p className="text-xs text-slate-500 mt-1 font-medium">Halaman {pItem.pageNumber} dari {pItem.pdfTotalPages || 1}</p>
+                          <div className="mt-4 px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-600">
+                            Berkas lampiran elektronik resmi tersimpan dan terverifikasi di server E-Surat Ajuan.
+                          </div>
+                        </div>
                         <div className="no-print mt-2 flex items-center gap-2">
                           <a
                             href={pItem.fallbackSrc || pItem.file?.url || pItem.file?.dataUrl}
@@ -1477,10 +1488,10 @@ export default function LetterDocumentView({
                         <AlertCircle className="w-8 h-8 mb-2 text-rose-600" />
                         <span className="font-bold text-sm">Lampiran Dokumen Tidak Dapat Ditampilkan</span>
                         <span className="text-xs text-rose-600 mt-1 max-w-md">{pItem.errorMsg || 'Berkas rusak atau bukan format PDF resmi.'}</span>
-                        <span className="text-[11px] text-slate-500 mt-2">Silakan unggah ulang file dokumen PDF asli.</span>
+                        <span className="text-[11px] text-slate-500 mt-2">Silakan unduh dokumen asli via tautan lampiran.</span>
                       </div>
                     ) : (
-                      <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-slate-400 text-xs">
+                      <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-slate-400 text-xs bg-white">
                         <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2" />
                         <span>Memproses Halaman {pItem.pageNumber}...</span>
                       </div>

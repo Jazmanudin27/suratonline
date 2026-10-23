@@ -210,6 +210,15 @@
     object-fit: contain !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    background-color: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Mencegah iframe PDF tercetak menjadi kotak hitam */
+  .page-sheet iframe {
+    display: none !important;
+    visibility: hidden !important;
   }
 }
 

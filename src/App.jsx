@@ -452,9 +452,11 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => window.print()}
-                  className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
-                  title="Cetak langsung dokumen"
+                  onClick={() => {
+                    setTimeout(() => window.print(), 150)
+                  }}
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs active:scale-95"
+                  title="Cetak langsung dokumen resmi"
                 >
                   <span>🖨 Cetak</span>
                 </button>

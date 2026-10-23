@@ -94,30 +94,17 @@ export default function Navbar({ activeTab, onTabChange, onOpenLetterById }) {
           {/* Center Navigation Links (Desktop) */}
           <nav className="hidden md:flex items-center gap-1 text-xs font-semibold">
             {!isDirekturUser(currentUser) && (
-              <>
-                <button
-                  onClick={() => onTabChange('dashboard')}
-                  className={`px-3 py-2 rounded-lg transition ${
-                    activeTab === 'dashboard'
-                      ? 'bg-slate-800 text-white shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  Dasbor
-                </button>
-
-                <button
-                  onClick={() => onTabChange('templates')}
-                  className={`px-3 py-2 rounded-lg transition flex items-center gap-1.5 ${
-                    activeTab === 'templates'
-                      ? 'bg-slate-800 text-white shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Buat Surat</span>
-                </button>
-              </>
+              <button
+                onClick={() => onTabChange('templates')}
+                className={`px-3 py-2 rounded-lg transition flex items-center gap-1.5 ${
+                  activeTab === 'templates'
+                    ? 'bg-slate-800 text-white shadow-xs'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Buat Surat</span>
+              </button>
             )}
 
             <button
@@ -338,27 +325,16 @@ export default function Navbar({ activeTab, onTabChange, onOpenLetterById }) {
         {mobileMenuOpen && (
           <div className="md:hidden py-3 border-t border-slate-800 space-y-1 text-xs font-semibold">
             {!isDirekturUser(currentUser) && (
-              <>
-                <button
-                  onClick={() => {
-                    onTabChange('dashboard')
-                    setMobileMenuOpen(false)
-                  }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800"
-                >
-                  Dasbor
-                </button>
-                <button
-                  onClick={() => {
-                    onTabChange('templates')
-                    setMobileMenuOpen(false)
-                  }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 flex items-center gap-2"
-                >
-                  <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  Buat Surat Ajuan
-                </button>
-              </>
+              <button
+                onClick={() => {
+                  onTabChange('templates')
+                  setMobileMenuOpen(false)
+                }}
+                className="w-full text-left px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 flex items-center gap-2"
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
+                Buat Surat Ajuan
+              </button>
             )}
             <button
               onClick={() => {

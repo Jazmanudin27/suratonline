@@ -102,12 +102,6 @@ export default function AdminLayout({
     ...(!isDirektur
       ? [
           {
-            id: 'dashboard',
-            label: 'Dashboard',
-            icon: LayoutDashboard,
-            isActive: activeMenu === 'dashboard',
-          },
-          {
             id: 'templates',
             label: 'Buat Surat Ajuan',
             icon: FilePlus,

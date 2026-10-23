@@ -21,7 +21,7 @@ export default function MobileLayout({
   onRequestRevision,
   onUpdateNotes,
 }) {
-  const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard' | 'archive' | 'inbox' | 'profile'
+  const [activeTab, setActiveTab] = useState('archive') // 'archive' | 'inbox' | 'profile'
   const [chattingLetter, setChattingLetter] = useState(null)
   const [previewingLetter, setPreviewingLetter] = useState(null)
 

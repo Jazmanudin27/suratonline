@@ -1,7 +1,7 @@
 import React from 'react'
 
 export default function MobileBottomNav({
-  activeTab = 'dashboard',
+  activeTab = 'archive',
   onTabChange,
   pendingApprovalsCount = 0,
 }) {
@@ -10,36 +10,7 @@ export default function MobileBottomNav({
       <div className="relative mx-3.5 mb-3.5 pointer-events-auto">
         {/* Floating Curved Dock Glass Container */}
         <div className="relative bg-white/95 backdrop-blur-2xl border border-white/80 shadow-[0_10px_35px_rgba(15,23,42,0.15)] rounded-[28px] px-3 py-2 flex items-center justify-between">
-          {/* TAB 1: Beranda */}
-          <button
-            type="button"
-            onClick={() => onTabChange('dashboard')}
-            className="flex-1 flex flex-col items-center py-1 transition-all duration-200 active:scale-90 group"
-          >
-            <div
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                activeTab === 'dashboard'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 scale-105'
-                  : 'text-slate-400 group-hover:text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={activeTab === 'dashboard' ? 2.5 : 2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-            </div>
-            <span
-              className={`text-[10px] mt-1 font-bold tracking-tight transition-colors ${
-                activeTab === 'dashboard' ? 'text-blue-600 font-extrabold' : 'text-slate-500'
-              }`}
-            >
-              Beranda
-            </span>
-            {activeTab === 'dashboard' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-0.5 animate-pulse" />
-            )}
-          </button>
-
-          {/* TAB 2: Arsip Surat */}
+          {/* TAB: Arsip Surat */}
           <button
             type="button"
             onClick={() => onTabChange('archive')}

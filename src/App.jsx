@@ -42,8 +42,10 @@ export default function App() {
       }
       return hash
     }
-    if (hash) return hash
-    return localStorage.getItem('suratajuan_active_menu') || 'dashboard'
+    if (hash && hash !== 'dashboard') return hash
+    const saved = localStorage.getItem('suratajuan_active_menu')
+    if (saved && saved !== 'dashboard') return saved
+    return 'letters'
   }
 
   const [currentUser, setCurrentUser] = useState(null)

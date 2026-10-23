@@ -812,105 +812,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                 </div>
               </div>
 
-              {/* Card 2: Form Builder (Isian Field Dinamis) */}
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-teal-50 text-teal-600">
-                      <ListPlus className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="font-extrabold text-sm text-slate-900">2. Isian Form Yang Harus Diisi Pemohon</h3>
-                      <p className="text-[11px] text-slate-500">Daftar input yang akan diisi oleh karyawan cabang saat membuat ajuan ini.</p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleAddField}
-                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
-                  >
-                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Tambah Field Isian</span>
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {editingTemplate.fields?.map((field, idx) => (
-                    <div
-                      key={field.id || idx}
-                      className="p-3.5 bg-slate-50/70 border border-slate-200 rounded-xl flex flex-wrap items-center gap-3 text-xs"
-                    >
-                      <span className="w-6 h-6 rounded-lg bg-white border border-slate-300 font-mono text-slate-700 font-black flex items-center justify-center shrink-0 shadow-2xs">
-                        {idx + 1}
-                      </span>
-
-                      <div className="flex-1 min-w-[200px]">
-                        <label className="block text-[11px] text-slate-500 font-semibold mb-0.5">Label Input</label>
-                        <input
-                          type="text"
-                          value={field.label}
-                          onChange={(e) => handleUpdateField(idx, 'label', e.target.value)}
-                          className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                      </div>
-
-                      <div className="w-44">
-                        <label className="block text-[11px] text-slate-500 font-semibold mb-0.5">Tipe Input</label>
-                        <select
-                          value={field.type}
-                          onChange={(e) => handleUpdateField(idx, 'type', e.target.value)}
-                          className="w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-800 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
-                        >
-                          <option value="text">Teks Pendek</option>
-                          <option value="textarea">Teks Panjang (Textarea)</option>
-                          <option value="number">Angka / Nominal (Rp)</option>
-                          <option value="date">Tanggal</option>
-                          <option value="select">Pilihan Dropdown</option>
-                          <option value="table_costs">Tabel Rincian Biaya</option>
-                        </select>
-                      </div>
-
-                      <div className="w-48">
-                        <label className="block text-[11px] text-slate-500 font-semibold mb-0.5">Variabel Template</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={field.name}
-                            onChange={(e) =>
-                              handleUpdateField(idx, 'name', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))
-                            }
-                            className="w-full p-2 border border-slate-300 rounded-lg font-mono text-indigo-700 font-bold bg-indigo-50/60 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 pt-4">
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={field.required}
-                            onChange={(e) => handleUpdateField(idx, 'required', e.target.checked)}
-                            className="rounded text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className="text-[11px] font-bold text-slate-700">Wajib Diisi</span>
-                        </label>
-
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveField(idx)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          title="Hapus field ini"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Card 3: Jalur Persetujuan Bertingkat */}
+              {/* Card 2: Jalur Persetujuan Bertingkat */}
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
@@ -918,7 +820,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                       <ShieldCheck className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-sm text-slate-900">3. Jalur Persetujuan Bertingkat (Approver)</h3>
+                      <h3 className="font-extrabold text-sm text-slate-900">2. Jalur Persetujuan Bertingkat (Approver)</h3>
                       <p className="text-[11px] text-slate-500">Tentukan urutan pejabat yang berhak memverifikasi dan menyetujui surat (urutan dari atas ke bawah).</p>
                     </div>
                   </div>

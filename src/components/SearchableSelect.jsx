@@ -37,6 +37,7 @@ export default function SearchableSelect({
       label: opt.label || opt.name || String(opt.value || ''),
       sublabel: opt.sublabel || opt.description || '',
       group: opt.group || '',
+      badge: opt.badge !== undefined && opt.badge !== null ? opt.badge : null,
     }
   })
 
@@ -129,6 +130,11 @@ export default function SearchableSelect({
                   ({selectedOption.sublabel})
                 </span>
               )}
+              {selectedOption.badge !== null && selectedOption.badge !== undefined && (
+                <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-800 shrink-0">
+                  {selectedOption.badge}
+                </span>
+              )}
             </div>
           ) : (
             <span className="text-slate-500 font-medium text-xs sm:text-sm">{placeholder}</span>
@@ -215,9 +221,18 @@ export default function SearchableSelect({
                             </span>
                           )}
                         </div>
-                        {isSelected && (
-                          <Check className="w-4 h-4 text-white shrink-0 stroke-[3]" />
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {opt.badge !== null && opt.badge !== undefined && (
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                              isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-800'
+                            }`}>
+                              {opt.badge}
+                            </span>
+                          )}
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-white shrink-0 stroke-[3]" />
+                          )}
+                        </div>
                       </div>
                     )
                   })}
@@ -246,9 +261,18 @@ export default function SearchableSelect({
                         </span>
                       )}
                     </div>
-                    {isSelected && (
-                      <Check className="w-4 h-4 text-white shrink-0 stroke-[3]" />
-                    )}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {opt.badge !== null && opt.badge !== undefined && (
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                          isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-800'
+                        }`}>
+                          {opt.badge}
+                        </span>
+                      )}
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-white shrink-0 stroke-[3]" />
+                      )}
+                    </div>
                   </div>
                 )
               })

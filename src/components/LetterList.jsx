@@ -37,6 +37,7 @@ import {
   isUserLetterKnownBy,
   getEffectiveKnownBy,
   canUserEditLetter,
+  getCategories,
 } from '../services/storage'
 import { notify } from '../utils/alert'
 import SearchableSelect from './SearchableSelect'
@@ -103,7 +104,7 @@ export default function LetterList({
   }, [directPrintLetter, handleReadyToPrint])
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'all')
   const [branchFilter, setBranchFilter] = useState('all')
-  const [templateFilter, setTemplateFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [historyLetter, setHistoryLetter] = useState(null)
   const [chatLetter, setChatLetter] = useState(null)
   const [shareLetter, setShareLetter] = useState(null)
@@ -272,6 +273,101 @@ export default function LetterList({
     draft: visibleLetters.filter((l) => l.status === 'draft').length,
   }
 
+  // Lookup template map
+  const templateMap = React.useMemo(() => {
+    const map = new Map()
+    ;(templates || []).forEach((t) => {
+      if (t.id) map.set(t.id, t)
+      if (t.code) map.set(t.code, t)
+    })
+    return map
+  }, [templates])
+
+  const getLetterCategory = React.useCallback((letter) => {
+    if (letter.category && letter.category !== 'all') return letter.category
+    if (letter.templateCategory) return letter.templateCategory
+    if (letter.templateId) {
+      const t = templateMap.get(letter.templateId) || templateMap.get(letter.templateCode)
+      if (t?.category) return t.category
+    }
+    const tName = (letter.templateName || letter.title || '').toLowerCase()
+    if (tName.includes('sample') || tName.includes('kemasan') || tName.includes('promosi') || tName.includes('marketing')) {
+      return 'Marketing'
+    }
+    if (tName.includes('operasional') || tName.includes('biaya operasional')) {
+      return 'Operasional'
+    }
+    if (tName.includes('cuti') || tName.includes('karyawan') || tName.includes('hrd') || tName.includes('izin')) {
+      return 'Kepegawaian / HRD'
+    }
+    if (tName.includes('keuangan') || tName.includes('anggaran') || tName.includes('kas')) {
+      return 'Keuangan & Anggaran'
+    }
+    if (tName.includes('sales') || tName.includes('crm') || tName.includes('penjualan')) {
+      return 'Sales & CRM'
+    }
+    if (tName.includes('logistik') || tName.includes('distribusi') || tName.includes('pengiriman')) {
+      return 'Logistik & Distribusi'
+    }
+    if (tName.includes('legal') || tName.includes('perizinan') || tName.includes('kontrak')) {
+      return 'Legal & Perizinan'
+    }
+    return 'Umum'
+  }, [templateMap])
+
+  const categoriesList = React.useMemo(() => {
+    const defaultCats = [
+      'Umum',
+      'Operasional',
+      'Kepegawaian / HRD',
+      'Marketing',
+      'Sales & CRM',
+      'Keuangan & Anggaran',
+      'Logistik & Distribusi',
+      'Legal & Perizinan',
+    ]
+    const stored = getCategories() || []
+    return Array.from(new Set([...defaultCats, ...stored]))
+  }, [])
+
+  const categoryOptions = React.useMemo(() => {
+    const branchFilteredLetters = visibleLetters.filter((l) => {
+      return (
+        branchFilter === 'all' ||
+        l.branchId === branchFilter ||
+        String(l.branchId).toLowerCase() === String(branchFilter).toLowerCase() ||
+        (l.branchName && branchFilter && l.branchName.toLowerCase().includes(branchFilter.toLowerCase()))
+      )
+    })
+
+    const counts = { all: branchFilteredLetters.length }
+    categoriesList.forEach((cat) => {
+      counts[cat] = 0
+    })
+
+    branchFilteredLetters.forEach((l) => {
+      const cat = getLetterCategory(l)
+      if (counts[cat] !== undefined) {
+        counts[cat] += 1
+      } else {
+        counts[cat] = 1
+      }
+    })
+
+    return [
+      {
+        value: 'all',
+        label: 'Semua',
+        badge: counts.all,
+      },
+      ...categoriesList.map((cat) => ({
+        value: cat,
+        label: cat,
+        badge: counts[cat] || 0,
+      })),
+    ]
+  }, [visibleLetters, branchFilter, categoriesList, getLetterCategory])
+
   const filteredLetters = visibleLetters.filter((l) => {
     const matchSearch =
       l.letterNumber?.toLowerCase().includes(search.toLowerCase()) ||
@@ -293,9 +389,11 @@ export default function LetterList({
       l.branchId === branchFilter ||
       String(l.branchId).toLowerCase() === String(branchFilter).toLowerCase() ||
       (l.branchName && branchFilter && l.branchName.toLowerCase().includes(branchFilter.toLowerCase()))
-    const matchTemplate = templateFilter === 'all' || l.templateId === templateFilter
+    const matchCategory =
+      categoryFilter === 'all' ||
+      getLetterCategory(l) === categoryFilter
 
-    return matchSearch && matchStatus && matchBranch && matchTemplate
+    return matchSearch && matchStatus && matchBranch && matchCategory
   })
 
   return (
@@ -506,16 +604,10 @@ export default function LetterList({
 
           <div>
             <SearchableSelect
-              value={templateFilter}
-              onChange={(val) => setTemplateFilter(val || 'all')}
-              placeholder="Semua Jenis Surat"
-              options={[
-                { value: 'all', label: 'Semua Jenis Surat' },
-                ...templates.map((t) => ({
-                  value: t.id,
-                  label: t.name,
-                })),
-              ]}
+              value={categoryFilter}
+              onChange={(val) => setCategoryFilter(val || 'all')}
+              placeholder="Semua Kategori"
+              options={categoryOptions}
             />
           </div>
         </div>

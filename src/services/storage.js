@@ -516,7 +516,7 @@ export const DEFAULT_CATEGORIES = [
   'Umum',
   'Operasional',
   'Kepegawaian / HRD',
-  'Pemeliharaan',
+  'Marketing',
   'Sales & CRM',
   'Keuangan & Anggaran',
   'Logistik & Distribusi',

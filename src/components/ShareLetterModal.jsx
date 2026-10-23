@@ -81,6 +81,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
         role: user.position || user.role || '',
         sharedAt: new Date().toISOString(),
         sharedBy: currentUser?.name || 'User',
+        sharedById: currentUser?.id,
       },
     ])
   }
@@ -214,7 +215,12 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                 {sharedUsers.map((u) => {
                   const uid = u.userId || u.id
                   const senderName = u.sharedBy || currentUser?.name || 'Sistem'
-                  const shareTime = u.sharedAt ? formatDateTimeId(u.sharedAt) : null
+                  const isSender =
+                    (u.sharedById && String(u.sharedById) === String(currentUser?.id)) ||
+                    (u.sharedBy && currentUser?.name && u.sharedBy.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
+                  const isLetterOwner = letter.userId && String(letter.userId) === String(currentUser?.id)
+                  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || currentUser?.role === 'SUPERADMIN'
+                  const canDelete = isSender || isLetterOwner || isAdmin
 
                   return (
                     <div
@@ -248,14 +254,16 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveUser(uid)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0"
-                        title="Hapus akses"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveUser(uid)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0"
+                          title="Hapus akses dibagikan"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   )
                 })}

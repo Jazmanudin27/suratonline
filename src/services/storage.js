@@ -1876,7 +1876,8 @@ export const shareLetterWithUsers = async (letterId, targetUsers, currentUser) =
     branchName: u.branchName || u.branch || '',
     role: u.role || u.position || '',
     sharedAt: u.sharedAt || new Date().toISOString(),
-    sharedBy: currentUser?.name || 'User',
+    sharedBy: u.sharedBy || currentUser?.name || 'User',
+    sharedById: u.sharedById || currentUser?.id,
   }))
 
   const updatedLetter = {

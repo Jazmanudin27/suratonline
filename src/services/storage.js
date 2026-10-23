@@ -497,7 +497,7 @@ export const BLANK_TEMPLATE = {
 }
 
 export const getTemplates = () => {
-  const templates = getStorageItem(STORAGE_KEYS.TEMPLATES, INITIAL_TEMPLATES)
+  const templates = getStorageItem(STORAGE_KEYS.TEMPLATES, [])
   return templates.map((t) => {
     let fmt = t.numberFormat
     if (!fmt || fmt.startsWith('{{seq}}/') || (typeof fmt === 'string' && fmt.split('/').length > 5)) {

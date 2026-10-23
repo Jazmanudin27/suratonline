@@ -62,6 +62,7 @@ export default function MobileLayout({
             <MobileLetterList
               currentUser={currentUser}
               letters={visibleLetters}
+              branches={branches}
               onPreviewLetter={(l) => setPreviewingLetter(l)}
               onOpenChat={(l) => setChattingLetter(l)}
               onApproveLetter={onApproveLetter}
@@ -74,6 +75,7 @@ export default function MobileLayout({
             <MobileApproverInbox
               currentUser={currentUser}
               letters={visibleLetters}
+              branches={branches}
               onPreviewLetter={(l) => setPreviewingLetter(l)}
               onOpenChat={(l) => setChattingLetter(l)}
               onApproveLetter={onApproveLetter}
@@ -100,15 +102,6 @@ export default function MobileLayout({
           pendingApprovalsCount={pendingApprovalsCount}
         />
 
-        {/* Chat Modal */}
-        {chattingLetter && (
-          <LetterChatModal
-            letter={chattingLetter}
-            currentUser={currentUser}
-            onClose={() => setChattingLetter(null)}
-          />
-        )}
-
         {/* Mobile Document Reader (Card Sheet Mobile-First) */}
         {previewingLetter && (
           <MobileDocumentReader
@@ -129,6 +122,17 @@ export default function MobileLayout({
             onUpdateNotes={(targetIdx, newNote) => {
               if (onUpdateNotes) onUpdateNotes(previewingLetter.id, targetIdx, newNote)
             }}
+          />
+        )}
+
+        {/* Chat Modal (ditempatkan di paling akhir agar selalu tampil di atas reader/sheet) */}
+        {chattingLetter && (
+          <LetterChatModal
+            letterId={chattingLetter.id}
+            initialLetter={chattingLetter}
+            letter={chattingLetter}
+            currentUser={currentUser}
+            onClose={() => setChattingLetter(null)}
           />
         )}
       </div>

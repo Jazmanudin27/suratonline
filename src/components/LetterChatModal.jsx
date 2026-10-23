@@ -21,12 +21,15 @@ import { notify } from '../utils/alert'
 export default function LetterChatModal({
   letterId,
   initialLetter,
+  letter: letterProp,
   currentUser: propUser,
   onClose,
 }) {
+  const effectiveInitial = initialLetter || letterProp || null
+  const effectiveId = letterId || effectiveInitial?.id
   const currentUser = propUser || getCurrentUser()
-  const [letter, setLetter] = useState(initialLetter || null)
-  const [comments, setComments] = useState([])
+  const [letter, setLetter] = useState(effectiveInitial)
+  const [comments, setComments] = useState(effectiveInitial?.comments || [])
   const [inputMessage, setInputMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
   const messagesEndRef = useRef(null)
@@ -35,21 +38,23 @@ export default function LetterChatModal({
   // Muat data surat dan pesan
   const loadData = () => {
     const letters = getLetters()
-    const found = letters.find((l) => l.id === (letterId || initialLetter?.id))
+    const targetId = effectiveId || letter?.id
+    const found = letters.find((l) => l.id === targetId)
     if (found) {
       setLetter(found)
       setComments(found.comments || [])
-    } else if (initialLetter) {
-      setLetter(initialLetter)
-      setComments(initialLetter.comments || [])
+    } else if (effectiveInitial) {
+      setLetter(effectiveInitial)
+      setComments(effectiveInitial.comments || [])
     }
   }
 
   useEffect(() => {
     loadData()
 
+    const targetId = effectiveId || effectiveInitial?.id
     const handleChatUpdate = (e) => {
-      if (!e.detail || e.detail.letterId === (letterId || initialLetter?.id)) {
+      if (!e.detail || e.detail.letterId === targetId) {
         loadData()
       }
     }
@@ -65,7 +70,7 @@ export default function LetterChatModal({
       window.removeEventListener('letter_chat_updated', handleChatUpdate)
       window.removeEventListener('letters_change', handleLettersChange)
     }
-  }, [letterId, initialLetter])
+  }, [effectiveId, effectiveInitial])
 
   // Scroll otomatis ke pesan terbawah saat komentar bertambah
   useEffect(() => {
@@ -145,7 +150,7 @@ export default function LetterChatModal({
   if (!letter) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-5 animate-fade-in">
+    <div className="fixed inset-0 z-[60] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-5 animate-fade-in">
       <div className="bg-white rounded-3xl w-full max-w-2xl h-[88vh] max-h-[760px] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80">
         
         {/* Header Modal Modern */}

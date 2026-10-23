@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   Inbox,
   Clock,
@@ -20,6 +20,7 @@ import { formatDateId } from '../services/storage'
 export default function MobileApproverInbox({
   currentUser,
   letters = [],
+  branches = [],
   onPreviewLetter,
   onOpenChat,
   onApproveLetter,
@@ -29,7 +30,46 @@ export default function MobileApproverInbox({
 }) {
   const [activeSubTab, setActiveSubTab] = useState('pending') // 'pending' | 'history'
   const [searchTerm, setSearchTerm] = useState('')
+  const [branchFilter, setBranchFilter] = useState('all')
   const [approvingLetter, setApprovingLetter] = useState(null)
+
+  // Cek apakah user adalah PST (Pusat)
+  const isPST =
+    currentUser?.branchId === 'PST' ||
+    currentUser?.branchCode === 'PST' ||
+    (currentUser?.branchName && currentUser.branchName.toLowerCase().includes('pusat')) ||
+    currentUser?.role === 'admin_pusat' ||
+    currentUser?.kodeJabatan === 'J01' || // Direktur
+    currentUser?.kodeJabatan === 'J02' || // GM
+    currentUser?.kodeJabatan === 'J27'   // IT Pusat
+
+  // Daftar cabang unik untuk filter PST
+  const availableBranches = useMemo(() => {
+    const map = new Map()
+    ;(branches || []).forEach((b) => {
+      const code = b.code || b.branchCode || b.id
+      if (code) {
+        map.set(String(code).toUpperCase(), {
+          code: String(code).toUpperCase(),
+          name: b.name || b.nama || `Cabang ${code}`,
+        })
+      }
+    })
+    letters.forEach((l) => {
+      const code = l.branchId || l.branchCode
+      if (code && !map.has(String(code).toUpperCase())) {
+        map.set(String(code).toUpperCase(), {
+          code: String(code).toUpperCase(),
+          name: l.branchName || `Cabang ${code}`,
+        })
+      }
+    })
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.code === 'PST') return -1
+      if (b.code === 'PST') return 1
+      return a.name.localeCompare(b.name)
+    })
+  }, [branches, letters])
 
   // Filter letters yang butuh approval user ini
   const pendingLetters = letters.filter((l) => canUserApproveLetter(l, currentUser))
@@ -63,16 +103,32 @@ export default function MobileApproverInbox({
   const currentList = activeSubTab === 'pending' ? pendingLetters : historyLetters
 
   const filteredList = currentList.filter((l) => {
-    if (!searchTerm) return true
-    const term = searchTerm.toLowerCase()
-    const creator = (l.userName || l.creatorName || l.createdBy || '').toLowerCase()
-    const branch = (l.branchName || l.branchId || l.branchCode || '').toLowerCase()
-    return (
-      (l.letterNumber || '').toLowerCase().includes(term) ||
-      (l.title || '').toLowerCase().includes(term) ||
-      creator.includes(term) ||
-      branch.includes(term)
-    )
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      const creator = (l.userName || l.creatorName || l.createdBy || '').toLowerCase()
+      const branch = (l.branchName || l.branchId || l.branchCode || '').toLowerCase()
+      const matchesSearch =
+        (l.letterNumber || '').toLowerCase().includes(term) ||
+        (l.title || '').toLowerCase().includes(term) ||
+        creator.includes(term) ||
+        branch.includes(term)
+      if (!matchesSearch) return false
+    }
+
+    // Branch filter khusus PST
+    if (isPST && branchFilter !== 'all') {
+      const target = branchFilter.toUpperCase()
+      const bCode = String(l.branchId || l.branchCode || '').toUpperCase()
+      const bName = String(l.branchName || '').toUpperCase()
+      const matchesBranch =
+        bCode === target ||
+        bName.includes(target) ||
+        (target === 'PST' && (bCode === 'PST' || bName.includes('PUSAT')))
+      if (!matchesBranch) return false
+    }
+
+    return true
   })
 
   return (
@@ -136,6 +192,26 @@ export default function MobileApproverInbox({
           className="w-full bg-white rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 border border-slate-200/80 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
         />
       </div>
+
+      {/* Filter Cabang Khusus PST */}
+      {isPST && (
+        <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-slate-200/80 shadow-xs">
+          <Building2 size={15} className="text-blue-600 shrink-0" />
+          <span className="text-[11px] font-bold text-slate-500 shrink-0">Cabang:</span>
+          <select
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
+            className="flex-1 bg-transparent text-xs font-bold text-slate-800 focus:outline-none truncate cursor-pointer"
+          >
+            <option value="all">Semua Cabang ({currentList.length})</option>
+            {availableBranches.map((b) => (
+              <option key={b.code} value={b.code}>
+                {b.code === 'PST' ? 'Kantor Pusat (PST)' : b.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Cards List */}
       {filteredList.length === 0 ? (

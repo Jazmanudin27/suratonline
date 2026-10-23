@@ -687,19 +687,31 @@ export default function LetterList({
                           )}
 
                           {/* Tombol Bagikan Akses Surat (Violet/Indigo - Icon Only) */}
-                          <button
-                            type="button"
-                            onClick={() => setShareLetter(l)}
-                            className="p-2 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white rounded-lg transition shadow-xs flex items-center justify-center relative group"
-                            title={`Bagikan Surat ke Pengguna Lain (${l.sharedWith?.length || 0} Dibagikan)`}
-                          >
-                            <Share2 className="w-4 h-4" />
-                            {l.sharedWith && l.sharedWith.length > 0 && (
-                              <span className="absolute -top-1.5 -right-1.5 bg-violet-900 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center border-2 border-white shadow-xs">
-                                {l.sharedWith.length}
-                              </span>
-                            )}
-                          </button>
+                          {(() => {
+                            const currentUid = String(currentUser?.id || '')
+                            const currentName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+                            const mySharedCount = (l.sharedWith || []).filter((s) => {
+                              if (s.sharedById && String(s.sharedById) === currentUid) return true
+                              if (s.sharedBy && (s.sharedBy || '').trim().toLowerCase() === currentName) return true
+                              return false
+                            }).length
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => setShareLetter(l)}
+                                className="p-2 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white rounded-lg transition shadow-xs flex items-center justify-center relative group"
+                                title={`Bagikan Surat ke Pengguna Lain (${mySharedCount} Anda Bagikan)`}
+                              >
+                                <Share2 className="w-4 h-4" />
+                                {mySharedCount > 0 && (
+                                  <span className="absolute -top-1.5 -right-1.5 bg-violet-900 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center border-2 border-white shadow-xs">
+                                    {mySharedCount}
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          })()}
 
                           {/* Tombol Hapus (Merah/Rose - Icon Only, HANYA jika masih status Draf / belum diajukan) */}
                           {l.status === 'draft' && (

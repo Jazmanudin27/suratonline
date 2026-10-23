@@ -212,20 +212,32 @@ export default function MobileDocumentReader({
 
         {/* Row Tombol Bagikan, Diskusi & Tutup */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowShareModal(true)}
-            className="py-2.5 px-3 bg-violet-900/60 hover:bg-violet-800 text-violet-200 border border-violet-700/60 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
-            title="Bagikan Surat"
-          >
-            <Share2 size={13} className="text-violet-300" />
-            <span>Bagikan</span>
-            {currentLetter.sharedWith && currentLetter.sharedWith.length > 0 && (
-              <span className="bg-violet-600 text-white text-[10px] px-1.5 rounded-full font-bold">
-                {currentLetter.sharedWith.length}
-              </span>
-            )}
-          </button>
+          {(() => {
+            const currentUid = String(currentUser?.id || '')
+            const currentName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+            const mySharedCount = (currentLetter.sharedWith || []).filter((s) => {
+              if (s.sharedById && String(s.sharedById) === currentUid) return true
+              if (s.sharedBy && (s.sharedBy || '').trim().toLowerCase() === currentName) return true
+              return false
+            }).length
+
+            return (
+              <button
+                type="button"
+                onClick={() => setShowShareModal(true)}
+                className="py-2.5 px-3 bg-violet-900/60 hover:bg-violet-800 text-violet-200 border border-violet-700/60 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
+                title="Bagikan Surat"
+              >
+                <Share2 size={13} className="text-violet-300" />
+                <span>Bagikan</span>
+                {mySharedCount > 0 && (
+                  <span className="bg-violet-600 text-white text-[10px] px-1.5 rounded-full font-bold">
+                    {mySharedCount}
+                  </span>
+                )}
+              </button>
+            )
+          })()}
 
           <button
             onClick={() => onOpenChat(currentLetter)}

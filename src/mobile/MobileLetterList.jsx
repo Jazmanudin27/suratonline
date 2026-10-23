@@ -334,20 +334,32 @@ export default function MobileLetterList({
                     </button>
 
                     {/* Share letter trigger button */}
-                    <button
-                      type="button"
-                      onClick={() => setSharingLetter(letter)}
-                      className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-semibold transition active:scale-95 border border-violet-200"
-                      title="Bagikan Surat"
-                    >
-                      <Share2 size={13} className="text-violet-600" />
-                      <span>Bagikan</span>
-                      {letter.sharedWith && letter.sharedWith.length > 0 && (
-                        <span className="bg-violet-600 text-white text-[10px] px-1.5 rounded-full font-bold">
-                          {letter.sharedWith.length}
-                        </span>
-                      )}
-                    </button>
+                    {(() => {
+                      const currentUid = String(currentUser?.id || '')
+                      const currentName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+                      const mySharedCount = (letter.sharedWith || []).filter((s) => {
+                        if (s.sharedById && String(s.sharedById) === currentUid) return true
+                        if (s.sharedBy && (s.sharedBy || '').trim().toLowerCase() === currentName) return true
+                        return false
+                      }).length
+
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setSharingLetter(letter)}
+                          className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-semibold transition active:scale-95 border border-violet-200"
+                          title="Bagikan Surat"
+                        >
+                          <Share2 size={13} className="text-violet-600" />
+                          <span>Bagikan</span>
+                          {mySharedCount > 0 && (
+                            <span className="bg-violet-600 text-white text-[10px] px-1.5 rounded-full font-bold">
+                              {mySharedCount}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })()}
                   </div>
 
                   <div className="flex items-center gap-1.5">

@@ -842,22 +842,32 @@ export default function LetterDocumentView({
             {getStatusBadge(letter.status)}
 
             {/* Tombol Bagikan Surat */}
-            {letter.status !== 'draft' && (
-              <button
-                type="button"
-                onClick={() => setIsShareOpen(true)}
-                className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-xs active:scale-95"
-                title="Bagikan surat ke pengguna lain"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Bagikan</span>
-                {letter.sharedWith && letter.sharedWith.length > 0 && (
-                  <span className="bg-violet-900 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                    {letter.sharedWith.length}
-                  </span>
-                )}
-              </button>
-            )}
+            {letter.status !== 'draft' && (() => {
+              const currentUid = String(currentUser?.id || '')
+              const currentName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+              const mySharedCount = (letter.sharedWith || []).filter((s) => {
+                if (s.sharedById && String(s.sharedById) === currentUid) return true
+                if (s.sharedBy && (s.sharedBy || '').trim().toLowerCase() === currentName) return true
+                return false
+              }).length
+
+              return (
+                <button
+                  type="button"
+                  onClick={() => setIsShareOpen(true)}
+                  className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-xs active:scale-95"
+                  title="Bagikan surat ke pengguna lain"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Bagikan</span>
+                  {mySharedCount > 0 && (
+                    <span className="bg-violet-900 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                      {mySharedCount}
+                    </span>
+                  )}
+                </button>
+              )
+            })()}
 
             {/* Tombol Hapus Draft */}
             {letter.status === 'draft' && (

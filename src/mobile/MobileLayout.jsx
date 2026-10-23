@@ -16,6 +16,7 @@ export default function MobileLayout({
   branches = [],
   onLogout,
   onSwitchToDesktop,
+  onSwitchUser,
   onApproveLetter,
   onRejectLetter,
   onRequestRevision,
@@ -87,6 +88,7 @@ export default function MobileLayout({
               currentUser={currentUser}
               onLogout={onLogout}
               onSwitchToDesktop={onSwitchToDesktop}
+              onSwitchUser={onSwitchUser}
             />
           )}
         </main>

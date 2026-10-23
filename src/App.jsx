@@ -280,6 +280,10 @@ export default function App() {
           setCurrentUser(null)
         }}
         onSwitchToDesktop={switchToDesktop}
+        onSwitchUser={(user) => {
+          setCurrentUser(user)
+          refreshAll()
+        }}
         onApproveLetter={(id, note) => {
           const updated = approveLetter(id, note)
           if (updated) {

@@ -363,6 +363,7 @@ export default function App() {
     <>
     <AdminLayout
       activeMenu={activeMenu}
+      letters={letters}
       onSwitchToMobile={switchToMobile}
       onMenuChange={(menu) => {
         setSelectedTemplateForNew(null)
@@ -435,6 +436,19 @@ export default function App() {
           currentUser={currentUser}
           branches={branches}
           templates={templates}
+          onOpenLetter={(ltr) => setPreviewingLetter(ltr)}
+          onEditLetter={handleEditLetter}
+          onDirectPrint={handleDirectPrint}
+        />
+      )}
+
+      {activeMenu === 'inbox' && (
+        <LetterList
+          letters={letters}
+          currentUser={currentUser}
+          branches={branches}
+          templates={templates}
+          isInboxView={true}
           onOpenLetter={(ltr) => setPreviewingLetter(ltr)}
           onEditLetter={handleEditLetter}
           onDirectPrint={handleDirectPrint}

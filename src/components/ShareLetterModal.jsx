@@ -146,9 +146,9 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
   }
 
   return (
-    <div className={`fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center ${isFullscreen ? 'p-0' : 'p-3 sm:p-5'} overflow-y-auto animate-fadeIn select-none`}>
+    <div className={`fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center ${isFullscreen ? 'p-0' : 'p-3 sm:p-5'} overflow-y-auto animate-fadeIn select-none`}>
       <div
-        className={`bg-white flex flex-col shadow-2xl overflow-hidden border border-slate-200 transition-all duration-200 ${
+        className={`bg-white flex flex-col shadow-2xl overflow-hidden border border-slate-300 transition-all duration-200 ${
           isFullscreen
             ? 'w-full h-full rounded-none max-w-none max-h-none'
             : 'rounded-2xl w-full max-w-2xl max-h-[92vh]'
@@ -156,9 +156,9 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Modal */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex justify-between items-center shrink-0 border-b border-indigo-900/50">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white flex justify-between items-center shrink-0 border-b border-indigo-900/60 shadow-md">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center text-indigo-400 shadow-inner">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-400/50 flex items-center justify-center text-indigo-400 shadow-inner">
               <Share2 className="w-5 h-5 text-indigo-300" />
             </div>
             <div>
@@ -190,33 +190,44 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
           </div>
         </div>
 
-        {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 bg-slate-50/50">
-          {/* Info Pemilik Dokumen */}
-          <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3 flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-slate-700 min-w-0">
-              <p className="font-semibold text-slate-900">
-                Dokumen Asli / Pemilik: <span className="font-bold text-indigo-900">{letter.userName || letter.creatorName || '-'}</span>
+        {/* Content Body with Noticeable Slate-200 Background for High Card Contrast */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 bg-slate-200/80">
+          {/* Info Pemilik Dokumen Card */}
+          <div className="bg-white border-2 border-indigo-200 rounded-2xl p-4 shadow-md shadow-slate-300/40 flex items-start gap-3 border-l-[6px] border-l-indigo-600">
+            <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5 text-indigo-700" />
+            </div>
+            <div className="min-w-0 flex-1 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+                  Dokumen Asli / Pemilik
+                </span>
+                <span className="text-xs font-black text-slate-900">
+                  {letter.userName || letter.creatorName || '-'}
+                </span>
                 {letter.branchName && (
-                  <span className="text-slate-500 font-normal"> ({letter.branchName})</span>
+                  <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-md">
+                    Cabang {letter.branchName}
+                  </span>
                 )}
-              </p>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Pilih karyawan yang ingin ditambahkan ke daftar penerima surat di bawah ini.
+              </div>
+              <p className="text-slate-600 mt-1 font-medium">
+                Pilih karyawan yang ingin Anda tambahkan ke daftar penerima surat di bawah ini.
               </p>
             </div>
           </div>
 
-          {/* 1. BAGIAN ATAS: PENCARIAN & TAMBAH PENGGUNA (USER YANG MAU DITAMBAH) */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <UserPlus className="w-4 h-4 text-emerald-600" />
-                Pilih Karyawan / User yang Mau Ditambahkan
+          {/* 1. BAGIAN ATAS: PENCARIAN & TAMBAH PENGGUNA */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-md shadow-slate-300/50 space-y-3.5">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <label className="text-xs font-extrabold text-slate-900 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <UserPlus className="w-3.5 h-3.5" />
+                </span>
+                <span>Pilih Karyawan / User yang Mau Ditambahkan</span>
               </label>
-              <span className="text-[11px] text-slate-400">
-                Tersedia {availableUsers.length} karyawan
+              <span className="text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full">
+                Tersedia {availableUsers.length} Karyawan
               </span>
             </div>
 
@@ -227,32 +238,32 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                 placeholder="Cari berdasarkan nama karyawan, cabang, atau jabatan..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition shadow-xs"
+                className="w-full bg-slate-100 hover:bg-slate-50 focus:bg-white border-2 border-slate-300 focus:border-indigo-600 rounded-xl pl-9 pr-3 py-2.5 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-indigo-100 focus:outline-hidden transition shadow-inner"
               />
             </div>
 
             {/* List hasil pencarian */}
-            <div className="bg-white border border-slate-200 rounded-xl max-h-52 overflow-y-auto divide-y divide-slate-100 shadow-inner">
+            <div className="bg-slate-100/70 border-2 border-slate-200 rounded-xl max-h-56 overflow-y-auto p-2 space-y-1.5 shadow-inner">
               {availableUsers.length === 0 ? (
-                <div className="p-4 text-center text-xs text-slate-400">
+                <div className="p-6 text-center text-xs font-medium text-slate-500">
                   {searchTerm ? 'Tidak ada pengguna yang cocok dengan pencarian' : 'Semua pengguna telah ditambahkan'}
                 </div>
               ) : (
                 availableUsers.slice(0, 20).map((user) => (
                   <div
                     key={user.id}
-                    className="p-2.5 flex items-center justify-between hover:bg-slate-50 transition gap-2"
+                    className="p-2.5 bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/40 rounded-xl flex items-center justify-between transition gap-2 shadow-xs group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                      <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-slate-200 group-hover:bg-emerald-100 text-slate-700 group-hover:text-emerald-800 font-extrabold flex items-center justify-center text-xs shrink-0 transition">
                         {(user.name || 'U').charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-slate-900 truncate">
                           {user.name}
                         </p>
-                        <p className="text-[10px] text-slate-500 truncate flex items-center gap-1">
-                          <span>{user.branchName || user.branchId || 'Pusat'}</span>
+                        <p className="text-[10px] text-slate-500 font-medium truncate flex items-center gap-1.5">
+                          <span className="font-semibold text-slate-700">{user.branchName || user.branchId || 'Pusat'}</span>
                           <span>&bull;</span>
                           <span>{user.position || user.role || '-'}</span>
                         </p>
@@ -262,7 +273,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                     <button
                       type="button"
                       onClick={() => handleAddUser(user)}
-                      className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white rounded-xl text-xs font-bold flex items-center gap-1 transition shrink-0 active:scale-95 border border-emerald-200 hover:border-transparent shadow-xs"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 transition shrink-0 active:scale-95 shadow-xs shadow-emerald-600/20"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
                       <span>Tambah</span>
@@ -274,21 +285,25 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
           </div>
 
           {/* 2. BAGIAN TENGAH: KERANJANG PENGGUNA YANG SUDAH DITAMBAH */}
-          <div className="bg-white p-4 rounded-2xl border border-indigo-100 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-indigo-600" />
-                Daftar Pengguna yang Anda Bagikan / Keranjang ({mySharedUsers.length})
-              </label>
-              {mySharedUsers.length > 0 && (
-                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
-                  {mySharedUsers.length} Penerima Terpilih
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-indigo-200 shadow-md shadow-slate-300/50 space-y-3.5 border-t-[5px] border-t-indigo-600">
+            <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
+              <label className="text-xs font-extrabold text-slate-900 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                  <Users className="w-3.5 h-3.5" />
                 </span>
-              )}
+                <span>Daftar Pengguna yang Anda Bagikan / Keranjang</span>
+              </label>
+              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                mySharedUsers.length > 0
+                  ? 'text-indigo-800 bg-indigo-100 border-indigo-300'
+                  : 'text-slate-500 bg-slate-100 border-slate-200'
+              }`}>
+                {mySharedUsers.length} Penerima Terpilih
+              </span>
             </div>
 
             {mySharedUsers.length === 0 ? (
-              <div className="p-6 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center text-xs text-slate-400">
+              <div className="p-8 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl text-center text-xs font-medium text-slate-500">
                 Keranjang masih kosong. Klik tombol "+ Tambah" pada karyawan di atas untuk memasukkan ke daftar penerima.
               </div>
             ) : (
@@ -300,25 +315,25 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                   return (
                     <div
                       key={uid}
-                      className="flex items-center justify-between p-2.5 bg-indigo-50/40 border border-indigo-100 rounded-xl shadow-xs gap-2"
+                      className="flex items-center justify-between p-3 bg-indigo-50/70 border-2 border-indigo-200/80 rounded-xl shadow-xs gap-2"
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-xs">
+                        <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-xs">
                           {(u.userName || 'U').charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-bold text-slate-900 truncate">
                             {u.userName}
                           </p>
-                          <p className="text-[10px] text-slate-500 flex items-center gap-1.5 truncate">
+                          <p className="text-[10px] text-slate-600 font-medium flex items-center gap-1.5 truncate">
                             {u.branchName && (
-                              <span className="inline-flex items-center gap-0.5">
-                                <Building2 className="w-2.5 h-2.5" /> {u.branchName}
+                              <span className="inline-flex items-center gap-0.5 text-slate-700 font-semibold">
+                                <Building2 className="w-2.5 h-2.5 text-slate-500" /> {u.branchName}
                               </span>
                             )}
                             {u.role && (
                               <span className="inline-flex items-center gap-0.5">
-                                &bull; <Briefcase className="w-2.5 h-2.5" /> {u.role}
+                                &bull; <Briefcase className="w-2.5 h-2.5 text-slate-500" /> {u.role}
                               </span>
                             )}
                             {shareTime && (
@@ -328,8 +343,8 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                             )}
                           </p>
                           {u.note && (
-                            <div className="mt-1 p-1 bg-white border border-indigo-100 rounded-md text-[10.5px] text-slate-700 italic flex items-start gap-1">
-                              <MessageSquare className="w-3 h-3 text-indigo-500 shrink-0 mt-0.5" />
+                            <div className="mt-1 p-1.5 bg-white border border-indigo-200 rounded-md text-[10.5px] text-slate-700 italic flex items-start gap-1">
+                              <MessageSquare className="w-3 h-3 text-indigo-600 shrink-0 mt-0.5" />
                               <span className="line-clamp-1">"{u.note}"</span>
                             </div>
                           )}
@@ -339,7 +354,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                       <button
                         type="button"
                         onClick={() => handleRemoveUser(uid)}
-                        className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition shrink-0 border border-rose-200"
+                        className="p-2 text-rose-600 hover:text-white hover:bg-rose-600 rounded-lg transition shrink-0 border border-rose-300 active:scale-95 bg-rose-50"
                         title="Hapus dari daftar penerima"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -352,19 +367,21 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
           </div>
 
           {/* 3. BAGIAN BAWAH: KETERANGAN / DESKRIPSI PENGANTAR (SEPERTI EMAIL) */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
-            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <Mail className="w-4 h-4 text-indigo-600" />
-              Keterangan / Deskripsi Pengantar (Seperti Isi Pesan Email)
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-md shadow-slate-300/50 space-y-2.5 border-t-[5px] border-t-purple-600">
+            <label className="text-xs font-extrabold text-slate-900 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                <Mail className="w-3.5 h-3.5" />
+              </span>
+              <span>Keterangan / Deskripsi Pengantar (Seperti Isi Pesan Email)</span>
             </label>
             <textarea
               rows={3}
               value={shareMessage}
               onChange={(e) => setShareMessage(e.target.value)}
               placeholder="Tulis pesan atau instruksi untuk penerima... Contoh: Mohon dicek dan bantu tanggapi dokumen penawaran ini sebelum akhir bulan."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition resize-none"
+              className="w-full bg-slate-100 hover:bg-slate-50 focus:bg-white border-2 border-slate-300 focus:border-purple-600 rounded-xl p-3 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-100 transition resize-none shadow-inner"
             />
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] font-medium text-slate-500">
               Deskripsi ini akan muncul di banner atas pembaca dokumen penerima saat mereka membuka surat.
             </p>
           </div>
@@ -372,11 +389,11 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
         </div>
 
         {/* Footer Actions */}
-        <div className="p-3.5 sm:p-4 bg-slate-100 border-t border-slate-200 flex items-center justify-end gap-2.5 shrink-0">
+        <div className="p-3.5 sm:p-4 bg-white border-t-2 border-slate-300 flex items-center justify-end gap-3 shrink-0 shadow-lg">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-white hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition"
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition"
           >
             Batal
           </button>
@@ -384,7 +401,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
             type="button"
             disabled={isSaving}
             onClick={handleSave}
-            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
+            className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
           >
             {isSaving ? (
               <>
@@ -403,3 +420,4 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
     </div>
   )
 }
+

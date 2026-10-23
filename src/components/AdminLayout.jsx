@@ -18,9 +18,11 @@ import {
   Sparkles,
   ShieldCheck,
   Search,
+  Inbox,
 } from 'lucide-react'
 import {
   getUsers,
+  getLetters,
   getCurrentUser,
   setCurrentUser,
   getNotifications,
@@ -32,6 +34,7 @@ export default function AdminLayout({
   activeMenu,
   onMenuChange,
   pendingCount = 0,
+  letters = [],
   children,
   onOpenLetterById,
   onLogout,
@@ -98,6 +101,18 @@ export default function AdminLayout({
 
   const isDirektur = isDirekturUser(currentUser)
 
+  const myUid = String(currentUser?.id || '')
+  const myName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+  const allCurrentLetters = letters && letters.length > 0 ? letters : getLetters()
+  const sharedInboxCount = allCurrentLetters.filter((l) => {
+    return (l.sharedWith || []).some((s) => {
+      if (s.userId && String(s.userId) === myUid) return true
+      if (s.id && String(s.id) === myUid) return true
+      if (s.userName && s.userName.trim().toLowerCase() === myName) return true
+      return false
+    })
+  }).length
+
   const menuItems = [
     ...(!isDirektur
       ? [
@@ -118,6 +133,14 @@ export default function AdminLayout({
       isActive: activeMenu === 'letters',
       badge: pendingCount > 0 ? pendingCount : null,
       badgeClass: 'bg-amber-500 text-slate-950 font-black',
+    },
+    {
+      id: 'inbox',
+      label: 'Kotak Masuk (Dibagikan)',
+      icon: Inbox,
+      isActive: activeMenu === 'inbox',
+      badge: sharedInboxCount > 0 ? sharedInboxCount : null,
+      badgeClass: 'bg-indigo-600 text-white font-black',
     },
     ...(isCrmOrIt(currentUser)
       ? [

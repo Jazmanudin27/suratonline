@@ -18,6 +18,7 @@ import {
   Trash2,
   Printer,
   Share2,
+  Inbox,
 } from 'lucide-react'
 import ShareLetterModal from './ShareLetterModal'
 import {
@@ -48,6 +49,7 @@ export default function LetterList({
   branches = [],
   templates = [],
   initialStatusFilter = 'all',
+  isInboxView = false,
   onOpenLetter,
   onEditLetter,
   onDirectPrint,
@@ -220,7 +222,20 @@ export default function LetterList({
     currentUser?.kodeJabatan === 'J27'   // IT Pusat
 
   const allLetters = (localLetters && localLetters.length > 0) ? localLetters : (letters || [])
-  const visibleLetters = allLetters.filter((l) => isLetterVisibleToUser(l, currentUser))
+  const myUid = String(currentUser?.id || '')
+  const myName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+
+  const visibleLetters = allLetters.filter((l) => {
+    if (isInboxView) {
+      return (l.sharedWith || []).some((s) => {
+        if (s.userId && String(s.userId) === myUid) return true
+        if (s.id && String(s.id) === myUid) return true
+        if (s.userName && s.userName.trim().toLowerCase() === myName) return true
+        return false
+      })
+    }
+    return isLetterVisibleToUser(l, currentUser)
+  })
 
   const handleDeleteDraft = async (letter) => {
     if (letter.status !== 'draft') {
@@ -286,16 +301,24 @@ export default function LetterList({
   return (
     <div className="space-y-3">
       {/* Top Header Banner Berwarna */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 text-white border border-blue-900/40 rounded-xl p-3.5 sm:p-4 pb-2 sm:pb-2 shadow-md shadow-slate-900/10">
+      <div className={`text-white rounded-xl p-3.5 sm:p-4 pb-2 sm:pb-2 shadow-md shadow-slate-900/10 border ${
+        isInboxView
+          ? 'bg-gradient-to-r from-violet-800 via-indigo-800 to-slate-900 border-violet-900/40'
+          : 'bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 border-blue-900/40'
+      }`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-xs flex items-center justify-center border border-white/20 text-white shadow-xs shrink-0">
-              <FileText className="w-4.5 h-4.5 text-sky-300" />
+              {isInboxView ? <Inbox className="w-4.5 h-4.5 text-violet-300" /> : <FileText className="w-4.5 h-4.5 text-sky-300" />}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">Daftar Arsip & Pengajuan Surat</h2>
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                {isInboxView ? 'Kotak Masuk Surat (Dibagikan ke Saya)' : 'Daftar Arsip & Pengajuan Surat'}
+              </h2>
               <p className="text-xs text-blue-100/80">
-                Pantau status, otorisasi persetujuan surat, atau unduh dokumen PDF resmi.
+                {isInboxView
+                  ? 'Daftar surat dinas dan dokumen pengajuan yang dibagikan oleh rekan kerja kepada Anda.'
+                  : 'Pantau status, otorisasi persetujuan surat, atau unduh dokumen PDF resmi.'}
               </p>
             </div>
           </div>
@@ -515,7 +538,9 @@ export default function LetterList({
               {filteredLetters.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="py-10 text-center text-slate-600 font-medium">
-                    Tidak ditemukan dokumen yang sesuai dengan kriteria filter.
+                    {isInboxView
+                      ? 'Belum ada surat yang dibagikan ke Anda.'
+                      : 'Tidak ditemukan dokumen yang sesuai dengan kriteria filter.'}
                   </td>
                 </tr>
               ) : (
@@ -528,11 +553,21 @@ export default function LetterList({
                         <span className="font-mono font-black text-indigo-900 block text-xs">
                           {l.letterNumber}
                         </span>
-                        {l.sharedWith && l.sharedWith.some((s) => String(s.userId || s.id) === String(currentUser?.id)) && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-violet-100 text-violet-800 border border-violet-200 mt-0.5 w-fit">
-                            <Share2 className="w-2.5 h-2.5 text-violet-600" /> Dibagikan
-                          </span>
-                        )}
+                        {l.sharedWith && l.sharedWith.some((s) => String(s.userId || s.id) === String(currentUser?.id)) && (() => {
+                          const myShare = l.sharedWith.find((s) => String(s.userId || s.id) === String(currentUser?.id))
+                          return (
+                            <div className="mt-1 space-y-0.5">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-violet-100 text-violet-800 border border-violet-200 w-fit">
+                                <Share2 className="w-2.5 h-2.5 text-violet-600" /> Dibagikan {myShare?.sharedBy ? `oleh ${myShare.sharedBy}` : ''}
+                              </span>
+                              {myShare?.note && (
+                                <p className="text-[10px] text-slate-500 italic truncate max-w-[200px]" title={myShare.note}>
+                                  "{myShare.note}"
+                                </p>
+                              )}
+                            </div>
+                          )
+                        })()}
                         <span className="text-[11px] text-slate-700 font-medium flex items-center gap-1 mt-0.5">
                           <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                           <span>Dibuat: {formatDateTimeId(l.createdAt)}</span>

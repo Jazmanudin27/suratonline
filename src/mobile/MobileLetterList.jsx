@@ -100,6 +100,15 @@ export default function MobileLetterList({
       matchesStatus = letter.status === 'rejected'
     } else if (statusFilter === 'draft') {
       matchesStatus = letter.status === 'draft'
+    } else if (statusFilter === 'shared') {
+      const myUid = String(currentUser?.id || '')
+      const myName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+      matchesStatus = (letter.sharedWith || []).some((s) => {
+        if (s.userId && String(s.userId) === myUid) return true
+        if (s.id && String(s.id) === myUid) return true
+        if (s.userName && s.userName.trim().toLowerCase() === myName) return true
+        return false
+      })
     }
 
     // Branch filter (khusus PST)
@@ -117,8 +126,24 @@ export default function MobileLetterList({
     return matchesSearch && matchesStatus && matchesBranch
   })
 
+  const myUid = String(currentUser?.id || '')
+  const myName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+  const sharedCount = useMemo(() => {
+    return letters.filter((l) =>
+      (l.sharedWith || []).some((s) => {
+        if (s.userId && String(s.userId) === myUid) return true
+        if (s.id && String(s.id) === myUid) return true
+        if (s.userName && s.userName.trim().toLowerCase() === myName) return true
+        return false
+      })
+    ).length
+  }, [letters, myUid, myName])
+
   const filterTabs = [
     { id: 'all', label: 'Semua', icon: null },
+    ...(sharedCount > 0
+      ? [{ id: 'shared', label: `Dibagikan (${sharedCount})`, icon: Share2 }]
+      : []),
     { id: 'pending', label: 'Menunggu', icon: Clock },
     { id: 'approved', label: 'Disetujui', icon: CheckCircle2 },
     { id: 'revision', label: 'Revisi', icon: AlertCircle },

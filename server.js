@@ -31,6 +31,7 @@ ensureDir(path.join(__dirname, 'public/lampiran/dokumen'))
 
 // Static file serving for uploads & public assets
 app.use('/lampiran', express.static(path.join(__dirname, 'public/lampiran')))
+app.use('/api/lampiran', express.static(path.join(__dirname, 'public/lampiran')))
 app.use('/public', express.static(path.join(__dirname, 'public')))
 
 // MySQL Connection Pool

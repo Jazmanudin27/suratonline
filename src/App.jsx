@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import AdminLayout from './components/AdminLayout'
 import Dashboard from './components/Dashboard'
@@ -77,22 +77,40 @@ export default function App() {
   const [editingLetter, setEditingLetter] = useState(null)
   const [previewingLetter, setPreviewingLetter] = useState(null)
   const [directPrintLetter, setDirectPrintLetter] = useState(null)
+  const [isPreparingPrint, setIsPreparingPrint] = useState(false)
+  const printTimeoutRef = useRef(null)
 
   const handleDirectPrint = (ltr) => {
+    if (!ltr) return
+    setIsPreparingPrint(true)
     setDirectPrintLetter(ltr)
   }
 
-  useEffect(() => {
-    if (directPrintLetter) {
+  const handleReadyToPrint = useCallback(() => {
+    if (!directPrintLetter) return
+    if (printTimeoutRef.current) clearTimeout(printTimeoutRef.current)
+
+    setTimeout(() => {
       document.body.classList.add('direct-printing-active')
-      const timer = setTimeout(() => {
-        window.print()
+      setIsPreparingPrint(false)
+      window.print()
+      setTimeout(() => {
         document.body.classList.remove('direct-printing-active')
         setDirectPrintLetter(null)
-      }, 300)
-      return () => clearTimeout(timer)
-    }
+      }, 500)
+    }, 120)
   }, [directPrintLetter])
+
+  useEffect(() => {
+    if (directPrintLetter) {
+      printTimeoutRef.current = setTimeout(() => {
+        handleReadyToPrint()
+      }, 10000)
+      return () => {
+        if (printTimeoutRef.current) clearTimeout(printTimeoutRef.current)
+      }
+    }
+  }, [directPrintLetter, handleReadyToPrint])
 
   const setActiveMenu = (menu) => {
     setActiveMenuState(menu)
@@ -453,7 +471,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setTimeout(() => window.print(), 150)
+                    handleDirectPrint(previewingLetter)
                   }}
                   className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs active:scale-95"
                   title="Cetak langsung dokumen resmi"
@@ -535,11 +553,25 @@ export default function App() {
             auditLogs={getAuditLogs(directPrintLetter.id)}
             hideTopBar={true}
             isBuilderPreview={false}
+            onReadyToPrint={handleReadyToPrint}
           />
         </div>,
         document.getElementById('print-mount-point')
       )
     }
+
+    {/* Indikator Menyiapkan Berkas Cetak */}
+    {isPreparingPrint && (
+      <div className="no-print fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-3 border border-slate-200 text-center max-w-sm animate-fadeIn">
+          <div className="w-9 h-9 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <div>
+            <h4 className="font-bold text-slate-800 text-sm">Menyiapkan Dokumen</h4>
+            <p className="text-xs text-slate-500 mt-1">Merender lembar dokumen &amp; lampiran PDF...</p>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   )
 }

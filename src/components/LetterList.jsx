@@ -69,18 +69,34 @@ export default function LetterList({
 
   const [search, setSearch] = useState('')
   const [directPrintLetter, setDirectPrintLetter] = useState(null)
+  const [isPreparingPrint, setIsPreparingPrint] = useState(false)
+  const printTimeoutRef = React.useRef(null)
+
+  const handleReadyToPrint = React.useCallback(() => {
+    if (!directPrintLetter) return
+    if (printTimeoutRef.current) clearTimeout(printTimeoutRef.current)
+    setTimeout(() => {
+      document.body.classList.add('direct-printing-active')
+      setIsPreparingPrint(false)
+      window.print()
+      setTimeout(() => {
+        document.body.classList.remove('direct-printing-active')
+        setDirectPrintLetter(null)
+      }, 500)
+    }, 120)
+  }, [directPrintLetter])
 
   React.useEffect(() => {
     if (directPrintLetter) {
-      document.body.classList.add('direct-printing-active')
-      const timer = setTimeout(() => {
-        window.print()
-        document.body.classList.remove('direct-printing-active')
-        setDirectPrintLetter(null)
-      }, 350)
-      return () => clearTimeout(timer)
+      setIsPreparingPrint(true)
+      printTimeoutRef.current = setTimeout(() => {
+        handleReadyToPrint()
+      }, 10000)
+      return () => {
+        if (printTimeoutRef.current) clearTimeout(printTimeoutRef.current)
+      }
     }
-  }, [directPrintLetter])
+  }, [directPrintLetter, handleReadyToPrint])
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'all')
   const [branchFilter, setBranchFilter] = useState('all')
   const [templateFilter, setTemplateFilter] = useState('all')
@@ -691,7 +707,21 @@ export default function LetterList({
             auditLogs={getAuditLogs(directPrintLetter.id)}
             hideTopBar={true}
             isBuilderPreview={false}
+            onReadyToPrint={handleReadyToPrint}
           />
+        </div>
+      )}
+
+      {/* Indikator Menyiapkan Berkas Cetak */}
+      {isPreparingPrint && (
+        <div className="no-print fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-3 border border-slate-200 text-center max-w-sm animate-fadeIn">
+            <div className="w-9 h-9 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <div>
+              <h4 className="font-bold text-slate-800 text-sm">Menyiapkan Dokumen</h4>
+              <p className="text-xs text-slate-500 mt-1">Merender lembar dokumen &amp; lampiran PDF...</p>
+            </div>
+          </div>
         </div>
       )}
 

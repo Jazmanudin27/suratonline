@@ -54,6 +54,7 @@ export default function LetterDocumentView({
   isBuilderPreview = false,
   hideTopBar = false,
   onUpdateImageLayout,
+  onReadyToPrint,
 }) {
   const currentUser = getCurrentUser()
   const documentRef = useRef(null)
@@ -97,6 +98,10 @@ export default function LetterDocumentView({
   useEffect(() => {
     if (pdfAttachments.length === 0) {
       setRenderedPdfMap({})
+      setIsLoadingPdfs(false)
+      if (typeof onReadyToPrint === 'function') {
+        setTimeout(() => onReadyToPrint(), 150)
+      }
       return
     }
 
@@ -116,7 +121,7 @@ export default function LetterDocumentView({
 
         if (primarySrc) {
           try {
-            pages = await renderPdfToPages(primarySrc, 2.0)
+            pages = await renderPdfToPages(primarySrc, 1.6)
           } catch (err) {
             console.warn('Failed primary PDF render attempt:', file.name, err.message)
             lastError = err
@@ -126,7 +131,7 @@ export default function LetterDocumentView({
         // Jika primary gagal, coba fallback secondary source (misal base64 di dataUrl jika server offline)
         if ((!pages || pages.length === 0) && secondarySrc) {
           try {
-            pages = await renderPdfToPages(secondarySrc, 2.0)
+            pages = await renderPdfToPages(secondarySrc, 1.6)
           } catch (err) {
             console.warn('Failed secondary PDF render attempt:', file.name, err.message)
             lastError = err
@@ -142,6 +147,9 @@ export default function LetterDocumentView({
       if (isMounted) {
         setRenderedPdfMap(newMap)
         setIsLoadingPdfs(false)
+        if (typeof onReadyToPrint === 'function') {
+          setTimeout(() => onReadyToPrint(), 200)
+        }
       }
     }
 

@@ -1,15 +1,12 @@
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.js?url'
 
-// Set worker source with robust fallback
+// Set worker source locally from Vite bundle (no external CDN to avoid adblocker ERR_BLOCKED_BY_CLIENT)
 if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
   try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      pdfWorker ||
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
-  } catch {
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
+  } catch (e) {
+    console.warn('Failed to assign pdfWorker:', e)
   }
 }
 
@@ -45,12 +42,17 @@ export async function renderPdfToPages(pdfSource, scale = 1.6) {
     } else if (typeof pdfSource === 'string') {
       // Fetch URL or binary path
       try {
-        const resp = await fetch(pdfSource)
+        let fetchUrl = pdfSource
+        let resp = await fetch(fetchUrl)
+        if (!resp.ok && fetchUrl.startsWith('/lampiran/')) {
+          // Fallback coba lewat /api/lampiran
+          fetchUrl = `/api${fetchUrl}`
+          resp = await fetch(fetchUrl)
+        }
         if (resp.ok) {
           const arrayBuffer = await resp.arrayBuffer()
           sourceParam = { data: new Uint8Array(arrayBuffer) }
         } else {
-          // If fetch fails, pass URL directly to pdfjsLib
           sourceParam = { url: pdfSource }
         }
       } catch {
@@ -62,24 +64,37 @@ export async function renderPdfToPages(pdfSource, scale = 1.6) {
       throw new Error('Format sumber dokumen PDF tidak dapat diproses')
     }
 
-    // Configure cMap for custom fonts
+    // Hindari request ke cdnjs/jsdelivr yang kerap diblokir oleh adblocker (ERR_BLOCKED_BY_CLIENT)
     const taskConfig = {
       ...sourceParam,
-      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-      cMapPacked: true,
-      standardFontDataUrl:
-        'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/',
     }
 
-    const loadingTask = pdfjsLib.getDocument(taskConfig)
+    let pdfDoc = null
+    const timeoutMs = 25000
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(
-        () => reject(new Error('Waktu muat dokumen PDF habis (timeout 25 detik)')),
-        25000
+        () => reject(new Error('Waktu muat dokumen PDF habis (timeout)')),
+        timeoutMs
       )
     )
 
-    const pdfDoc = await Promise.race([loadingTask.promise, timeoutPromise])
+    try {
+      const loadingTask = pdfjsLib.getDocument(taskConfig)
+      pdfDoc = await Promise.race([loadingTask.promise, timeoutPromise])
+    } catch (workerErr) {
+      console.warn('PDF.js worker load failed, trying with disableWorker fallback:', workerErr.message)
+      // Fallback tanpa web worker (main thread)
+      const fallbackTask = pdfjsLib.getDocument({
+        ...taskConfig,
+        disableWorker: true,
+      })
+      pdfDoc = await Promise.race([fallbackTask.promise, timeoutPromise])
+    }
+
+    if (!pdfDoc) {
+      throw new Error('Gagal membuka dokumen PDF')
+    }
+
     const numPages = pdfDoc.numPages
     const renderedPages = []
 
@@ -101,7 +116,7 @@ export async function renderPdfToPages(pdfSource, scale = 1.6) {
         viewport: viewport,
       }).promise
 
-      const imgDataUrl = canvas.toDataURL('image/jpeg', 0.92)
+      const imgDataUrl = canvas.toDataURL('image/jpeg', 0.95)
 
       renderedPages.push({
         pageNumber: pageNum,
@@ -123,4 +138,3 @@ export async function renderPdfToPages(pdfSource, scale = 1.6) {
     throw err
   }
 }
-

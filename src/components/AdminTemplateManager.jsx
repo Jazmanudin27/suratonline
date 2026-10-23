@@ -363,60 +363,93 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
       {/* ---------------------------------------------------- */}
       {!editingTemplate ? (
         <>
-          {/* Header Banner */}
-          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl flex flex-wrap items-center justify-between gap-4 border border-indigo-900/40">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 uppercase tracking-wider">
-                  Admin Panel Pusat
-                </span>
-                <span className="text-xs text-slate-400">&bull;</span>
-                <span className="text-xs text-slate-300">Total {templates.length} Template Aktif &amp; Terdaftar</span>
+          {/* Header Banner Modern dengan KPI Stats */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-[#0a1128] to-[#0f172a] p-6 sm:p-7 text-white shadow-2xl border border-indigo-500/20">
+            {/* Ambient Background Glows */}
+            <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-blue-300 border border-blue-400/30 uppercase tracking-wider shadow-xs">
+                    ✦ CV Makmur Permata &bull; Pusat
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium">
+                    Standarisasi Dokumen &amp; Alur Verifikasi
+                  </span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 border border-blue-400/30 shrink-0">
+                    <Layers className="w-5 h-5 text-white" />
+                  </div>
+                  <span>Manajemen Template Surat</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                  Rancang format teks baku surat resmi, konfigurasi pola penomoran otomatis cabang, dan tetapkan alur bertingkat pejabat pemeriksa hingga persetujuan akhir.
+                </p>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5 tracking-tight">
-                <Layers className="w-6 h-6 text-indigo-400 shrink-0" />
-                Manajemen Template Surat
-              </h1>
-              <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                Rancang formulir isian khusus, format teks baku surat ala Microsoft Word, dan tentukan alur persetujuan bertingkat bagi seluruh cabang.
-              </p>
-            </div>
 
-            <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setShowCategoryModal(true)}
-                className="px-3.5 py-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-white/20 shadow-sm"
-              >
-                <Tag className="w-4 h-4 text-amber-300" />
-                <span>Kelola Kategori</span>
-              </button>
+              {/* KPI Quick Stats & Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                <div className="bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 p-2.5 px-4 flex items-center gap-4 divide-x divide-white/10">
+                  <div className="text-center">
+                    <span className="block text-[10px] text-slate-400 font-semibold uppercase">Total</span>
+                    <strong className="text-lg font-black text-white">{templates.length}</strong>
+                  </div>
+                  <div className="pl-4 text-center">
+                    <span className="block text-[10px] text-emerald-400 font-semibold uppercase">Aktif</span>
+                    <strong className="text-lg font-black text-emerald-300">
+                      {templates.filter((t) => t.isActive).length}
+                    </strong>
+                  </div>
+                  <div className="pl-4 text-center">
+                    <span className="block text-[10px] text-blue-300 font-semibold uppercase">Terbit</span>
+                    <strong className="text-lg font-black text-blue-200">{lettersList.length}</strong>
+                  </div>
+                </div>
 
-              <button
-                type="button"
-                onClick={handleCreateNew}
-                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 active:from-emerald-700 active:to-teal-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-2 transition shadow-lg shadow-emerald-500/25 ring-1 ring-white/20"
-              >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-                <span>Buat Template Baru</span>
-              </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryModal(true)}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition border border-white/15 shadow-sm"
+                  >
+                    <Tag className="w-4 h-4 text-amber-300" />
+                    <span>Kategori</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCreateNew}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/30 ring-1 ring-white/25 active:scale-98"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <span>Buat Template Baru</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Filter & Pencarian Bar */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/90 shadow-xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
+          {/* Filter & Pencarian Bar Modern */}
+          <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs no-scrollbar">
               <button
                 type="button"
                 onClick={() => setSelectedCategory('ALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
                   selectedCategory === 'ALL'
-                    ? 'bg-indigo-600 text-white shadow-xs'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                Semua ({templates.length})
+                <span>Semua</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                  {templates.length}
+                </span>
               </button>
+
               {categories.map((cat) => {
                 const count = templates.filter((t) => t.category === cat).length
                 return (
@@ -424,106 +457,164 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                     key={cat}
                     type="button"
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
                       selectedCategory === cat
-                        ? 'bg-indigo-600 text-white shadow-xs'
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                     }`}
                   >
-                    {cat} ({count})
+                    <span>{cat}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${selectedCategory === cat ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                      {count}
+                    </span>
                   </button>
                 )
               })}
             </div>
 
-            <div className="relative flex-1 min-w-[220px] max-w-xs">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <div className="relative min-w-[240px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari nama / kode template..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                placeholder="Cari nama template / format..."
+                className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-1"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Grid Kartu Template */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {/* Grid Kartu Template Premium */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredTemplates.map((tpl) => {
               const letterUsageCount = lettersList.filter((l) => l.templateId === tpl.id).length
               return (
                 <div
                   key={tpl.id}
-                  className={`bg-white border rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group ${
-                    tpl.isActive ? 'border-slate-200/90' : 'border-slate-200 bg-slate-50/70 opacity-75'
+                  className={`group relative bg-white border rounded-3xl p-5 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden ${
+                    tpl.isActive
+                      ? 'border-slate-200/90 hover:border-blue-400'
+                      : 'border-slate-200 bg-slate-50/60 opacity-80'
                   }`}
                 >
-                  <div>
-                    {/* Header Card: Kode & Status */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-mono font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          {tpl.code || 'NO-CODE'}
-                        </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
-                          {tpl.category || 'Umum'}
-                        </span>
-                      </div>
+                  {/* Top Colorful Accent Strip */}
+                  <div
+                    className={`absolute top-0 left-0 right-0 h-1.5 ${
+                      tpl.isActive
+                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-400'
+                        : 'bg-slate-300'
+                    }`}
+                  />
+
+                  <div className="space-y-3.5 pt-1">
+                    {/* Header Card: Category Pill & Status Toggle */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="px-3 py-1 rounded-xl text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs flex items-center gap-1.5">
+                        <Tag className="w-3 h-3 text-blue-500" />
+                        <span>{tpl.category || 'Umum'}</span>
+                      </span>
 
                       <button
                         type="button"
                         onClick={() => handleToggleActive(tpl.id)}
-                        className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition ${
+                        className={`text-[11px] px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition border shadow-2xs ${
                           tpl.isActive
-                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                         }`}
                         title="Klik untuk ubah status aktif/non-aktif template"
                       >
-                        {tpl.isActive ? <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> : <XCircle className="w-3.5 h-3.5 text-slate-500" />}
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            tpl.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                          }`}
+                        />
                         <span>{tpl.isActive ? 'Aktif' : 'Non-Aktif'}</span>
                       </button>
                     </div>
 
-                    <h3 className="font-extrabold text-slate-900 text-base leading-snug group-hover:text-indigo-600 transition">
-                      {tpl.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                      {tpl.description || 'Tidak ada keterangan khusus.'}
-                    </p>
+                    {/* Judul & Nomor Pola */}
+                    <div>
+                      <h3 className="font-black text-slate-900 text-base leading-snug group-hover:text-blue-600 transition line-clamp-2">
+                        {tpl.name}
+                      </h3>
+                      {tpl.numberFormat && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100/80 border border-slate-200 rounded-lg text-[10px] font-mono text-slate-600 font-semibold truncate max-w-full">
+                          <span>📋</span>
+                          <span className="truncate">{tpl.numberFormat}</span>
+                        </div>
+                      )}
+                    </div>
 
-                    {/* Metadata Pill Ringkasan */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Isian Form Input:</span>
-                        <strong className="text-slate-800 font-bold">{tpl.fields?.length || 0} Field</strong>
+                    {/* Visual Alur Persetujuan Bertingkat */}
+                    <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 rounded-2xl p-3 border border-slate-200/70 space-y-2">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-extrabold text-slate-700 flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Alur Approval</span>
+                        </span>
+                        <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                          {tpl.approvalSteps?.length || 1} Tahap
+                        </span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Jalur Persetujuan:</span>
-                        <strong className="text-indigo-600 font-bold">{tpl.approvalSteps?.length || 1} Tingkat Approver</strong>
+
+                      {/* Stepper Breadcrumb */}
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-600 overflow-x-auto no-scrollbar pt-0.5">
+                        <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-medium text-slate-500 shrink-0">
+                          Pemohon
+                        </span>
+                        <span className="text-slate-300 font-black">&rarr;</span>
+                        {(tpl.approvalSteps || []).slice(0, 2).map((st, i) => (
+                          <React.Fragment key={i}>
+                            <span
+                              className="px-2 py-0.5 rounded-md bg-white border border-indigo-200 text-indigo-900 font-bold shrink-0 truncate max-w-[120px]"
+                              title={st.title || st.approverRole}
+                            >
+                              {st.title || st.approverRole || `Tahap ${st.step}`}
+                            </span>
+                            {i < Math.min((tpl.approvalSteps?.length || 1) - 1, 1) && (
+                              <span className="text-slate-300 font-black">&rarr;</span>
+                            )}
+                          </React.Fragment>
+                        ))}
+                        {(tpl.approvalSteps?.length || 0) > 2 && (
+                          <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                            +{tpl.approvalSteps.length - 2}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Total Penggunaan:</span>
-                        <span className="text-slate-700 font-medium">{letterUsageCount} Surat Dibuat</span>
+                    </div>
+
+                    {/* Ringkasan Metadata Penggunaan */}
+                    <div className="pt-1 flex items-center justify-between text-xs text-slate-500">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-blue-500">✉</span>
+                        <span>Diterbitkan:</span>
+                        <strong className="text-slate-800 font-bold">{letterUsageCount} Surat</strong>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Hak Akses Cabang:</span>
-                        <strong className="text-slate-700 font-semibold truncate max-w-[150px]">
-                          {tpl.allowedBranches?.includes('all') ? 'Semua Cabang' : `${tpl.allowedBranches?.length || 0} Cabang`}
-                        </strong>
-                      </div>
+                      <span className="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                        Semua Cabang
+                      </span>
                     </div>
                   </div>
 
                   {/* Tombol Aksi Bawah */}
-                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                  <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1">
-                      {/* Pratinjau Cepat */}
+                      {/* Pratinjau Cepat Lembar Surat */}
                       <button
                         type="button"
                         onClick={() => setReviewModalTemplate(tpl)}
-                        className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition border border-transparent hover:border-blue-200"
                         title="Pratinjau Lembar Surat Resmi"
                       >
                         <Eye className="w-4 h-4" />
@@ -533,7 +624,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                       <button
                         type="button"
                         onClick={() => setApproverModalTemplate(tpl)}
-                        className="p-1.5 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                        className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition border border-transparent hover:border-purple-200"
                         title="Atur Urutan Pejabat Approver"
                       >
                         <Settings className="w-4 h-4" />
@@ -543,7 +634,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                       <button
                         type="button"
                         onClick={() => handleDuplicateTemplate(tpl)}
-                        className="p-1.5 text-slate-600 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition"
+                        className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition border border-transparent hover:border-sky-200"
                         title="Duplikat Template"
                       >
                         <Copy className="w-4 h-4" />
@@ -553,7 +644,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                       <button
                         type="button"
                         onClick={() => handleDeleteTemplate(tpl)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition border border-transparent hover:border-rose-200"
                         title="Hapus Template"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -566,7 +657,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                         setEditingTemplate(JSON.parse(JSON.stringify(tpl)))
                         setActiveTab('form')
                       }}
-                      className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-indigo-200 hover:border-indigo-600 shadow-2xs"
+                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:from-blue-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-md shadow-blue-600/20 active:scale-98"
                     >
                       <Edit className="w-3.5 h-3.5" />
                       <span>Edit Template</span>

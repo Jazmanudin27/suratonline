@@ -14,6 +14,8 @@ import {
   ExternalLink,
   Mail,
   MessageSquare,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react'
 import { getUsers, shareLetterWithUsers, formatDateTimeId } from '../services/storage'
 import { notify } from '../utils/alert'
@@ -28,6 +30,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
   const [shareMessage, setShareMessage] = useState('')
   const [isCopied, setIsCopied] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   // Direct share link
   const shareUrl = `${window.location.origin}/#letters?view=${letter.id}`
@@ -52,16 +55,27 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
     }
   }
 
-  // Filter available users (exclude creator and already shared)
+  const mySharedUsers = useMemo(() => {
+    const currentUid = String(currentUser?.id || '')
+    const currentName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+    return sharedUsers.filter((u) => {
+      if (u.sharedById && String(u.sharedById) === currentUid) return true
+      if (u.sharedBy && (u.sharedBy || '').trim().toLowerCase() === currentName) return true
+      return false
+    })
+  }, [sharedUsers, currentUser])
+
+  // Filter available users (exclude creator and users already shared BY CURRENT USER)
   const availableUsers = useMemo(() => {
-    const sharedIds = new Set(sharedUsers.map((u) => String(u.userId || u.id)))
+    const mySharedIds = new Set(mySharedUsers.map((u) => String(u.userId || u.id)))
     const creatorId = String(letter.userId || '')
     const currentUid = String(currentUser?.id || '')
 
     return allUsers.filter((u) => {
       const uId = String(u.id)
       if (uId === creatorId) return false
-      if (sharedIds.has(uId)) return false
+      if (uId === currentUid) return false
+      if (mySharedIds.has(uId)) return false
 
       if (!searchTerm) return true
       const term = searchTerm.toLowerCase()
@@ -72,7 +86,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
 
       return matchName || matchBranch || matchPosition || matchUsername
     })
-  }, [allUsers, sharedUsers, letter.userId, currentUser?.id, searchTerm])
+  }, [allUsers, mySharedUsers, letter.userId, currentUser?.id, searchTerm])
 
   const handleAddUser = (user) => {
     setSharedUsers((prev) => [
@@ -91,7 +105,19 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
   }
 
   const handleRemoveUser = (userId) => {
-    setSharedUsers((prev) => prev.filter((u) => String(u.userId || u.id) !== String(userId)))
+    const currentUid = String(currentUser?.id || '')
+    const currentName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
+    setSharedUsers((prev) =>
+      prev.filter((u) => {
+        const isTarget = String(u.userId || u.id) === String(userId)
+        if (!isTarget) return true
+        const isMine =
+          (u.sharedById && String(u.sharedById) === currentUid) ||
+          (u.sharedBy && (u.sharedBy || '').trim().toLowerCase() === currentName)
+        // Jika target milik currentUser, hapus
+        return !isMine
+      })
+    )
   }
 
   const handleSave = async () => {
@@ -121,9 +147,13 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fadeIn select-none">
+    <div className={`fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center ${isFullscreen ? 'p-0' : 'p-3 sm:p-5'} overflow-y-auto animate-fadeIn select-none`}>
       <div
-        className="bg-white rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200"
+        className={`bg-white flex flex-col shadow-2xl overflow-hidden border border-slate-200 transition-all duration-200 ${
+          isFullscreen
+            ? 'w-full h-full rounded-none max-w-none max-h-none'
+            : 'rounded-2xl w-full max-w-xl max-h-[92vh]'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Modal */}
@@ -141,14 +171,24 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition"
-            title="Tutup"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition"
+              title={isFullscreen ? 'Keluar Layar Penuh' : 'Layar Penuh (Full Screen)'}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition"
+              title="Tutup"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
@@ -227,32 +267,30 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
             </p>
           </div>
 
-          {/* Section 2: Daftar Pengguna yang Memiliki Akses Dibagikan */}
+          {/* Section 2: Daftar Pengguna yang Dibagikan oleh Anda */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-indigo-600" />
-                Pengguna yang Diberi Akses ({sharedUsers.length})
+                Pengguna yang Anda Bagikan ({mySharedUsers.length})
               </label>
+              {sharedUsers.length > mySharedUsers.length && (
+                <span className="text-[10px] text-slate-400">
+                  Total dokumen dibagikan: {sharedUsers.length} user
+                </span>
+              )}
             </div>
 
-            {sharedUsers.length === 0 ? (
+            {mySharedUsers.length === 0 ? (
               <div className="p-4 bg-white border border-dashed border-slate-300 rounded-xl text-center text-xs text-slate-500">
-                Surat ini belum dibagikan ke pengguna lain. Cari dan tambahkan karyawan di bawah ini.
+                Anda belum membagikan surat ini ke siapa pun. Cari dan tambahkan rekan kerja di bawah.
               </div>
             ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {sharedUsers.map((u) => {
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {mySharedUsers.map((u) => {
                   const uid = u.userId || u.id
-                  const senderName = u.sharedBy || currentUser?.name || 'Sistem'
+                  const senderName = u.sharedBy || currentUser?.name || 'Anda'
                   const shareTime = u.sharedAt ? formatDateTimeId(u.sharedAt) : null
-                  // Tombol delete HANYA muncul untuk orang yang membagikan
-                  const currentUserName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
-                  const senderUserName = (u.sharedBy || '').trim().toLowerCase()
-                  const isSender =
-                    (u.sharedById && currentUser?.id && String(u.sharedById) === String(currentUser.id)) ||
-                    (senderUserName && currentUserName && senderUserName === currentUserName)
-                  const canDelete = Boolean(isSender)
 
                   return (
                     <div
@@ -292,16 +330,14 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
                         </div>
                       </div>
 
-                      {canDelete && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveUser(uid)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0"
-                          title="Hapus akses dibagikan"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveUser(uid)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0"
+                        title="Hapus akses dibagikan"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   )
                 })}

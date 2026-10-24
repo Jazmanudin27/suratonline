@@ -15,6 +15,8 @@ import {
   Sparkles,
   CheckCircle2,
   FilePenLine,
+  Mail,
+  MailPlus,
 } from 'lucide-react'
 import { BLANK_TEMPLATE } from '../services/storage'
 
@@ -96,11 +98,13 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
           <button
             type="button"
             onClick={() => onSelectTemplate(BLANK_TEMPLATE)}
-            className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-lg text-xs flex items-center gap-1.5 transition shadow-md shadow-emerald-500/25 ring-1 ring-white/20 active:scale-95 cursor-pointer"
+            className="group inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:brightness-110 active:scale-95 transition-all duration-200 border border-white/30 cursor-pointer"
             title="Buat surat ajuan baru secara mandiri tanpa template baku"
           >
-            <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-            <span>+ Buat Surat Bebas</span>
+            <div className="p-1 rounded-md bg-white/20 text-white group-hover:scale-110 transition-transform duration-200">
+              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+            </div>
+            <span className="tracking-wide">+ Buat Surat Bebas</span>
           </button>
         </div>
       </div>

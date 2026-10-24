@@ -996,17 +996,6 @@ export default function LetterFormBuilder({
       {/* STEP 1: FORM ISIAN */}
       {activeTab === "form" && (
         <div className="bg-white border border-slate-300/80 rounded-xl p-3 sm:p-4 shadow-lg shadow-slate-900/5 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-1.5 pb-1 border-b border-slate-200">
-            <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
-              <span className="p-1 rounded-md bg-emerald-100 text-emerald-700">
-                <FileText className="w-3.5 h-3.5" />
-              </span>
-              Langkah 1: Lengkapi Isian Surat
-            </h3>
-            <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-              Formulir Permohonan Resmi
-            </span>
-          </div>
 
           {/* Readonly Identity Box - High Contrast Panel */}
           <div className="bg-slate-50/90 p-2 sm:p-2.5 rounded-lg border border-slate-300/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs shadow-2xs">

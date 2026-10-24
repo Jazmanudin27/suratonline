@@ -1,5 +1,5 @@
 import React from 'react'
-import { FileText, Inbox, User, Package } from 'lucide-react'
+import { FileText, Inbox, User, Package, FileCheck2 } from 'lucide-react'
 
 export default function MobileBottomNav({
   activeTab = 'archive',
@@ -17,6 +17,11 @@ export default function MobileBottomNav({
       label: 'Inbox ACC',
       icon: Inbox,
       badge: pendingApprovalsCount,
+    },
+    {
+      id: 'memo',
+      label: 'Memo IM',
+      icon: FileCheck2,
     },
     {
       id: 'products',

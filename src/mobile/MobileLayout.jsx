@@ -6,6 +6,7 @@ import MobileLetterList from './MobileLetterList'
 import MobileApproverInbox from './MobileApproverInbox'
 import MobileProfile from './MobileProfile'
 import MobileProductList from './MobileProductList'
+import MobileInternalMemo from './MobileInternalMemo'
 import MobileDocumentReader from './MobileDocumentReader'
 import LetterChatModal from '../components/LetterChatModal'
 import { canUserApproveLetter } from '../components/ApproverInbox'
@@ -84,6 +85,10 @@ export default function MobileLayout({
               onRequestRevision={onRequestRevision}
               onUpdateNotes={onUpdateNotes}
             />
+          )}
+
+          {activeTab === 'memo' && (
+            <MobileInternalMemo currentUser={currentUser} />
           )}
 
           {activeTab === 'products' && (

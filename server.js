@@ -173,6 +173,98 @@ app.get('/api/produk', async (req, res) => {
   } catch (err) {
     res.json({ success: false, message: err.message, data: [] })
   }
+// -------------------------------------------------------------
+// 2c. INTERNAL MEMO (KHUSUS MOBILE)
+// -------------------------------------------------------------
+app.get('/api/internal_memo', async (req, res) => {
+  try {
+    const userId = req.query.userId || req.headers['x-user-id'] || null
+    const [rows] = await pool.query(
+      `SELECT 
+        im.*,
+        u.name AS pembuat_nama,
+        ack.status AS ack_status,
+        ack.updated_at AS ack_at,
+        lb.dibaca_pada AS read_at,
+        (SELECT COUNT(*) FROM internal_memo_ack WHERE internal_memo_id = im.id AND status = 'paham') AS total_paham,
+        (SELECT COUNT(*) FROM internal_memo_log_baca WHERE internal_memo_id = im.id) AS total_dibaca
+      FROM internal_memo im
+      LEFT JOIN users u ON im.dibuat_oleh = u.id
+      LEFT JOIN internal_memo_ack ack ON im.id = ack.internal_memo_id AND ack.user_id = ?
+      LEFT JOIN internal_memo_log_baca lb ON im.id = lb.internal_memo_id AND lb.user_id = ?
+      WHERE im.status = 'aktif'
+      ORDER BY im.tanggal_im DESC, im.id DESC`,
+      [userId || 0, userId || 0]
+    )
+
+    // Ambil daftar tujuan cabang per memo
+    const [branchesRows] = await pool.query(
+      `SELECT imtc.internal_memo_id, imtc.kode_cabang, c.nama_cabang
+       FROM internal_memo_tujuan_cabang imtc
+       LEFT JOIN cabang c ON imtc.kode_cabang = c.kode_cabang`
+    )
+
+    const branchMap = {}
+    branchesRows.forEach((b) => {
+      if (!branchMap[b.internal_memo_id]) {
+        branchMap[b.internal_memo_id] = []
+      }
+      branchMap[b.internal_memo_id].push({
+        kode_cabang: b.kode_cabang,
+        nama_cabang: b.nama_cabang || b.kode_cabang,
+      })
+    })
+
+    const data = rows.map((im) => ({
+      ...im,
+      tujuan_cabang: branchMap[im.id] || [],
+    }))
+
+    res.json({ success: true, data })
+  } catch (err) {
+    res.json({ success: false, message: err.message, data: [] })
+  }
+})
+
+// Catat log baca memo
+app.post('/api/internal_memo/:id/read', async (req, res) => {
+  try {
+    const memoId = req.params.id
+    const { userId } = req.body
+    if (memoId && userId) {
+      await pool.query(
+        `INSERT INTO internal_memo_log_baca (internal_memo_id, user_id, dibaca_pada)
+         VALUES (?, ?, NOW())
+         ON DUPLICATE KEY UPDATE dibaca_pada = NOW()`,
+        [memoId, userId]
+      )
+    }
+    res.json({ success: true })
+  } catch (err) {
+    res.json({ success: false, message: err.message })
+  }
+})
+
+// Konfirmasi Paham Memo (Ack)
+app.post('/api/internal_memo/:id/ack', async (req, res) => {
+  try {
+    const memoId = req.params.id
+    const { userId, status = 'paham' } = req.body
+    if (!memoId || !userId) {
+      return res.status(400).json({ success: false, message: 'ID memo dan user wajib diisi' })
+    }
+
+    await pool.query(
+      `INSERT INTO internal_memo_ack (internal_memo_id, user_id, status, created_at, updated_at)
+       VALUES (?, ?, ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()`,
+      [memoId, userId, status]
+    )
+
+    res.json({ success: true, message: 'Status konfirmasi berhasil disimpan' })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
 })
 
 // -------------------------------------------------------------

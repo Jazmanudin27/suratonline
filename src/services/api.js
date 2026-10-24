@@ -52,6 +52,45 @@ export const api = {
     }
   },
 
+  // 2c. Internal Memo (Mobile Only)
+  async getInternalMemo(userId = null) {
+    try {
+      const url = userId ? `${API_BASE}/internal_memo?userId=${userId}` : `${API_BASE}/internal_memo`
+      const res = await fetch(url)
+      const json = await res.json()
+      return json.success && Array.isArray(json.data) ? json.data : []
+    } catch (e) {
+      console.warn('API getInternalMemo error:', e.message)
+      return []
+    }
+  },
+
+  async markInternalMemoRead(memoId, userId) {
+    try {
+      const res = await fetch(`${API_BASE}/internal_memo/${memoId}/read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      return await res.json()
+    } catch (e) {
+      return { success: false, message: e.message }
+    }
+  },
+
+  async acknowledgeInternalMemo(memoId, userId, status = 'paham') {
+    try {
+      const res = await fetch(`${API_BASE}/internal_memo/${memoId}/ack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, status }),
+      })
+      return await res.json()
+    } catch (e) {
+      return { success: false, message: e.message }
+    }
+  },
+
   // 3. Pengguna / Users
   async getUsers() {
     try {

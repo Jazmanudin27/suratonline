@@ -255,6 +255,27 @@ app.get('/api/internal_memo', async (req, res) => {
   }
 })
 
+// Proxy fetch berkas PDF Internal Memo dari server app.portalmp.com (mengatasi CORS & same-origin)
+app.get('/api/internal_memo/pdf/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params
+    const remoteUrl = `https://app.portalmp.com/storage/internal_memo/${encodeURIComponent(filename)}`
+    
+    const response = await fetch(remoteUrl)
+    if (!response.ok) {
+      return res.status(response.status).json({ success: false, message: 'Berkas PDF tidak ditemukan di server pusat' })
+    }
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`)
+    const arrayBuffer = await response.arrayBuffer()
+    res.send(Buffer.from(arrayBuffer))
+  } catch (err) {
+    console.error('Proxy PDF IM Error:', err.message)
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
 // Catat log baca memo
 app.post('/api/internal_memo/:id/read', async (req, res) => {
   try {

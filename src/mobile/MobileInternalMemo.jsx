@@ -134,12 +134,20 @@ export default function MobileInternalMemo({ currentUser }) {
     if (memo.file_im) {
       try {
         setPdfLoading(true)
-        const pdfUrl = `/lampiran/pdf/${memo.file_im}`
+        // Gunakan proxy backend /api/internal_memo/pdf/:file_im untuk menjamin bebas CORS
+        const pdfUrl = `/api/internal_memo/pdf/${encodeURIComponent(memo.file_im)}`
         const pages = await renderPdfToPages(pdfUrl, 1.6)
         setPdfPages(Array.isArray(pages) ? pages : [])
       } catch (err) {
         console.warn('Gagal render halaman PDF:', err)
-        setPdfPages([])
+        // Coba langsung fallback direct link dari app.portalmp.com
+        try {
+          const directUrl = `https://app.portalmp.com/storage/internal_memo/${encodeURIComponent(memo.file_im)}`
+          const pages = await renderPdfToPages(directUrl, 1.6)
+          setPdfPages(Array.isArray(pages) ? pages : [])
+        } catch (e2) {
+          setPdfPages([])
+        }
       } finally {
         setPdfLoading(false)
       }
@@ -629,7 +637,7 @@ export default function MobileInternalMemo({ currentUser }) {
                   </div>
 
                   <a
-                    href={`/lampiran/pdf/${selectedMemo.file_im}`}
+                    href={`https://app.portalmp.com/storage/internal_memo/${encodeURIComponent(selectedMemo.file_im)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1 shadow-xs shrink-0 transition"
@@ -861,7 +869,7 @@ export default function MobileInternalMemo({ currentUser }) {
                 </div>
                 <div className="flex items-center gap-2 pt-1">
                   <a
-                    href={`/lampiran/pdf/${readingMemo.file_im}`}
+                    href={`https://app.portalmp.com/storage/internal_memo/${encodeURIComponent(readingMemo.file_im)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition"
@@ -870,7 +878,7 @@ export default function MobileInternalMemo({ currentUser }) {
                     <span>Buka via Browser</span>
                   </a>
                   <a
-                    href={`/lampiran/pdf/${readingMemo.file_im}`}
+                    href={`/api/internal_memo/pdf/${encodeURIComponent(readingMemo.file_im)}`}
                     download={readingMemo.file_im}
                     className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 border border-slate-700 transition"
                   >
@@ -897,7 +905,7 @@ export default function MobileInternalMemo({ currentUser }) {
             )}
 
             <a
-              href={`/lampiran/pdf/${readingMemo.file_im}`}
+              href={`https://app.portalmp.com/storage/internal_memo/${encodeURIComponent(readingMemo.file_im)}`}
               target="_blank"
               rel="noreferrer"
               className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95"

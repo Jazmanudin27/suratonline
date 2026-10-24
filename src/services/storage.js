@@ -14,152 +14,7 @@ const STORAGE_KEYS = {
   PRODUCTS: 'suratajuan_products_v2',
 }
 
-export const DEFAULT_PRODUCTS = [
-  {
-    kode_produk: 'PRD-001',
-    nama_produk: 'Minyak Goreng Sawit 2 Liter',
-    satuan: 'DUS',
-    isi_pcs_dus: 6,
-    isi_pack_dus: 6,
-    isi_pcs_pack: 1,
-    kode_kategori_produk: 'SEMBAKO',
-    kode_jenis_produk: 'MINYAK',
-    status_aktif_produk: '1',
-    urutan: 1,
-    kode_sku: 'SKU-MGS-2L',
-    kode_kategori_diskon: 'DISC-A',
-    kode_kategori_komisi: 'KOM-01',
-    created_at: '2026-01-10 08:00:00',
-    updated_at: '2026-01-15 10:30:00',
-    kode_akun: '1141-01',
-  },
-  {
-    kode_produk: 'PRD-002',
-    nama_produk: 'Gula Pasir Kristal Putih 1 Kg',
-    satuan: 'DUS',
-    isi_pcs_dus: 20,
-    isi_pack_dus: 20,
-    isi_pcs_pack: 1,
-    kode_kategori_produk: 'SEMBAKO',
-    kode_jenis_produk: 'GULA',
-    status_aktif_produk: '1',
-    urutan: 2,
-    kode_sku: 'SKU-GPK-1KG',
-    kode_kategori_diskon: 'DISC-A',
-    kode_kategori_komisi: 'KOM-01',
-    created_at: '2026-01-10 08:30:00',
-    updated_at: '2026-01-15 11:00:00',
-    kode_akun: '1141-02',
-  },
-  {
-    kode_produk: 'PRD-003',
-    nama_produk: 'Tepung Terigu Serbaguna Premium 1 Kg',
-    satuan: 'DUS',
-    isi_pcs_dus: 12,
-    isi_pack_dus: 12,
-    isi_pcs_pack: 1,
-    kode_kategori_produk: 'SEMBAKO',
-    kode_jenis_produk: 'TEPUNG',
-    status_aktif_produk: '1',
-    urutan: 3,
-    kode_sku: 'SKU-TTS-1KG',
-    kode_kategori_diskon: 'DISC-B',
-    kode_kategori_komisi: 'KOM-02',
-    created_at: '2026-01-11 09:00:00',
-    updated_at: '2026-01-16 14:20:00',
-    kode_akun: '1141-03',
-  },
-  {
-    kode_produk: 'PRD-004',
-    nama_produk: 'Kopi Bubuk Arabika Blend 250gr',
-    satuan: 'DUS',
-    isi_pcs_dus: 24,
-    isi_pack_dus: 4,
-    isi_pcs_pack: 6,
-    kode_kategori_produk: 'MINUMAN',
-    kode_jenis_produk: 'KOPI',
-    status_aktif_produk: '1',
-    urutan: 4,
-    kode_sku: 'SKU-KBA-250G',
-    kode_kategori_diskon: 'DISC-B',
-    kode_kategori_komisi: 'KOM-02',
-    created_at: '2026-01-12 10:15:00',
-    updated_at: '2026-01-18 16:00:00',
-    kode_akun: '1141-04',
-  },
-  {
-    kode_produk: 'PRD-005',
-    nama_produk: 'Susu Kental Manis Putih 370gr',
-    satuan: 'DUS',
-    isi_pcs_dus: 48,
-    isi_pack_dus: 8,
-    isi_pcs_pack: 6,
-    kode_kategori_produk: 'MINUMAN',
-    kode_jenis_produk: 'SUSU',
-    status_aktif_produk: '1',
-    urutan: 5,
-    kode_sku: 'SKU-SKM-370G',
-    kode_kategori_diskon: 'DISC-A',
-    kode_kategori_komisi: 'KOM-01',
-    created_at: '2026-01-12 11:00:00',
-    updated_at: '2026-01-19 09:45:00',
-    kode_akun: '1141-05',
-  },
-  {
-    kode_produk: 'PRD-006',
-    nama_produk: 'Sabun Mandi Cair Anti Bakteri 450ml Refill',
-    satuan: 'DUS',
-    isi_pcs_dus: 24,
-    isi_pack_dus: 4,
-    isi_pcs_pack: 6,
-    kode_kategori_produk: 'TOILETRIES',
-    kode_jenis_produk: 'SABUN',
-    status_aktif_produk: '1',
-    urutan: 6,
-    kode_sku: 'SKU-SMC-450ML',
-    kode_kategori_diskon: 'DISC-C',
-    kode_kategori_komisi: 'KOM-03',
-    created_at: '2026-01-14 13:20:00',
-    updated_at: '2026-01-20 11:10:00',
-    kode_akun: '1141-06',
-  },
-  {
-    kode_produk: 'PRD-007',
-    nama_produk: 'Deterjen Bubuk Konsentrat 800gr',
-    satuan: 'DUS',
-    isi_pcs_dus: 12,
-    isi_pack_dus: 12,
-    isi_pcs_pack: 1,
-    kode_kategori_produk: 'TOILETRIES',
-    kode_jenis_produk: 'DETERJEN',
-    status_aktif_produk: '0',
-    urutan: 7,
-    kode_sku: 'SKU-DBK-800G',
-    kode_kategori_diskon: 'DISC-C',
-    kode_kategori_komisi: 'KOM-03',
-    created_at: '2026-01-15 14:00:00',
-    updated_at: '2026-01-21 15:30:00',
-    kode_akun: '1141-07',
-  },
-  {
-    kode_produk: 'PRD-008',
-    nama_produk: 'Kecap Manis Botol 600ml',
-    satuan: 'DUS',
-    isi_pcs_dus: 12,
-    isi_pack_dus: 12,
-    isi_pcs_pack: 1,
-    kode_kategori_produk: 'BUMBU',
-    kode_jenis_produk: 'KECAP',
-    status_aktif_produk: '1',
-    urutan: 8,
-    kode_sku: 'SKU-KMB-600ML',
-    kode_kategori_diskon: 'DISC-A',
-    kode_kategori_komisi: 'KOM-01',
-    created_at: '2026-01-16 15:10:00',
-    updated_at: '2026-01-22 10:00:00',
-    kode_akun: '1141-08',
-  },
-]
+export const DEFAULT_PRODUCTS = []
 
 // Convert month number to Roman numerals
 export const getRomanMonth = (date = new Date()) => {
@@ -562,7 +417,7 @@ export const initializeStorage = async () => {
     setStorageItem(STORAGE_KEYS.TEMPLATES, [])
   }
   if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
-    setStorageItem(STORAGE_KEYS.PRODUCTS, DEFAULT_PRODUCTS)
+    setStorageItem(STORAGE_KEYS.PRODUCTS, [])
   }
   if (localStorage.getItem(STORAGE_KEYS.LETTERS) === null && !lettersMemoryCache) {
     setStorageItem(STORAGE_KEYS.LETTERS, [])
@@ -574,10 +429,8 @@ export const initializeStorage = async () => {
 
 // Master Produk Management
 export const getProducts = () => {
-  const prods = getStorageItem(STORAGE_KEYS.PRODUCTS, null)
-  if (Array.isArray(prods) && prods.length > 0) return prods
-  setStorageItem(STORAGE_KEYS.PRODUCTS, DEFAULT_PRODUCTS)
-  return DEFAULT_PRODUCTS
+  const prods = getStorageItem(STORAGE_KEYS.PRODUCTS, [])
+  return Array.isArray(prods) ? prods : []
 }
 
 export const saveProduct = (productData) => {

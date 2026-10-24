@@ -19,7 +19,7 @@ import {
   Archive,
   SlidersHorizontal,
 } from 'lucide-react'
-import { getProducts, formatDateId, formatDateTimeId } from '../services/storage'
+import { getProducts, formatDateId, formatDateTimeId, formatRupiah } from '../services/storage'
 
 export default function MobileProductList({ currentUser }) {
   const [products, setProducts] = useState([])
@@ -476,70 +476,140 @@ export default function MobileProductList({ currentUser }) {
                 </div>
               </div>
 
-              {/* SECTION 3: Kategori, Diskon & Komisi */}
+              {/* SECTION 3: Daftar Harga Produk (produk_harga) */}
               <div className="space-y-2">
-                <span className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wide block">
-                  Klasifikasi, Diskon & Komisi
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase">
-                      Kategori Produk
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wide block">
+                    Daftar Harga Produk
+                  </span>
+                  {selectedProduct.kode_harga && (
+                    <span className="font-mono text-[10px] text-indigo-700 font-bold bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded">
+                      {selectedProduct.kode_harga}
                     </span>
-                    <span className="font-bold text-slate-800 text-xs">
-                      {selectedProduct.kode_kategori_produk || '-'}
+                  )}
+                </div>
+
+                {/* Badge Info Status Harga & Cabang */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {selectedProduct.status_aktif_harga !== undefined && selectedProduct.status_aktif_harga !== null && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                      Harga Aktif
+                    </span>
+                  )}
+                  {selectedProduct.status_ppn !== undefined && selectedProduct.status_ppn !== null && (
+                    <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                      PPN: {String(selectedProduct.status_ppn) === '1' ? 'Ya' : 'Tidak'}
+                    </span>
+                  )}
+                  {selectedProduct.status_promo !== undefined && selectedProduct.status_promo !== null && String(selectedProduct.status_promo) === '1' && (
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      Promo
+                    </span>
+                  )}
+                  {selectedProduct.kode_cabang && (
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                      Cabang: {selectedProduct.kode_cabang}
+                    </span>
+                  )}
+                  {selectedProduct.kode_kategori_salesman && (
+                    <span className="text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                      Sales: {selectedProduct.kode_kategori_salesman}
+                    </span>
+                  )}
+                </div>
+
+                {/* Grid Harga Jual */}
+                <div className="p-3 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-2xl border border-emerald-200/80 space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-emerald-200/60 pb-1.5">
+                    <span className="text-[11px] font-black text-emerald-900 uppercase tracking-wide">
+                      Harga Jual
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-semibold">
+                      Pelanggan Umum
                     </span>
                   </div>
-                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase">
-                      Jenis Produk
-                    </span>
-                    <span className="font-bold text-slate-800 text-xs">
-                      {selectedProduct.kode_jenis_produk || '-'}
-                    </span>
-                  </div>
-                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase">
-                      Kategori Diskon
-                    </span>
-                    <span className="font-bold text-amber-700 text-xs">
-                      {selectedProduct.kode_kategori_diskon || '-'}
-                    </span>
-                  </div>
-                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase">
-                      Kategori Komisi
-                    </span>
-                    <span className="font-bold text-emerald-700 text-xs">
-                      {selectedProduct.kode_kategori_komisi || '-'}
-                    </span>
+
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-white/90 p-2 rounded-xl border border-emerald-100 shadow-2xs">
+                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
+                        Per Dus
+                      </span>
+                      <span className="font-extrabold text-emerald-800 text-xs block truncate mt-0.5">
+                        {selectedProduct.harga_dus !== null && selectedProduct.harga_dus !== undefined
+                          ? `Rp ${formatRupiah(selectedProduct.harga_dus)}`
+                          : '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-white/90 p-2 rounded-xl border border-emerald-100 shadow-2xs">
+                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
+                        Per Pack
+                      </span>
+                      <span className="font-extrabold text-emerald-800 text-xs block truncate mt-0.5">
+                        {selectedProduct.harga_pack !== null && selectedProduct.harga_pack !== undefined
+                          ? `Rp ${formatRupiah(selectedProduct.harga_pack)}`
+                          : '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-white/90 p-2 rounded-xl border border-emerald-100 shadow-2xs">
+                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
+                        Per Pcs
+                      </span>
+                      <span className="font-extrabold text-emerald-800 text-xs block truncate mt-0.5">
+                        {selectedProduct.harga_pcs !== null && selectedProduct.harga_pcs !== undefined
+                          ? `Rp ${formatRupiah(selectedProduct.harga_pcs)}`
+                          : '-'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* SECTION 4: Akuntansi & Waktu Sistem */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wide block">
-                  Akuntansi & Riwayat Sistem
-                </span>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500 font-medium">Kode Akun:</span>
-                    <span className="font-mono font-bold text-slate-800">
-                      {selectedProduct.kode_akun || '-'}
+                {/* Grid Harga Retur */}
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-rose-50/40 rounded-2xl border border-slate-200/80 space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                    <span className="text-[11px] font-black text-rose-900 uppercase tracking-wide">
+                      Harga Retur
+                    </span>
+                    <span className="text-[10px] text-rose-600 font-semibold">
+                      Pengembalian
                     </span>
                   </div>
-                  <div className="flex items-center justify-between border-t border-slate-200/60 pt-1.5">
-                    <span className="text-slate-500 font-medium">Dibuat:</span>
-                    <span className="text-slate-700 font-medium">
-                      {selectedProduct.created_at ? formatDateTimeId(selectedProduct.created_at) : '-'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-slate-200/60 pt-1.5">
-                    <span className="text-slate-500 font-medium">Diperbarui:</span>
-                    <span className="text-slate-700 font-medium">
-                      {selectedProduct.updated_at ? formatDateTimeId(selectedProduct.updated_at) : '-'}
-                    </span>
+
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-white/90 p-2 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
+                        Retur Dus
+                      </span>
+                      <span className="font-extrabold text-rose-800 text-xs block truncate mt-0.5">
+                        {selectedProduct.harga_retur_dus !== null && selectedProduct.harga_retur_dus !== undefined
+                          ? `Rp ${formatRupiah(selectedProduct.harga_retur_dus)}`
+                          : '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-white/90 p-2 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
+                        Retur Pack
+                      </span>
+                      <span className="font-extrabold text-rose-800 text-xs block truncate mt-0.5">
+                        {selectedProduct.harga_retur_pack !== null && selectedProduct.harga_retur_pack !== undefined
+                          ? `Rp ${formatRupiah(selectedProduct.harga_retur_pack)}`
+                          : '-'}
+                      </span>
+                    </div>
+
+                    <div className="bg-white/90 p-2 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
+                        Retur Pcs
+                      </span>
+                      <span className="font-extrabold text-rose-800 text-xs block truncate mt-0.5">
+                        {selectedProduct.harga_retur_pcs !== null && selectedProduct.harga_retur_pcs !== undefined
+                          ? `Rp ${formatRupiah(selectedProduct.harga_retur_pcs)}`
+                          : '-'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

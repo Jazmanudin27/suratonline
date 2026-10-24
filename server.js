@@ -141,7 +141,27 @@ app.get('/api/jabatan', async (req, res) => {
 app.get('/api/produk', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT * FROM produk ORDER BY urutan ASC, kode_produk ASC`
+      `SELECT 
+        p.*,
+        ph.kode_harga,
+        ph.harga_dus,
+        ph.harga_pack,
+        ph.harga_pcs,
+        ph.harga_retur_dus,
+        ph.harga_retur_pack,
+        ph.harga_retur_pcs,
+        ph.status_aktif_harga,
+        ph.status_ppn,
+        ph.status_promo,
+        ph.kode_kategori_salesman,
+        ph.kode_cabang,
+        ph.kode_pelanggan
+      FROM produk p
+      LEFT JOIN produk_harga ph 
+        ON p.kode_produk = ph.kode_produk 
+        AND (ph.status_aktif_harga = 1 OR ph.status_aktif_harga = '1')
+        AND (ph.kode_pelanggan IS NULL OR ph.kode_pelanggan = '')
+      ORDER BY p.urutan ASC, p.kode_produk ASC`
     )
     res.json({ success: true, data: rows })
   } catch (err) {

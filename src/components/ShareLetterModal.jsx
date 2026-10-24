@@ -366,13 +366,13 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
             )}
           </div>
 
-          {/* 3. BAGIAN BAWAH: KETERANGAN / DESKRIPSI PENGANTAR (SEPERTI EMAIL) */}
+          {/* 3. BAGIAN BAWAH: KETERANGAN */}
           <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-md shadow-slate-300/50 space-y-2.5 border-t-[5px] border-t-purple-600">
             <label className="text-xs font-extrabold text-slate-900 flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
                 <Mail className="w-3.5 h-3.5" />
               </span>
-              <span>Keterangan / Deskripsi Pengantar (Seperti Isi Pesan Email)</span>
+              <span>Keterangan</span>
             </label>
             <textarea
               rows={3}
@@ -382,7 +382,7 @@ export default function ShareLetterModal({ letter, currentUser, onClose, onUpdat
               className="w-full bg-slate-100 hover:bg-slate-50 focus:bg-white border-2 border-slate-300 focus:border-purple-600 rounded-xl p-3 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-100 transition resize-none shadow-inner"
             />
             <p className="text-[11px] font-medium text-slate-500">
-              Deskripsi ini akan muncul di banner atas pembaca dokumen penerima saat mereka membuka surat.
+              Keterangan ini akan muncul di banner atas pembaca dokumen penerima saat mereka membuka surat.
             </p>
           </div>
 

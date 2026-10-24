@@ -9,18 +9,18 @@ export default function MobileBottomNav({
   const tabs = [
     {
       id: 'archive',
-      label: 'Arsip Surat',
+      label: 'Surat',
       icon: FileText,
     },
     {
       id: 'inbox',
-      label: 'Inbox ACC',
+      label: 'Inbox',
       icon: Inbox,
       badge: pendingApprovalsCount,
     },
     {
       id: 'memo',
-      label: 'Memo IM',
+      label: 'IM',
       icon: FileCheck2,
     },
     {
@@ -30,7 +30,7 @@ export default function MobileBottomNav({
     },
     {
       id: 'profile',
-      label: 'Profil',
+      label: 'Profile',
       icon: User,
     },
   ]

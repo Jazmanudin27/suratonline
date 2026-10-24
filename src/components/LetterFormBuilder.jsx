@@ -684,24 +684,22 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Sticky Header Wrapper: Wizard Header & Review Action Bar */}
-      {/* Sticky Header Wrapper: Wizard Header & Review Action Bar */}
-      <div className="sticky top-20 z-30 space-y-2 bg-[#dce3ec]/95 backdrop-blur-md pb-2 pt-1">
+      <div className="sticky top-20 z-30 space-y-1.5 bg-[#dce3ec]/95 backdrop-blur-md pb-1 pt-0.5">
         {/* Top Wizard Steps Header - Gradient Banner */}
-        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-3.5 sm:p-4 text-white shadow-xl border border-blue-900/40 flex flex-wrap items-center justify-between gap-3 transition-all">
+        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-xl px-3 py-2 sm:px-3.5 sm:py-2 text-white shadow-md border border-blue-900/40 flex flex-wrap items-center justify-between gap-2 transition-all">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs text-blue-200/90 font-medium">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[10px] text-blue-200/90 font-medium">
                 Penyusunan Surat Ajuan
               </span>
             </div>
-            <h2 className="text-base sm:text-xl font-extrabold text-white leading-tight drop-shadow-xs">{effectiveTitle}</h2>
-            <p className="text-xs text-blue-100/80 hidden sm:block mt-0.5 max-w-xl truncate">{template.description}</p>
+            <h2 className="text-sm sm:text-base font-extrabold text-white leading-tight drop-shadow-xs">{effectiveTitle}</h2>
           </div>
 
           {/* Step Indicator Tabs (2 Langkah: Form Isian & Pratinjau Resmi) */}
-          <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md border border-white/15 p-1 rounded-xl text-xs font-semibold shadow-inner">
+          <div className="flex items-center gap-1 bg-black/25 backdrop-blur-md border border-white/15 p-0.5 rounded-lg text-xs font-semibold shadow-inner">
             {/* TAB 1: FORM ISIAN */}
             <button
               type="button"
@@ -825,39 +823,39 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
 
       {/* STEP 1: FORM ISIAN */}
       {activeTab === 'form' && (
-        <div className="bg-white border border-slate-300/80 rounded-2xl p-4 sm:p-6 shadow-xl shadow-slate-900/5 space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
-            <h3 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
-                <FileText className="w-4 h-4" />
+        <div className="bg-white border border-slate-300/80 rounded-xl p-3 sm:p-4 shadow-lg shadow-slate-900/5 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 pb-1 border-b border-slate-200">
+            <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
+              <span className="p-1 rounded-md bg-emerald-100 text-emerald-700">
+                <FileText className="w-3.5 h-3.5" />
               </span>
               Langkah 1: Lengkapi Isian Surat
             </h3>
-            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+            <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
               Formulir Permohonan Resmi
             </span>
           </div>
 
           {/* Readonly Identity Box - High Contrast Panel */}
-          <div className="bg-slate-50/90 p-3 sm:p-3.5 rounded-xl border border-slate-300/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs shadow-2xs">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-                <Building className="w-4 h-4" />
+          <div className="bg-slate-50/90 p-2 sm:p-2.5 rounded-lg border border-slate-300/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs shadow-2xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                <Building className="w-3.5 h-3.5" />
               </div>
               <div className="truncate">
-                <span className="block text-[10px] uppercase tracking-wider text-slate-500 font-bold">Cabang</span>
-                <span className="font-extrabold text-slate-900 text-xs sm:text-sm">{currentUser.branchName}</span>
+                <span className="block text-[9px] uppercase tracking-wider text-slate-500 font-bold">Cabang</span>
+                <span className="font-extrabold text-slate-900 text-xs">{currentUser.branchName}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-                <User className="w-4 h-4" />
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                <User className="w-3.5 h-3.5" />
               </div>
               <div className="truncate">
-                <span className="block text-[10px] uppercase tracking-wider text-slate-500 font-bold">Pemohon</span>
-                <span className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">
-                  {currentUser.name} <span className="font-normal text-slate-600 text-xs">({currentUser.position})</span>
+                <span className="block text-[9px] uppercase tracking-wider text-slate-500 font-bold">Pemohon</span>
+                <span className="font-extrabold text-slate-900 text-xs truncate">
+                  {currentUser.name} <span className="font-normal text-slate-500 text-[10px]">({currentUser.position})</span>
                 </span>
               </div>
             </div>
@@ -903,7 +901,7 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
             }
             return n !== 'keperluan' && l !== 'keperluan' && n !== 'nama_pemohon' && !l.includes('nama pemohon')
           }).length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {template.fields
                 ?.filter((f) => {
                   const n = (f.name || '').toLowerCase()
@@ -917,7 +915,7 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
                   const cleanLabel = (field.label || '').replace(/\*+$/, '').trim()
                   if (field.type === 'table_costs') {
                     return (
-                      <div key={field.id} className="md:col-span-2 space-y-2 pt-1">
+                      <div key={field.id} className="md:col-span-2 space-y-1.5 pt-0.5">
                         <div className="flex justify-between items-center">
                           <label className="block text-xs font-extrabold text-slate-900">
                             {cleanLabel} {field.required && <span className="text-rose-600 font-bold">*</span>}
@@ -925,50 +923,50 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
                           <button
                             type="button"
                             onClick={addCostRow}
-                            className="text-xs text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 transition shadow-2xs"
+                            className="text-xs text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-300 transition shadow-2xs"
                           >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-3 h-3" />
                             Tambah Baris
                           </button>
                         </div>
 
-                        <div className="border border-slate-300 rounded-xl overflow-hidden shadow-2xs bg-white">
+                        <div className="border border-slate-300 rounded-lg overflow-hidden shadow-2xs bg-white">
                           <table className="w-full text-xs">
                             <thead className="bg-slate-100 border-b border-slate-300 text-slate-800">
                               <tr>
-                                <th className="py-2 px-3 text-left w-12 font-bold text-xs">No</th>
-                                <th className="py-2 px-3 text-left font-bold text-xs">Uraian Kebutuhan</th>
-                                <th className="py-2 px-3 text-right w-44 font-bold text-xs">Estimasi (Rp)</th>
-                                <th className="py-2 px-3 text-center w-12 font-bold text-xs">Aksi</th>
+                                <th className="py-1.5 px-2.5 text-left w-10 font-bold text-xs">No</th>
+                                <th className="py-1.5 px-2.5 text-left font-bold text-xs">Uraian Kebutuhan</th>
+                                <th className="py-1.5 px-2.5 text-right w-40 font-bold text-xs">Estimasi (Rp)</th>
+                                <th className="py-1.5 px-2.5 text-center w-10 font-bold text-xs">Aksi</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
                               {costItems.map((item, idx) => (
                                 <tr key={idx} className="hover:bg-slate-50/80">
-                                  <td className="py-2 px-3 text-center text-slate-500 font-mono text-xs">{idx + 1}</td>
-                                  <td className="py-1 px-3">
+                                  <td className="py-1.5 px-2.5 text-center text-slate-500 font-mono text-xs">{idx + 1}</td>
+                                  <td className="py-1 px-2.5">
                                     <input
                                       type="text"
                                       value={item.item}
                                       onChange={(e) => updateCostRow(idx, 'item', e.target.value)}
                                       placeholder="Uraian pengeluaran"
-                                      className="w-full bg-transparent border-0 border-b border-slate-200 focus:border-emerald-600 focus:ring-0 p-1 text-slate-900 font-medium text-xs"
+                                      className="w-full bg-transparent border-0 border-b border-slate-200 focus:border-emerald-600 focus:ring-0 p-0.5 text-slate-900 font-medium text-xs"
                                     />
                                   </td>
-                                  <td className="py-1 px-3">
+                                  <td className="py-1 px-2.5">
                                     <input
                                       type="number"
                                       value={item.amount || ''}
                                       onChange={(e) => updateCostRow(idx, 'amount', e.target.value)}
                                       placeholder="0"
-                                      className="w-full text-right bg-transparent border-0 border-b border-slate-200 focus:border-emerald-600 focus:ring-0 p-1 text-slate-900 font-mono font-bold text-xs"
+                                      className="w-full text-right bg-transparent border-0 border-b border-slate-200 focus:border-emerald-600 focus:ring-0 p-0.5 text-slate-900 font-mono font-bold text-xs"
                                     />
                                   </td>
-                                  <td className="py-1 px-3 text-center">
+                                  <td className="py-1 px-2.5 text-center">
                                     <button
                                       type="button"
                                       onClick={() => removeCostRow(idx)}
-                                      className="text-slate-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 transition"
+                                      className="text-slate-400 hover:text-rose-600 p-0.5 rounded-md hover:bg-rose-50 transition"
                                       title="Hapus baris"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
@@ -979,10 +977,10 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
                             </tbody>
                             <tfoot className="bg-slate-50 font-bold border-t border-slate-300">
                               <tr>
-                                <td colSpan="2" className="py-2 px-3 text-right text-slate-800 text-xs uppercase tracking-wider">
+                                <td colSpan="2" className="py-1.5 px-2.5 text-right text-slate-800 text-xs uppercase tracking-wider">
                                   TOTAL BIAYA:
                                 </td>
-                                <td className="py-2 px-3 text-right text-emerald-700 font-mono text-sm font-extrabold">
+                                <td className="py-1.5 px-2.5 text-right text-emerald-700 font-mono text-xs font-extrabold">
                                   Rp {formatRupiah(totalCost)}
                                 </td>
                                 <td></td>
@@ -998,18 +996,18 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
 
                   return (
                     <div key={field.id} className={isFullWidth ? 'md:col-span-2' : ''}>
-                      <label className="block text-xs font-extrabold text-slate-900 mb-1.5">
+                      <label className="block text-[11px] font-extrabold text-slate-900 mb-1">
                         {cleanLabel} {field.required && <span className="text-rose-600 font-bold">*</span>}
                       </label>
 
                       {field.type === 'textarea' ? (
                         <textarea
                           name={field.name}
-                          rows={3}
+                          rows={2}
                           value={fieldValues[field.name] || ''}
                           onChange={(e) => handleFieldChange(field.name, e.target.value)}
                           placeholder={field.placeholder || ''}
-                          className="w-full text-xs sm:text-sm p-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium shadow-2xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition leading-relaxed"
+                          className="w-full text-xs p-2 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium shadow-2xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition leading-relaxed"
                         />
                       ) : field.type === 'select' ? (
                         <SearchableSelect
@@ -1029,7 +1027,7 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
                           value={fieldValues[field.name] || ''}
                           onChange={(e) => handleFieldChange(field.name, e.target.value)}
                           placeholder={field.placeholder || ''}
-                          className="w-full text-xs sm:text-sm p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium shadow-2xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                          className="w-full text-xs py-1.5 px-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium shadow-2xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                         />
                       )}
                     </div>
@@ -1039,15 +1037,15 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
           )}
 
           {/* Kolom Berdampingan: Tanda Tangan Mengetahui (Kiri) & Jalur Persetujuan (Kanan) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start">
             {/* SISI KIRI: Konfigurasi Tanda Tangan Pihak Mengetahui */}
-            <div className="space-y-3 p-4 bg-slate-50/90 border border-slate-300 rounded-xl shadow-2xs h-full">
-              <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="p-1 rounded-md bg-indigo-100 text-indigo-700">
-                    <UserCheck className="w-4 h-4 shrink-0" />
+            <div className="space-y-2 p-2.5 sm:p-3 bg-slate-50/90 border border-slate-300 rounded-lg shadow-2xs h-full">
+              <div className="flex items-center justify-between gap-1.5 pb-1 border-b border-slate-200">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="p-0.5 rounded-md bg-indigo-100 text-indigo-700">
+                    <UserCheck className="w-3.5 h-3.5 shrink-0" />
                   </div>
-                  <span className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
+                  <span className="text-xs font-extrabold text-slate-900 truncate">
                     Tanda Tangan "Mengetahui"
                   </span>
                   <span
@@ -1144,21 +1142,21 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
             </div>
 
             {/* SISI KANAN: Jalur Pejabat Penyetuju */}
-            <div id="approval-steps-section" className="space-y-3 p-4 bg-slate-50/90 border border-slate-300 rounded-xl shadow-2xs h-full">
-              <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="p-1 rounded-md bg-indigo-100 text-indigo-700">
-                    <Users className="w-4 h-4 shrink-0" />
+            <div id="approval-steps-section" className="space-y-2 p-2.5 sm:p-3 bg-slate-50/90 border border-slate-300 rounded-lg shadow-2xs h-full">
+              <div className="flex items-center justify-between gap-1.5 pb-1 border-b border-slate-200">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="p-0.5 rounded-md bg-indigo-100 text-indigo-700">
+                    <Users className="w-3.5 h-3.5 shrink-0" />
                   </div>
-                  <span className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
+                  <span className="text-xs font-extrabold text-slate-900 truncate">
                     Jalur Persetujuan Pejabat ({customApprovalSteps.length} Tingkat) <span className="text-rose-600 font-bold">*</span>
                   </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-300">
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-300">
                     Hal. 2
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
                     onClick={() => {
@@ -1320,25 +1318,25 @@ export default function LetterFormBuilder({ template, initialLetter = null, onSa
           </div>
 
           {/* Hak Akses Tambahan / Tembusan */}
-          <div className="p-4 bg-slate-50/90 border border-slate-300 rounded-xl space-y-2.5 shadow-2xs">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="p-1 rounded-md bg-indigo-100 text-indigo-700">
-                  <Eye className="w-4 h-4 shrink-0" />
+          <div className="p-2.5 sm:p-3 bg-slate-50/90 border border-slate-300 rounded-lg space-y-1.5 shadow-2xs">
+            <div className="flex items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="p-0.5 rounded-md bg-indigo-100 text-indigo-700">
+                  <Eye className="w-3.5 h-3.5 shrink-0" />
                 </div>
-                <span className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
+                <span className="text-xs font-extrabold text-slate-900 truncate">
                   Hak Akses / Tembusan ({allowedViewers.filter((v) => !autoCheckedUserIds.has(String(v.userId || v.id || v))).length} User Tambahan)
                 </span>
-                <span className="text-xs text-slate-500 hidden sm:inline font-medium">
+                <span className="text-[10px] text-slate-500 hidden sm:inline font-medium">
                   (Pilih user tambahan yang berhak membaca surat ini)
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowViewerModal(true)}
-                className="px-3 py-1 text-xs font-bold text-indigo-700 bg-white border border-indigo-300 hover:bg-indigo-50 rounded-lg transition flex items-center gap-1.5 shadow-2xs shrink-0"
+                className="px-2 py-0.5 text-[11px] font-bold text-indigo-700 bg-white border border-indigo-300 hover:bg-indigo-50 rounded-md transition flex items-center gap-1 shadow-2xs shrink-0"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3 h-3" />
                 <span>Tambah / Pilih Pembaca</span>
               </button>
             </div>

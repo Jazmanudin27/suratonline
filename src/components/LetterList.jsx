@@ -465,7 +465,7 @@ export default function LetterList({
                       : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-300'
                   }`}
                 >
-                  <span>Semua Surat</span>
+                  <span className={`font-extrabold ${statusFilter === 'all' ? 'text-white' : 'text-slate-800'}`}>Semua Surat</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                       statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-900 font-extrabold'
@@ -484,8 +484,8 @@ export default function LetterList({
                       : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-950 border border-indigo-300'
                   }`}
                 >
-                  <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                  <span className="font-extrabold">Belum Dibaca</span>
+                  <Mail className={`w-3.5 h-3.5 shrink-0 ${statusFilter === 'unread' ? 'text-white' : 'text-indigo-600'}`} />
+                  <span className={`font-extrabold ${statusFilter === 'unread' ? 'text-white' : 'text-indigo-950'}`}>Belum Dibaca</span>
                   {statusCounts.unread > 0 && (
                     <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
                       {statusCounts.unread}
@@ -502,8 +502,8 @@ export default function LetterList({
                       : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300'
                   }`}
                 >
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="font-extrabold">Sudah Dibaca</span>
+                  <Check className={`w-3.5 h-3.5 shrink-0 ${statusFilter === 'read' ? 'text-white' : 'text-emerald-600'}`} />
+                  <span className={`font-extrabold ${statusFilter === 'read' ? 'text-white' : 'text-emerald-950'}`}>Sudah Dibaca</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                       statusFilter === 'read' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-950 font-extrabold'
@@ -524,7 +524,7 @@ export default function LetterList({
                       : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-300'
                   }`}
                 >
-                  <span>Semua</span>
+                  <span className={`font-extrabold ${statusFilter === 'all' ? 'text-white' : 'text-slate-800'}`}>Semua</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                       statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-900 font-extrabold'
@@ -545,8 +545,8 @@ export default function LetterList({
                     }`}
                     title="Surat yang saat ini sedang menunggu persetujuan / giliran tanda tangan Anda"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-700 shrink-0" />
-                    <span className="font-extrabold">Giliran Saya ACC</span>
+                    <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${statusFilter === 'my_action' ? 'text-white' : 'text-indigo-700'}`} />
+                    <span className={`font-extrabold ${statusFilter === 'my_action' ? 'text-white' : 'text-indigo-950'}`}>Giliran Saya ACC</span>
                     <span className="px-1.5 py-0.2 rounded-full bg-indigo-600 text-white text-[10px] font-black animate-pulse">
                       {statusCounts.myAction}
                     </span>
@@ -562,8 +562,8 @@ export default function LetterList({
                       : 'bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300'
                   }`}
                 >
-                  <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                  <span className="font-extrabold text-amber-950">Pending</span>
+                  <Clock className={`w-3.5 h-3.5 shrink-0 ${statusFilter === 'pending' ? 'text-white' : 'text-amber-700'}`} />
+                  <span className={`font-extrabold ${statusFilter === 'pending' ? 'text-white' : 'text-amber-950'}`}>Pending</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                       statusFilter === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-200 text-amber-950 font-extrabold'
@@ -582,8 +582,8 @@ export default function LetterList({
                       : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300'
                   }`}
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                  <span className="font-extrabold text-emerald-950">Disetujui</span>
+                  <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${statusFilter === 'approved' ? 'text-white' : 'text-emerald-700'}`} />
+                  <span className={`font-extrabold ${statusFilter === 'approved' ? 'text-white' : 'text-emerald-950'}`}>Disetujui</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                       statusFilter === 'approved' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-950 font-extrabold'
@@ -602,8 +602,8 @@ export default function LetterList({
                       : 'bg-orange-50 hover:bg-orange-100 text-orange-950 border border-orange-300'
                   }`}
                 >
-                  <AlertTriangle className="w-3.5 h-3.5 text-orange-700 shrink-0" />
-                  <span className="font-extrabold text-orange-950">Perlu Revisi</span>
+                  <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${statusFilter === 'revision' ? 'text-white' : 'text-orange-700'}`} />
+                  <span className={`font-extrabold ${statusFilter === 'revision' ? 'text-white' : 'text-orange-950'}`}>Perlu Revisi</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                       statusFilter === 'revision' ? 'bg-white/20 text-white' : 'bg-orange-200 text-orange-950 font-extrabold'
@@ -622,8 +622,8 @@ export default function LetterList({
                       : 'bg-rose-50 hover:bg-rose-100 text-rose-950 border border-rose-300'
                   }`}
                 >
-                  <XCircle className="w-3.5 h-3.5 text-rose-700 shrink-0" />
-                  <span className="font-extrabold text-rose-950">Ditolak</span>
+                  <XCircle className={`w-3.5 h-3.5 shrink-0 ${statusFilter === 'rejected' ? 'text-white' : 'text-rose-700'}`} />
+                  <span className={`font-extrabold ${statusFilter === 'rejected' ? 'text-white' : 'text-rose-950'}`}>Ditolak</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                       statusFilter === 'rejected' ? 'bg-white/20 text-white' : 'bg-rose-200 text-rose-950 font-extrabold'
@@ -642,7 +642,7 @@ export default function LetterList({
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300'
                   }`}
                 >
-                  <span className="font-extrabold text-slate-900">Draf</span>
+                  <span className={`font-extrabold ${statusFilter === 'draft' ? 'text-white' : 'text-slate-900'}`}>Draf</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                       statusFilter === 'draft' ? 'bg-white/20 text-white' : 'bg-slate-300 text-slate-900 font-extrabold'

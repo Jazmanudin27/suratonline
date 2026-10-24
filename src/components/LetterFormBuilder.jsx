@@ -997,72 +997,29 @@ export default function LetterFormBuilder({
       {activeTab === "form" && (
         <div className="bg-white border border-slate-300/80 rounded-xl p-3 sm:p-4 shadow-lg shadow-slate-900/5 space-y-3">
 
-          {/* Readonly Identity Box - High Contrast Panel */}
-          <div className="bg-slate-50/90 p-2 sm:p-2.5 rounded-lg border border-slate-300/80 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs shadow-2xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-                <Building className="w-3.5 h-3.5" />
-              </div>
-              <div className="truncate">
-                <span className="block text-[9px] uppercase tracking-wider text-slate-500 font-bold">
-                  Cabang
-                </span>
-                <span className="font-extrabold text-slate-900 text-xs">
-                  {currentUser.branchName}
-                </span>
-              </div>
+          {/* Nomor Surat Khusus Surat Mandiri jika diperlukan */}
+          {isMandiri && (
+            <div className="bg-slate-50/90 p-2 rounded-lg border border-slate-300/80 flex items-center gap-2 text-xs">
+              <span className="text-[11px] font-extrabold text-slate-800 shrink-0">
+                No. Surat:
+              </span>
+              <input
+                type="text"
+                value={letterNumber}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLetterNumber(val);
+                  if (letterContent) {
+                    setLetterContent((prev) =>
+                      lockLetterNumberInHtml(prev, val),
+                    );
+                  }
+                }}
+                placeholder="Nomor surat otomatis (dapat diubah)..."
+                className="flex-1 font-mono font-bold text-slate-900 bg-white px-2.5 py-1 rounded border border-slate-300 text-xs shadow-2xs"
+              />
             </div>
-
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-                <User className="w-3.5 h-3.5" />
-              </div>
-              <div className="truncate">
-                <span className="block text-[9px] uppercase tracking-wider text-slate-500 font-bold">
-                  Pemohon
-                </span>
-                <span className="font-extrabold text-slate-900 text-xs truncate">
-                  {currentUser.name}{" "}
-                  <span className="font-normal text-slate-500 text-[10px]">
-                    ({currentUser.position})
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                <FileText className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="block text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                  No. Surat
-                </span>
-                {isMandiri ? (
-                  <input
-                    type="text"
-                    value={letterNumber}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setLetterNumber(val);
-                      if (letterContent) {
-                        setLetterContent((prev) =>
-                          lockLetterNumberInHtml(prev, val),
-                        );
-                      }
-                    }}
-                    placeholder="Nomor surat otomatis (dapat diubah)..."
-                    title="Nomor surat digenerate otomatis oleh sistem, namun dapat diedit bebas jika diperlukan"
-                    className="w-full mt-0.5 font-mono font-bold text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm shadow-2xs placeholder:font-sans placeholder:font-normal placeholder:text-slate-400 transition"
-                  />
-                ) : (
-                  <span className="font-mono font-black text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-300/80 text-xs sm:text-sm inline-block shadow-2xs">
-                    {letterNumber || "Memuat..."}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Dynamic Form Fields */}
           {template.fields?.filter((f) => {

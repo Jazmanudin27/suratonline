@@ -243,39 +243,17 @@ export default function AdminLayout({
                 </div>
               </div>
               <div className="leading-tight">
-                <div className="flex items-center gap-2">
-                  <h1 className="font-extrabold text-white text-sm sm:text-base tracking-tight uppercase">
-                    SURAT AJUAN
-                  </h1>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wider bg-indigo-900/60 text-indigo-300 border border-indigo-700/60 uppercase">
-                    <ShieldCheck className="w-3 h-3 text-indigo-400" />
-                    {currentUser?.role === 'admin_pusat'
-                      ? 'ADMIN PUSAT'
-                      : currentUser?.role === 'approver'
-                      ? 'APPROVER'
-                      : 'PEMOHON'}
-                  </span>
-                </div>
+                <h1 className="font-extrabold text-white text-sm sm:text-base tracking-tight uppercase">
+                  SURAT AJUAN
+                </h1>
                 <p className="text-[10px] text-slate-400 font-medium tracking-wide">
-                  CV Makmur Permata &bull; Multi Cabang
+                  CV Makmur Permata
                 </p>
               </div>
             </div>
 
-            {/* Right: Status, Clock, Notifikasi & Profil */}
+            {/* Right: Notifikasi & Profil */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              
-              {/* Portal Status Pill */}
-              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 font-semibold rounded-lg text-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Portal Cabang Aktif</span>
-              </div>
-
-              {/* Realtime Date & Clock */}
-              <div className="hidden md:flex items-center gap-1.5 text-xs text-slate-300 font-medium bg-slate-800/60 border border-slate-700/60 px-2.5 py-1 rounded-lg">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span>{currentDateTime}</span>
-              </div>
 
               {/* Tombol Beralih ke Tampilan Mobile */}
               <button

@@ -156,12 +156,16 @@ export default function MobileInternalMemo({ currentUser }) {
   }
 
   // Gesture Pinch to Zoom (Dua Jari) Khusus Dokumen Lembar A4 Internal Memo
+  const pdfScaleRef = useRef(pdfScale)
+  pdfScaleRef.current = pdfScale
+
   useEffect(() => {
     const el = pdfContainerRef.current
     if (!el || !readingMemo) return
 
     let initialDistance = 0
     let startScale = 1
+    let isPinching = false
 
     const getDistance = (touches) => {
       const dx = touches[0].clientX - touches[1].clientX
@@ -171,24 +175,26 @@ export default function MobileInternalMemo({ currentUser }) {
 
     const onTouchStart = (e) => {
       if (e.touches.length === 2) {
+        isPinching = true
         initialDistance = getDistance(e.touches)
-        startScale = pdfScale
+        startScale = pdfScaleRef.current
       }
     }
 
     const onTouchMove = (e) => {
-      if (e.touches.length === 2 && initialDistance > 0) {
+      if (e.touches.length === 2 && isPinching && initialDistance > 0) {
         // Cegah zoom browser bawaan pada seluruh layar (header & bottom bar tetap stabil)
         e.preventDefault()
         const currentDistance = getDistance(e.touches)
         const ratio = currentDistance / initialDistance
-        const newScale = Math.min(2.5, Math.max(0.4, Number((startScale * ratio).toFixed(2))))
+        const newScale = Math.min(3.0, Math.max(0.4, Number((startScale * ratio).toFixed(2))))
         setPdfScale(newScale)
       }
     }
 
     const onTouchEnd = (e) => {
       if (e.touches.length < 2) {
+        isPinching = false
         initialDistance = 0
       }
     }
@@ -204,7 +210,7 @@ export default function MobileInternalMemo({ currentUser }) {
       el.removeEventListener('touchend', onTouchEnd)
       el.removeEventListener('touchcancel', onTouchEnd)
     }
-  }, [readingMemo, pdfScale])
+  }, [readingMemo])
 
   // Aksi Konfirmasi Paham
   const handleAck = async (memoId) => {
@@ -878,11 +884,11 @@ export default function MobileInternalMemo({ currentUser }) {
           {/* 4. Canvas Lembar PDF Utama (Scaled A4 Persis Surat Ajuan) */}
           <div
             ref={pdfContainerRef}
-            style={{ touchAction: 'pan-x pan-y' }}
-            className="flex-1 overflow-x-auto overflow-y-auto bg-slate-800 p-2.5 flex flex-col items-center"
+            style={{ touchAction: 'pan-x pan-y', WebkitOverflowScrolling: 'touch' }}
+            className="flex-1 overflow-x-auto overflow-y-auto bg-slate-800 p-2.5"
           >
             {pdfLoading ? (
-              <div className="my-auto text-center text-slate-400 space-y-3 py-16">
+              <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 space-y-3 py-16">
                 <Clock size={40} className="mx-auto text-indigo-400 animate-spin" />
                 <p className="text-xs font-bold text-slate-200">Memuat Dokumen Lembar Memo...</p>
                 <span className="text-[10px] text-slate-500 block">
@@ -891,25 +897,42 @@ export default function MobileInternalMemo({ currentUser }) {
               </div>
             ) : pdfPages.length > 0 ? (
               <div
-                className="space-y-3 w-full transition-transform duration-150 origin-top flex flex-col items-center"
-                style={{ transform: `scale(${pdfScale})` }}
+                style={{
+                  width: `${Math.max(794 * pdfScale, 10)}px`,
+                  minHeight: `${pdfPages.length * 1123 * pdfScale}px`,
+                  position: 'relative',
+                  overflow: 'visible',
+                  margin: '0 auto',
+                }}
               >
-                {pdfPages.map((page, idx) => (
-                  <div
-                    key={page.pageNumber || idx}
-                    className="bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-700/60 w-full max-w-[794px]"
-                  >
-                    <div className="px-3 py-1 bg-slate-100 border-b border-slate-200 text-[10px] font-bold text-slate-500 flex justify-between items-center">
-                      <span>Lembar Halaman {page.pageNumber} / {page.totalPages}</span>
-                      <span className="font-mono text-indigo-700">{readingMemo.no_im}</span>
+                <div
+                  className="space-y-4"
+                  style={{
+                    width: '794px',
+                    transform: `scale(${pdfScale})`,
+                    transformOrigin: 'top left',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                  }}
+                >
+                  {pdfPages.map((page, idx) => (
+                    <div
+                      key={page.pageNumber || idx}
+                      className="bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-700/60 w-full"
+                    >
+                      <div className="px-3 py-1.5 bg-slate-100 border-b border-slate-200 text-[10px] font-bold text-slate-500 flex justify-between items-center">
+                        <span>Lembar Halaman {page.pageNumber} / {page.totalPages}</span>
+                        <span className="font-mono text-indigo-700">{readingMemo.no_im}</span>
+                      </div>
+                      <img
+                        src={page.dataUrl}
+                        alt={`Halaman ${page.pageNumber}`}
+                        className="w-full h-auto block select-none pointer-events-none"
+                      />
                     </div>
-                    <img
-                      src={page.dataUrl}
-                      alt={`Halaman ${page.pageNumber}`}
-                      className="w-full h-auto block select-none pointer-events-none"
-                    />
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             ) : (
               /* Fallback Direct PDF View jika file_im berukuran besar / URL */

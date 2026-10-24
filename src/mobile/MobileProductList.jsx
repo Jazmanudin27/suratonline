@@ -18,6 +18,8 @@ import {
   Info,
   Archive,
   SlidersHorizontal,
+  Building2,
+  MapPin,
 } from 'lucide-react'
 import { getProducts, formatDateId, formatDateTimeId, formatRupiah } from '../services/storage'
 
@@ -28,11 +30,81 @@ export default function MobileProductList({ currentUser }) {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [selectedProduct, setSelectedProduct] = useState(null)
 
+  // Normalisasi produk agar 1 kode_produk = 1 item (Group by kode_produk)
+  const normalizeProducts = (rawList) => {
+    if (!Array.isArray(rawList)) return []
+    const map = new Map()
+
+    rawList.forEach((item) => {
+      if (!item || !item.kode_produk) return
+      const code = item.kode_produk
+
+      if (!map.has(code)) {
+        // Objek produk utama
+        const priceList = Array.isArray(item.daftar_harga) ? [...item.daftar_harga] : []
+        if (item.kode_harga && !priceList.some((p) => p.kode_harga === item.kode_harga)) {
+          priceList.push({
+            kode_harga: item.kode_harga,
+            kode_cabang: item.kode_cabang,
+            nama_cabang: item.nama_cabang,
+            kode_kategori_salesman: item.kode_kategori_salesman,
+            harga_dus: item.harga_dus,
+            harga_pack: item.harga_pack,
+            harga_pcs: item.harga_pcs,
+            harga_retur_dus: item.harga_retur_dus,
+            harga_retur_pack: item.harga_retur_pack,
+            harga_retur_pcs: item.harga_retur_pcs,
+            status_aktif_harga: item.status_aktif_harga,
+            status_ppn: item.status_ppn,
+            status_promo: item.status_promo,
+          })
+        }
+        map.set(code, {
+          ...item,
+          daftar_harga: priceList,
+        })
+      } else {
+        // Sudah ada, gabungkan daftar_harga jika item ini baris harga lain
+        const existing = map.get(code)
+        const currentPrices = existing.daftar_harga || []
+
+        if (Array.isArray(item.daftar_harga)) {
+          item.daftar_harga.forEach((np) => {
+            if (!currentPrices.some((cp) => cp.kode_harga === np.kode_harga)) {
+              currentPrices.push(np)
+            }
+          })
+        }
+
+        if (item.kode_harga && !currentPrices.some((cp) => cp.kode_harga === item.kode_harga)) {
+          currentPrices.push({
+            kode_harga: item.kode_harga,
+            kode_cabang: item.kode_cabang,
+            nama_cabang: item.nama_cabang,
+            kode_kategori_salesman: item.kode_kategori_salesman,
+            harga_dus: item.harga_dus,
+            harga_pack: item.harga_pack,
+            harga_pcs: item.harga_pcs,
+            harga_retur_dus: item.harga_retur_dus,
+            harga_retur_pack: item.harga_retur_pack,
+            harga_retur_pcs: item.harga_retur_pcs,
+            status_aktif_harga: item.status_aktif_harga,
+            status_ppn: item.status_ppn,
+            status_promo: item.status_promo,
+          })
+        }
+        existing.daftar_harga = currentPrices
+      }
+    })
+
+    return Array.from(map.values())
+  }
+
   useEffect(() => {
-    setProducts(getProducts())
+    setProducts(normalizeProducts(getProducts()))
 
     const handleProductsChange = () => {
-      setProducts(getProducts())
+      setProducts(normalizeProducts(getProducts()))
     }
 
     window.addEventListener('products_change', handleProductsChange)
@@ -476,142 +548,153 @@ export default function MobileProductList({ currentUser }) {
                 </div>
               </div>
 
-              {/* SECTION 3: Daftar Harga Produk (produk_harga) */}
-              <div className="space-y-2">
+              {/* SECTION 3: Daftar Harga per Cabang & Kategori Salesman */}
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wide block">
-                    Daftar Harga Produk
+                    Daftar Harga per Cabang & Kategori
                   </span>
-                  {selectedProduct.kode_harga && (
-                    <span className="font-mono text-[10px] text-indigo-700 font-bold bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded">
-                      {selectedProduct.kode_harga}
-                    </span>
-                  )}
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-150 px-2 py-0.5 rounded-full">
+                    {Array.isArray(selectedProduct.daftar_harga) ? selectedProduct.daftar_harga.length : 0} Data Harga
+                  </span>
                 </div>
 
-                {/* Badge Info Status Harga & Cabang */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {selectedProduct.status_aktif_harga !== undefined && selectedProduct.status_aktif_harga !== null && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                      Harga Aktif
-                    </span>
-                  )}
-                  {selectedProduct.status_ppn !== undefined && selectedProduct.status_ppn !== null && (
-                    <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
-                      PPN: {String(selectedProduct.status_ppn) === '1' ? 'Ya' : 'Tidak'}
-                    </span>
-                  )}
-                  {selectedProduct.status_promo !== undefined && selectedProduct.status_promo !== null && String(selectedProduct.status_promo) === '1' && (
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                      Promo
-                    </span>
-                  )}
-                  {selectedProduct.kode_cabang && (
-                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                      Cabang: {selectedProduct.kode_cabang}
-                    </span>
-                  )}
-                  {selectedProduct.kode_kategori_salesman && (
-                    <span className="text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
-                      Sales: {selectedProduct.kode_kategori_salesman}
-                    </span>
-                  )}
-                </div>
+                {(() => {
+                  const priceList = Array.isArray(selectedProduct.daftar_harga) ? selectedProduct.daftar_harga : []
+                  if (priceList.length === 0) {
+                    return (
+                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-center text-slate-400">
+                        <Coins size={28} className="mx-auto mb-1.5 opacity-40 text-slate-400" />
+                        <span className="text-xs font-semibold block text-slate-600">Belum ada data harga aktif</span>
+                        <span className="text-[10px] text-slate-400">Tidak ada harga umum aktif untuk produk ini</span>
+                      </div>
+                    )
+                  }
 
-                {/* Grid Harga Jual */}
-                <div className="p-3 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-2xl border border-emerald-200/80 space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-emerald-200/60 pb-1.5">
-                    <span className="text-[11px] font-black text-emerald-900 uppercase tracking-wide">
-                      Harga Jual
-                    </span>
-                    <span className="text-[10px] text-emerald-700 font-semibold">
-                      Pelanggan Umum
-                    </span>
-                  </div>
+                  // Group per cabang
+                  const branchGroups = {}
+                  priceList.forEach((ph) => {
+                    const cKey = ph.kode_cabang || 'UMUM'
+                    if (!branchGroups[cKey]) {
+                      branchGroups[cKey] = {
+                        kode_cabang: cKey,
+                        nama_cabang: ph.nama_cabang || cKey,
+                        prices: [],
+                      }
+                    }
+                    branchGroups[cKey].prices.push(ph)
+                  })
 
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-white/90 p-2 rounded-xl border border-emerald-100 shadow-2xs">
-                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
-                        Per Dus
-                      </span>
-                      <span className="font-extrabold text-emerald-800 text-xs block truncate mt-0.5">
-                        {selectedProduct.harga_dus !== null && selectedProduct.harga_dus !== undefined
-                          ? `Rp ${formatRupiah(selectedProduct.harga_dus)}`
-                          : '-'}
-                      </span>
+                  return (
+                    <div className="space-y-2.5">
+                      {Object.values(branchGroups).map((bg) => (
+                        <div
+                          key={bg.kode_cabang}
+                          className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden"
+                        >
+                          {/* Header Cabang */}
+                          <div className="px-3 py-2 bg-gradient-to-r from-slate-100 to-indigo-50/60 border-b border-slate-200 flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <Building2 size={13} className="text-indigo-600" />
+                              <span className="font-extrabold text-slate-800 text-xs">
+                                {bg.nama_cabang || bg.kode_cabang}
+                              </span>
+                              <span className="font-mono text-[9px] font-bold text-indigo-700 bg-indigo-100/70 px-1.5 py-0.2 rounded">
+                                {bg.kode_cabang}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-semibold">
+                              {bg.prices.length} Kategori
+                            </span>
+                          </div>
+
+                          {/* Daftar Kategori & Harga di Cabang Tersebut */}
+                          <div className="p-2.5 divide-y divide-slate-100 space-y-2">
+                            {bg.prices.map((p, pIdx) => {
+                              const kategoriName = p.kode_kategori_salesman || 'Umum'
+                              return (
+                                <div key={p.kode_harga || pIdx} className={pIdx > 0 ? 'pt-2' : ''}>
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-blue-50 text-blue-800 border border-blue-200">
+                                        Kategori: {kategoriName}
+                                      </span>
+                                      {p.status_promo !== undefined && String(p.status_promo) === '1' && (
+                                        <span className="text-[9px] font-black text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">
+                                          PROMO
+                                        </span>
+                                      )}
+                                      {p.status_ppn !== undefined && String(p.status_ppn) === '1' && (
+                                        <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1 rounded">
+                                          PPN
+                                        </span>
+                                      )}
+                                    </div>
+                                    {p.kode_harga && (
+                                      <span className="font-mono text-[9px] text-slate-400">
+                                        {p.kode_harga}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Grid Harga Dus, Pack, Pcs */}
+                                  <div className="grid grid-cols-3 gap-1.5 text-center">
+                                    <div className="bg-emerald-50/70 p-1.5 rounded-xl border border-emerald-100">
+                                      <span className="block text-[8px] text-emerald-700 font-bold uppercase">
+                                        Harga Dus
+                                      </span>
+                                      <span className="font-extrabold text-emerald-900 text-xs block truncate mt-0.5">
+                                        {p.harga_dus !== null && p.harga_dus !== undefined
+                                          ? `Rp ${formatRupiah(p.harga_dus)}`
+                                          : '-'}
+                                      </span>
+                                    </div>
+
+                                    <div className="bg-emerald-50/70 p-1.5 rounded-xl border border-emerald-100">
+                                      <span className="block text-[8px] text-emerald-700 font-bold uppercase">
+                                        Harga Pack
+                                      </span>
+                                      <span className="font-extrabold text-emerald-900 text-xs block truncate mt-0.5">
+                                        {p.harga_pack !== null && p.harga_pack !== undefined
+                                          ? `Rp ${formatRupiah(p.harga_pack)}`
+                                          : '-'}
+                                      </span>
+                                    </div>
+
+                                    <div className="bg-emerald-50/70 p-1.5 rounded-xl border border-emerald-100">
+                                      <span className="block text-[8px] text-emerald-700 font-bold uppercase">
+                                        Harga Pcs
+                                      </span>
+                                      <span className="font-extrabold text-emerald-900 text-xs block truncate mt-0.5">
+                                        {p.harga_pcs !== null && p.harga_pcs !== undefined
+                                          ? `Rp ${formatRupiah(p.harga_pcs)}`
+                                          : '-'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Baris Harga Retur jika ada */}
+                                  {(p.harga_retur_dus > 0 || p.harga_retur_pack > 0 || p.harga_retur_pcs > 0) && (
+                                    <div className="mt-1 flex items-center justify-between text-[10px] text-rose-700 bg-rose-50/70 px-2 py-1 rounded-lg border border-rose-100">
+                                      <span className="font-bold text-[9px] uppercase tracking-wider text-rose-800">
+                                        Retur:
+                                      </span>
+                                      <div className="flex items-center gap-2 font-semibold">
+                                        {p.harga_retur_dus > 0 && <span>Dus: Rp {formatRupiah(p.harga_retur_dus)}</span>}
+                                        {p.harga_retur_pack > 0 && <span>Pack: Rp {formatRupiah(p.harga_retur_pack)}</span>}
+                                        {p.harga_retur_pcs > 0 && <span>Pcs: Rp {formatRupiah(p.harga_retur_pcs)}</span>}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-
-                    <div className="bg-white/90 p-2 rounded-xl border border-emerald-100 shadow-2xs">
-                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
-                        Per Pack
-                      </span>
-                      <span className="font-extrabold text-emerald-800 text-xs block truncate mt-0.5">
-                        {selectedProduct.harga_pack !== null && selectedProduct.harga_pack !== undefined
-                          ? `Rp ${formatRupiah(selectedProduct.harga_pack)}`
-                          : '-'}
-                      </span>
-                    </div>
-
-                    <div className="bg-white/90 p-2 rounded-xl border border-emerald-100 shadow-2xs">
-                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
-                        Per Pcs
-                      </span>
-                      <span className="font-extrabold text-emerald-800 text-xs block truncate mt-0.5">
-                        {selectedProduct.harga_pcs !== null && selectedProduct.harga_pcs !== undefined
-                          ? `Rp ${formatRupiah(selectedProduct.harga_pcs)}`
-                          : '-'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Grid Harga Retur */}
-                <div className="p-3 bg-gradient-to-br from-slate-50 to-rose-50/40 rounded-2xl border border-slate-200/80 space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                    <span className="text-[11px] font-black text-rose-900 uppercase tracking-wide">
-                      Harga Retur
-                    </span>
-                    <span className="text-[10px] text-rose-600 font-semibold">
-                      Pengembalian
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-white/90 p-2 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
-                        Retur Dus
-                      </span>
-                      <span className="font-extrabold text-rose-800 text-xs block truncate mt-0.5">
-                        {selectedProduct.harga_retur_dus !== null && selectedProduct.harga_retur_dus !== undefined
-                          ? `Rp ${formatRupiah(selectedProduct.harga_retur_dus)}`
-                          : '-'}
-                      </span>
-                    </div>
-
-                    <div className="bg-white/90 p-2 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
-                        Retur Pack
-                      </span>
-                      <span className="font-extrabold text-rose-800 text-xs block truncate mt-0.5">
-                        {selectedProduct.harga_retur_pack !== null && selectedProduct.harga_retur_pack !== undefined
-                          ? `Rp ${formatRupiah(selectedProduct.harga_retur_pack)}`
-                          : '-'}
-                      </span>
-                    </div>
-
-                    <div className="bg-white/90 p-2 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="block text-[9px] text-slate-400 font-bold uppercase">
-                        Retur Pcs
-                      </span>
-                      <span className="font-extrabold text-rose-800 text-xs block truncate mt-0.5">
-                        {selectedProduct.harga_retur_pcs !== null && selectedProduct.harga_retur_pcs !== undefined
-                          ? `Rp ${formatRupiah(selectedProduct.harga_retur_pcs)}`
-                          : '-'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  )
+                })()}
               </div>
             </div>
 

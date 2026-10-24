@@ -140,30 +140,36 @@ app.get('/api/jabatan', async (req, res) => {
 // -------------------------------------------------------------
 app.get('/api/produk', async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT 
-        p.*,
-        ph.kode_harga,
-        ph.harga_dus,
-        ph.harga_pack,
-        ph.harga_pcs,
-        ph.harga_retur_dus,
-        ph.harga_retur_pack,
-        ph.harga_retur_pcs,
-        ph.status_aktif_harga,
-        ph.status_ppn,
-        ph.status_promo,
-        ph.kode_kategori_salesman,
-        ph.kode_cabang,
-        ph.kode_pelanggan
-      FROM produk p
-      LEFT JOIN produk_harga ph 
-        ON p.kode_produk = ph.kode_produk 
-        AND (ph.status_aktif_harga = 1 OR ph.status_aktif_harga = '1')
-        AND (ph.kode_pelanggan IS NULL OR ph.kode_pelanggan = '')
-      ORDER BY p.urutan ASC, p.kode_produk ASC`
+    const [products] = await pool.query(
+      `SELECT * FROM produk ORDER BY urutan ASC, kode_produk ASC`
     )
-    res.json({ success: true, data: rows })
+
+    const [prices] = await pool.query(
+      `SELECT 
+        ph.*,
+        c.nama_cabang
+      FROM produk_harga ph
+      LEFT JOIN cabang c ON ph.kode_cabang = c.kode_cabang
+      WHERE (ph.status_aktif_harga = 1 OR ph.status_aktif_harga = '1')
+        AND (ph.kode_pelanggan IS NULL OR ph.kode_pelanggan = '')
+      ORDER BY ph.kode_cabang ASC, ph.kode_kategori_salesman ASC`
+    )
+
+    // Petakan harga ke masing-masing produk
+    const priceMap = {}
+    prices.forEach((p) => {
+      if (!priceMap[p.kode_produk]) {
+        priceMap[p.kode_produk] = []
+      }
+      priceMap[p.kode_produk].push(p)
+    })
+
+    const data = products.map((prod) => ({
+      ...prod,
+      daftar_harga: priceMap[prod.kode_produk] || [],
+    }))
+
+    res.json({ success: true, data })
   } catch (err) {
     res.json({ success: false, message: err.message, data: [] })
   }

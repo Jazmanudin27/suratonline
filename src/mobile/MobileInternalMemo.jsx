@@ -59,18 +59,9 @@ export default function MobileInternalMemo({ currentUser }) {
   // Filter memo
   const filteredMemos = useMemo(() => {
     return memos.filter((m) => {
-      // 1. Cabang Filter (Jika bukan admin/pusat, pastikan cabang user ada di tujuan_cabang atau memo untuk semua)
-      const isPusat =
-        !currentUser?.branchId ||
-        currentUser.branchId === 'PST' ||
-        (currentUser.branchName && currentUser.branchName.toLowerCase().includes('pusat'))
+      // 1. Cabang Filter (Memo berlaku umum atau jika cabang terdaftar)
+      // Tampilkan seluruh memo sosialisasi agar user cabang dapat membaca ketentuan
 
-      if (!isPusat && Array.isArray(m.tujuan_cabang) && m.tujuan_cabang.length > 0) {
-        const branchMatch = m.tujuan_cabang.some(
-          (b) => b.kode_cabang === currentUser.branchId || b.kode_cabang === 'ALL'
-        )
-        if (!branchMatch) return false
-      }
 
       // 2. Search
       const q = search.trim().toLowerCase()

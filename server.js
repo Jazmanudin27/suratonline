@@ -180,50 +180,77 @@ app.get('/api/produk', async (req, res) => {
 // -------------------------------------------------------------
 app.get('/api/internal_memo', async (req, res) => {
   try {
-    const userId = req.query.userId || req.headers['x-user-id'] || null
+    const rawUserId = req.query.userId || req.headers['x-user-id'] || null
+    const userId = Number(rawUserId) || 0
+
+    // 1. Ambil data internal memo aktif
     const [rows] = await pool.query(
-      `SELECT 
-        im.*,
-        u.name AS pembuat_nama,
-        ack.status AS ack_status,
-        ack.updated_at AS ack_at,
-        lb.dibaca_pada AS read_at,
-        (SELECT COUNT(*) FROM internal_memo_ack WHERE internal_memo_id = im.id AND status = 'paham') AS total_paham,
-        (SELECT COUNT(*) FROM internal_memo_log_baca WHERE internal_memo_id = im.id) AS total_dibaca
-      FROM internal_memo im
-      LEFT JOIN users u ON im.dibuat_oleh = u.id
-      LEFT JOIN internal_memo_ack ack ON im.id = ack.internal_memo_id AND ack.user_id = ?
-      LEFT JOIN internal_memo_log_baca lb ON im.id = lb.internal_memo_id AND lb.user_id = ?
-      WHERE im.status = 'aktif'
-      ORDER BY im.tanggal_im DESC, im.id DESC`,
-      [userId || 0, userId || 0]
+      `SELECT * FROM internal_memo 
+       WHERE status = 'aktif' OR status IS NULL OR status = ''
+       ORDER BY tanggal_im DESC, id DESC`
     )
 
-    // Ambil daftar tujuan cabang per memo
-    const [branchesRows] = await pool.query(
-      `SELECT imtc.internal_memo_id, imtc.kode_cabang, c.nama_cabang
-       FROM internal_memo_tujuan_cabang imtc
-       LEFT JOIN cabang c ON imtc.kode_cabang = c.kode_cabang`
-    )
-
-    const branchMap = {}
-    branchesRows.forEach((b) => {
-      if (!branchMap[b.internal_memo_id]) {
-        branchMap[b.internal_memo_id] = []
+    // 2. Ambil ack user saat ini jika ada
+    let ackMap = {}
+    let readMap = {}
+    if (userId > 0) {
+      try {
+        const [acks] = await pool.query(
+          `SELECT internal_memo_id, status, updated_at FROM internal_memo_ack WHERE user_id = ?`,
+          [userId]
+        )
+        acks.forEach((a) => {
+          ackMap[a.internal_memo_id] = a
+        })
+      } catch (e) {
+        console.warn('ack query warn:', e.message)
       }
-      branchMap[b.internal_memo_id].push({
-        kode_cabang: b.kode_cabang,
-        nama_cabang: b.nama_cabang || b.kode_cabang,
+
+      try {
+        const [reads] = await pool.query(
+          `SELECT internal_memo_id, dibaca_pada FROM internal_memo_log_baca WHERE user_id = ?`,
+          [userId]
+        )
+        reads.forEach((r) => {
+          readMap[r.internal_memo_id] = r.dibaca_pada
+        })
+      } catch (e) {
+        console.warn('read query warn:', e.message)
+      }
+    }
+
+    // 3. Ambil tujuan cabang
+    let branchMap = {}
+    try {
+      const [branchesRows] = await pool.query(
+        `SELECT imtc.internal_memo_id, imtc.kode_cabang, c.nama_cabang
+         FROM internal_memo_tujuan_cabang imtc
+         LEFT JOIN cabang c ON imtc.kode_cabang = c.kode_cabang`
+      )
+      branchesRows.forEach((b) => {
+        if (!branchMap[b.internal_memo_id]) {
+          branchMap[b.internal_memo_id] = []
+        }
+        branchMap[b.internal_memo_id].push({
+          kode_cabang: b.kode_cabang,
+          nama_cabang: b.nama_cabang || b.kode_cabang,
+        })
       })
-    })
+    } catch (e) {
+      console.warn('branch query warn:', e.message)
+    }
 
     const data = rows.map((im) => ({
       ...im,
+      ack_status: ackMap[im.id]?.status || null,
+      ack_at: ackMap[im.id]?.updated_at || null,
+      read_at: readMap[im.id] || null,
       tujuan_cabang: branchMap[im.id] || [],
     }))
 
     res.json({ success: true, data })
   } catch (err) {
+    console.error('API /api/internal_memo error:', err.message)
     res.json({ success: false, message: err.message, data: [] })
   }
 })

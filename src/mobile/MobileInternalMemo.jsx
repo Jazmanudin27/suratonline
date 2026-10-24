@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   FileText,
   Search,
@@ -40,6 +40,7 @@ export default function MobileInternalMemo({ currentUser }) {
   const [pdfPages, setPdfPages] = useState([])
   const [pdfLoading, setPdfLoading] = useState(false)
   const [pdfScale, setPdfScale] = useState(1)
+  const pdfContainerRef = useRef(null)
 
   // Muat data internal memo langsung dari backend MySQL
   const loadMemos = async () => {
@@ -153,6 +154,57 @@ export default function MobileInternalMemo({ currentUser }) {
       }
     }
   }
+
+  // Gesture Pinch to Zoom (Dua Jari) Khusus Dokumen Lembar A4 Internal Memo
+  useEffect(() => {
+    const el = pdfContainerRef.current
+    if (!el || !readingMemo) return
+
+    let initialDistance = 0
+    let startScale = 1
+
+    const getDistance = (touches) => {
+      const dx = touches[0].clientX - touches[1].clientX
+      const dy = touches[0].clientY - touches[1].clientY
+      return Math.hypot(dx, dy)
+    }
+
+    const onTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        initialDistance = getDistance(e.touches)
+        startScale = pdfScale
+      }
+    }
+
+    const onTouchMove = (e) => {
+      if (e.touches.length === 2 && initialDistance > 0) {
+        // Cegah zoom browser bawaan pada seluruh layar (header & bottom bar tetap stabil)
+        e.preventDefault()
+        const currentDistance = getDistance(e.touches)
+        const ratio = currentDistance / initialDistance
+        const newScale = Math.min(2.5, Math.max(0.4, Number((startScale * ratio).toFixed(2))))
+        setPdfScale(newScale)
+      }
+    }
+
+    const onTouchEnd = (e) => {
+      if (e.touches.length < 2) {
+        initialDistance = 0
+      }
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd)
+    el.addEventListener('touchcancel', onTouchEnd)
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, [readingMemo, pdfScale])
 
   // Aksi Konfirmasi Paham
   const handleAck = async (memoId) => {
@@ -824,7 +876,11 @@ export default function MobileInternalMemo({ currentUser }) {
           </div>
 
           {/* 4. Canvas Lembar PDF Utama (Scaled A4 Persis Surat Ajuan) */}
-          <div className="flex-1 overflow-x-auto overflow-y-auto bg-slate-800 p-2.5 flex flex-col items-center">
+          <div
+            ref={pdfContainerRef}
+            style={{ touchAction: 'pan-x pan-y' }}
+            className="flex-1 overflow-x-auto overflow-y-auto bg-slate-800 p-2.5 flex flex-col items-center"
+          >
             {pdfLoading ? (
               <div className="my-auto text-center text-slate-400 space-y-3 py-16">
                 <Clock size={40} className="mx-auto text-indigo-400 animate-spin" />

@@ -700,91 +700,144 @@ export default function MobileInternalMemo({ currentUser }) {
         </div>
       )}
 
-      {/* FULLSCREEN PDF DOCUMENT READER (Mirip Pratinjau Surat Ajuan) */}
+      {/* FULLSCREEN PDF DOCUMENT READER (PERSIS 100% SEPERTI MOBILE DOCUMENT READER SURAT AJUAN) */}
       {readingMemo && (
-        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col animate-fadeIn select-none">
-          {/* Reader Top Header Bar */}
-          <div className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white px-3 py-2.5 flex items-center justify-between shrink-0 shadow-lg">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <button
-                type="button"
-                onClick={() => setReadingMemo(null)}
-                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition active:scale-95 shrink-0"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <div className="min-w-0">
-                <h3 className="font-extrabold text-xs text-white truncate leading-tight">
-                  {readingMemo.judul}
-                </h3>
-                <span className="font-mono text-[10px] text-indigo-400 block truncate">
-                  {readingMemo.no_im}
-                </span>
-              </div>
+        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col justify-between max-w-md mx-auto select-text animate-fadeIn">
+          {/* 1. Header Bar Mobile (Dark Slate) */}
+          <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 shrink-0 flex items-center justify-between text-white">
+            <div className="min-w-0 pr-2">
+              <span className="text-[10px] font-mono font-bold text-sky-400 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800/60 inline-block truncate max-w-[210px]">
+                {readingMemo.no_im || 'INTERNAL MEMO'}
+              </span>
+              <h3 className="text-xs font-bold text-slate-100 truncate mt-0.5">
+                {readingMemo.judul || 'Dokumen Ketentuan Memo'}
+              </h3>
             </div>
 
-            {/* Quick Controls: Zoom & Close */}
-            <div className="flex items-center gap-1 shrink-0 ml-2">
+            <button
+              type="button"
+              onClick={() => setReadingMemo(null)}
+              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 flex items-center justify-center text-sm font-bold border border-slate-700 shrink-0 transition"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* 2. Sub-Bar: Kontrol Zoom / Fit Layar HP (Persis seperti Surat Ajuan) */}
+          <div className="bg-slate-900/95 px-3 py-2 border-b border-slate-800 flex items-center justify-between shrink-0 text-xs text-slate-300">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-slate-400">Ukuran A4:</span>
               <button
                 type="button"
-                onClick={() => setPdfScale((s) => Math.max(0.6, Number((s - 0.2).toFixed(1))))}
-                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition"
+                onClick={() => setPdfScale(1)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
+                  pdfScale === 1
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                Fit Layar ({Math.round(pdfScale * 100)}%)
+              </button>
+              <button
+                type="button"
+                onClick={() => setPdfScale(1.4)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
+                  pdfScale === 1.4
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                100% Asli
+              </button>
+            </div>
+
+            {/* Zoom Controls Buttons (− % +) */}
+            <div className="flex items-center gap-1 bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+              <button
+                type="button"
+                onClick={() => setPdfScale((prev) => Math.max(0.4, Number((prev - 0.1).toFixed(1))))}
+                className="w-6 h-6 flex items-center justify-center font-bold text-sm text-slate-300 hover:text-white"
                 title="Perkecil"
               >
-                <ZoomOut size={13} />
+                −
               </button>
-              <span className="text-[10px] font-mono px-1 font-bold text-slate-300">
+              <span className="text-[10px] font-mono font-bold px-1 text-slate-300 min-w-[36px] text-center">
                 {Math.round(pdfScale * 100)}%
               </span>
               <button
                 type="button"
-                onClick={() => setPdfScale((s) => Math.min(2.5, Number((s + 0.2).toFixed(1))))}
-                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition"
+                onClick={() => setPdfScale((prev) => Math.min(2.5, Number((prev + 0.1).toFixed(1))))}
+                className="w-6 h-6 flex items-center justify-center font-bold text-sm text-slate-300 hover:text-white"
                 title="Perbesar"
               >
-                <ZoomIn size={13} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setPdfScale(1)}
-                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white flex items-center justify-center transition"
-                title="Reset Zoom"
-              >
-                <RotateCcw size={12} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setReadingMemo(null)}
-                className="w-7 h-7 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white flex items-center justify-center transition ml-1"
-              >
-                <X size={14} />
+                +
               </button>
             </div>
           </div>
 
-          {/* Reader Document Body / Canvas Pages */}
-          <div className="flex-1 overflow-auto bg-slate-900/90 p-3 flex flex-col items-center">
+          {/* 3. Banner Status Konfirmasi Paham / Memo Resmi */}
+          <div className="mx-3 mt-2 p-2.5 bg-gradient-to-r from-indigo-950/80 via-blue-950/80 to-slate-900 border border-indigo-700/50 rounded-xl flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-300 shrink-0">
+                <FileText size={14} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-white truncate">
+                    Internal Memo Perusahaan
+                  </span>
+                  <span
+                    className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-md ${
+                      readingMemo.ack_status === 'paham'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    }`}
+                  >
+                    {readingMemo.ack_status === 'paham' ? 'Sudah Dipahami' : 'Belum Konfirmasi'}
+                  </span>
+                </div>
+                <span className="text-[9px] text-slate-400 block truncate">
+                  {readingMemo.tanggal_im ? `Terbit: ${formatDateId(readingMemo.tanggal_im)}` : 'Dokumen Resmi'} &bull; {readingMemo.kode_dept || 'Semua Divisi'}
+                </span>
+              </div>
+            </div>
+
+            {readingMemo.ack_status !== 'paham' && (
+              <button
+                type="button"
+                disabled={submittingAck}
+                onClick={() => handleAck(readingMemo.id)}
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[10px] rounded-lg shadow-xs transition active:scale-95 flex items-center gap-1 shrink-0"
+              >
+                <ThumbsUp size={11} />
+                <span>{submittingAck ? '...' : 'Saya Paham'}</span>
+              </button>
+            )}
+          </div>
+
+          {/* 4. Canvas Lembar PDF Utama (Scaled A4 Persis Surat Ajuan) */}
+          <div className="flex-1 overflow-x-auto overflow-y-auto bg-slate-800 p-2.5 flex flex-col items-center">
             {pdfLoading ? (
               <div className="my-auto text-center text-slate-400 space-y-3 py-16">
                 <Clock size={40} className="mx-auto text-indigo-400 animate-spin" />
-                <p className="text-xs font-bold text-slate-200">Menyiapkan Lembar Memo...</p>
+                <p className="text-xs font-bold text-slate-200">Memuat Dokumen Lembar Memo...</p>
                 <span className="text-[10px] text-slate-500 block">
-                  Memproses berkas {readingMemo.file_im}
+                  {readingMemo.file_im}
                 </span>
               </div>
             ) : pdfPages.length > 0 ? (
               <div
-                className="space-y-4 max-w-full transition-transform duration-150 origin-top flex flex-col items-center"
+                className="space-y-3 w-full transition-transform duration-150 origin-top flex flex-col items-center"
                 style={{ transform: `scale(${pdfScale})` }}
               >
                 {pdfPages.map((page, idx) => (
                   <div
                     key={page.pageNumber || idx}
-                    className="bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-700/60 max-w-full"
+                    className="bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-700/60 w-full max-w-[794px]"
                   >
                     <div className="px-3 py-1 bg-slate-100 border-b border-slate-200 text-[10px] font-bold text-slate-500 flex justify-between items-center">
-                      <span>Lembar Halaman {page.pageNumber} dari {page.totalPages}</span>
-                      <span className="font-mono text-indigo-600">{readingMemo.no_im}</span>
+                      <span>Lembar Halaman {page.pageNumber} / {page.totalPages}</span>
+                      <span className="font-mono text-indigo-700">{readingMemo.no_im}</span>
                     </div>
                     <img
                       src={page.dataUrl}
@@ -795,33 +848,33 @@ export default function MobileInternalMemo({ currentUser }) {
                 ))}
               </div>
             ) : (
-              /* Fallback jika berkas PDF dibuka via iframe / direct viewer */
+              /* Fallback Direct PDF View jika file_im berukuran besar / URL */
               <div className="w-full h-full flex flex-col items-center justify-center my-auto p-4 text-center space-y-3">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-amber-300 mx-auto">
-                  <FileText size={32} />
+                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-amber-300 mx-auto">
+                  <FileText size={28} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-white text-sm">Dokumen Tersedia</h4>
-                  <p className="text-xs text-slate-400 max-w-xs mt-1">
+                  <h4 className="font-bold text-white text-sm">Dokumen Terbuka</h4>
+                  <p className="text-[11px] text-slate-400 max-w-xs mt-1">
                     {readingMemo.file_im}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 pt-2">
+                <div className="flex items-center gap-2 pt-1">
                   <a
                     href={`/lampiran/pdf/${readingMemo.file_im}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition"
+                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition"
                   >
-                    <ExternalLink size={14} />
+                    <ExternalLink size={13} />
                     <span>Buka via Browser</span>
                   </a>
                   <a
                     href={`/lampiran/pdf/${readingMemo.file_im}`}
                     download={readingMemo.file_im}
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 border border-slate-700 transition"
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 border border-slate-700 transition"
                   >
-                    <Download size={14} />
+                    <Download size={13} />
                     <span>Unduh PDF</span>
                   </a>
                 </div>
@@ -829,52 +882,40 @@ export default function MobileInternalMemo({ currentUser }) {
             )}
           </div>
 
-          {/* Reader Bottom Bar: Status Paham & Action */}
-          <div className="bg-slate-900/95 backdrop-blur-md border-t border-slate-800 p-3 flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <span
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black shrink-0 ${
-                  readingMemo.ack_status === 'paham'
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                }`}
+          {/* 5. Bottom Floating Action Bar Mobile (Persis seperti Surat Ajuan) */}
+          <div className="bg-slate-900 border-t border-slate-800 p-3 shrink-0 flex items-center gap-2">
+            {readingMemo.ack_status !== 'paham' && (
+              <button
+                type="button"
+                disabled={submittingAck}
+                onClick={() => handleAck(readingMemo.id)}
+                className="flex-1 py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-xs"
               >
-                {readingMemo.ack_status === 'paham' ? (
-                  <>
-                    <CheckCircle2 size={12} className="text-emerald-400" />
-                    <span>Sudah Dipahami</span>
-                  </>
-                ) : (
-                  <>
-                    <Clock size={12} className="text-amber-400" />
-                    <span>Belum Konfirmasi</span>
-                  </>
-                )}
-              </span>
-            </div>
+                <ThumbsUp size={14} />
+                <span>{submittingAck ? 'Menyimpan...' : 'Saya Paham'}</span>
+              </button>
+            )}
 
-            <div className="flex items-center gap-2 shrink-0">
-              {readingMemo.ack_status !== 'paham' && (
-                <button
-                  type="button"
-                  disabled={submittingAck}
-                  onClick={() => handleAck(readingMemo.id)}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
-                >
-                  <ThumbsUp size={13} />
-                  <span>{submittingAck ? 'Menyimpan...' : 'Saya Paham'}</span>
-                </button>
-              )}
-              <a
-                href={`/lampiran/pdf/${readingMemo.file_im}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition"
-                title="Buka File Eksternal"
-              >
-                <ExternalLink size={16} />
-              </a>
-            </div>
+            <a
+              href={`/lampiran/pdf/${readingMemo.file_im}`}
+              target="_blank"
+              rel="noreferrer"
+              className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95"
+              title="Buka Dokumen di Tab Baru"
+            >
+              <ExternalLink size={13} className="text-slate-400" />
+              <span>Buka Asli</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={() => setReadingMemo(null)}
+              className={`${
+                readingMemo.ack_status !== 'paham' ? 'w-24' : 'flex-1'
+              } py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold rounded-xl text-xs transition text-center shadow-xs`}
+            >
+              Tutup
+            </button>
           </div>
         </div>
       )}

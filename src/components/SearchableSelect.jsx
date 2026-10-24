@@ -21,6 +21,7 @@ export default function SearchableSelect({
   disabled = false,
   className = '',
   isClearable = false,
+  size = 'md',
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -111,7 +112,9 @@ export default function SearchableSelect({
             setIsOpen(!isOpen)
           }
         }}
-        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs sm:text-sm rounded-xl border transition cursor-pointer select-none ${
+        className={`w-full flex items-center justify-between ${
+          size === 'sm' ? 'gap-1.5 px-2.5 py-1 text-xs rounded-lg' : 'gap-2 px-3 py-2 text-xs sm:text-sm rounded-xl'
+        } border transition cursor-pointer select-none ${
           disabled
             ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
             : isOpen
@@ -122,11 +125,11 @@ export default function SearchableSelect({
         <div className="flex-1 truncate text-left">
           {selectedOption ? (
             <div className="flex items-center gap-1.5 truncate">
-              <span className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">
+              <span className={`font-extrabold text-slate-900 truncate ${size === 'sm' ? 'text-xs' : 'text-xs sm:text-sm'}`}>
                 {selectedOption.label}
               </span>
               {selectedOption.sublabel && (
-                <span className="text-xs text-indigo-950 font-bold truncate">
+                <span className={`text-indigo-950 font-bold truncate ${size === 'sm' ? 'text-[11px]' : 'text-xs'}`}>
                   ({selectedOption.sublabel})
                 </span>
               )}
@@ -137,7 +140,9 @@ export default function SearchableSelect({
               )}
             </div>
           ) : (
-            <span className="text-slate-500 font-medium text-xs sm:text-sm">{placeholder}</span>
+            <span className={`text-slate-500 font-medium truncate ${size === 'sm' ? 'text-xs' : 'text-xs sm:text-sm'}`}>
+              {placeholder}
+            </span>
           )}
         </div>
 
@@ -146,14 +151,14 @@ export default function SearchableSelect({
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 hover:text-slate-900 rounded-md hover:bg-slate-100 transition"
+              className="p-0.5 hover:text-slate-900 rounded-md hover:bg-slate-100 transition"
               title="Hapus pilihan"
             >
-              <X className="w-4 h-4" />
+              <X className={size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
             </button>
           )}
           <ChevronDown
-            className={`w-4 h-4 transition-transform duration-200 text-slate-600 ${
+            className={`${size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'} transition-transform duration-200 text-slate-600 ${
               isOpen ? 'rotate-180 text-indigo-600' : ''
             }`}
           />

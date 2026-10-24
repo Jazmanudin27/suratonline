@@ -1260,6 +1260,7 @@ export default function LetterFormBuilder({
                         />
                       ) : field.type === "select" ? (
                         <SearchableSelect
+                          size="sm"
                           value={fieldValues[field.name] || ""}
                           onChange={(val) => handleFieldChange(field.name, val)}
                           placeholder={`-- Pilih ${cleanLabel} --`}
@@ -1331,6 +1332,7 @@ export default function LetterFormBuilder({
                       <span className="text-rose-600">*</span>:
                     </label>
                     <SearchableSelect
+                      size="sm"
                       value={
                         users.find(
                           (u) =>
@@ -1523,30 +1525,57 @@ export default function LetterFormBuilder({
                   return (
                     <div
                       key={idx}
-                      className={`p-3 bg-white border rounded-xl space-y-2 transition shadow-2xs ${
+                      className={`p-1.5 bg-white border rounded-lg transition shadow-2xs ${
                         isUnselected
                           ? "border-amber-400 bg-amber-50/20 ring-1 ring-amber-300/60"
                           : "border-slate-300 hover:border-indigo-400"
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-5 h-5 rounded-md bg-indigo-600 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0">
-                            {idx + 1}
-                          </div>
-                          <span className="font-extrabold text-xs text-slate-900 shrink-0">
-                            Tingkat #{idx + 1}{" "}
-                            <span className="text-rose-600 font-bold">*</span>
-                          </span>
-                          {step.specificUserName ? (
-                            ""
-                          ) : (
-                            <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                              Wajib Dipilih
-                            </span>
-                          )}
+                      <div className="flex items-center gap-1.5">
+                        <div
+                          className="w-5 h-5 rounded-md bg-indigo-600 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0"
+                          title={`Tingkat #${idx + 1}`}
+                        >
+                          {idx + 1}
                         </div>
-
+                        <div className="flex-1 min-w-0">
+                          <SearchableSelect
+                            size="sm"
+                            value={step.specificUserId || ""}
+                            onChange={(val) => handleUserSelect(val)}
+                            placeholder="-- Pilih Pejabat Penyetuju (Wajib) --"
+                            options={users
+                              .filter((u) => {
+                                if (u.branchId !== "PST") return false;
+                                const pos = (
+                                  u.position ||
+                                  u.roleLabel ||
+                                  ""
+                                ).toUpperCase();
+                                const isMgrOrDir =
+                                  pos.includes("MANAGER") ||
+                                  pos.includes("MANAJER") ||
+                                  pos.includes("DIREKTUR") ||
+                                  pos.includes("DIRECTOR") ||
+                                  [
+                                    "J01",
+                                    "J02",
+                                    "J03",
+                                    "J05",
+                                    "J07",
+                                    "J08",
+                                  ].includes(u.kodeJabatan);
+                                return isMgrOrDir;
+                              })
+                              .map((u) => ({
+                                value: String(u.id),
+                                label: u.name,
+                                sublabel: u.position || u.roleLabel || "Pejabat",
+                                group: "Pejabat Direksi & Manajemen Pusat",
+                              }))}
+                            isClearable
+                          />
+                        </div>
                         {customApprovalSteps.length > 1 && (
                           <button
                             type="button"
@@ -1557,44 +1586,6 @@ export default function LetterFormBuilder({
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
-                      </div>
-
-                      <div>
-                        <SearchableSelect
-                          value={step.specificUserId || ""}
-                          onChange={(val) => handleUserSelect(val)}
-                          placeholder="-- Pilih Pejabat Penyetuju (Wajib) --"
-                          options={users
-                            .filter((u) => {
-                              if (u.branchId !== "PST") return false;
-                              const pos = (
-                                u.position ||
-                                u.roleLabel ||
-                                ""
-                              ).toUpperCase();
-                              const isMgrOrDir =
-                                pos.includes("MANAGER") ||
-                                pos.includes("MANAJER") ||
-                                pos.includes("DIREKTUR") ||
-                                pos.includes("DIRECTOR") ||
-                                [
-                                  "J01",
-                                  "J02",
-                                  "J03",
-                                  "J05",
-                                  "J07",
-                                  "J08",
-                                ].includes(u.kodeJabatan);
-                              return isMgrOrDir;
-                            })
-                            .map((u) => ({
-                              value: String(u.id),
-                              label: u.name,
-                              sublabel: u.position || u.roleLabel || "Pejabat",
-                              group: "Pejabat Direksi & Manajemen Pusat",
-                            }))}
-                          isClearable
-                        />
                       </div>
                     </div>
                   );

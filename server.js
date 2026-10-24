@@ -136,6 +136,20 @@ app.get('/api/jabatan', async (req, res) => {
 })
 
 // -------------------------------------------------------------
+// 2b. MASTER PRODUK
+// -------------------------------------------------------------
+app.get('/api/produk', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT * FROM produk ORDER BY urutan ASC, kode_produk ASC`
+    )
+    res.json({ success: true, data: rows })
+  } catch (err) {
+    res.json({ success: false, message: err.message, data: [] })
+  }
+})
+
+// -------------------------------------------------------------
 // 3. AUTHENTICATION & MASTER USERS
 // -------------------------------------------------------------
 import bcrypt from 'bcryptjs'

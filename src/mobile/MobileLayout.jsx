@@ -5,6 +5,7 @@ import MobileDashboard from './MobileDashboard'
 import MobileLetterList from './MobileLetterList'
 import MobileApproverInbox from './MobileApproverInbox'
 import MobileProfile from './MobileProfile'
+import MobileProductList from './MobileProductList'
 import MobileDocumentReader from './MobileDocumentReader'
 import LetterChatModal from '../components/LetterChatModal'
 import { canUserApproveLetter } from '../components/ApproverInbox'
@@ -83,6 +84,10 @@ export default function MobileLayout({
               onRequestRevision={onRequestRevision}
               onUpdateNotes={onUpdateNotes}
             />
+          )}
+
+          {activeTab === 'products' && (
+            <MobileProductList currentUser={currentUser} />
           )}
 
           {activeTab === 'profile' && (

@@ -43,6 +43,9 @@ import {
   canUserAccessLetterChat,
   deleteLetter,
   updateLetterApprovalNotes,
+  isSharedLetterRead,
+  markSharedLetterRead,
+  getSharedLetterInfo,
 } from '../services/storage'
 import { notify } from '../utils/alert'
 import LetterChatModal from './LetterChatModal'
@@ -72,6 +75,15 @@ export default function LetterDocumentView({
     (u) => (letter?.userId && u.id === letter.userId) ||
            (letter?.userName && u.name.toLowerCase() === letter.userName.toLowerCase())
   )
+
+  useEffect(() => {
+    if (!isBuilderPreview && letter?.id && currentUser) {
+      const shareInfo = getSharedLetterInfo(letter, currentUser)
+      if (shareInfo && !isSharedLetterRead(letter, currentUser)) {
+        markSharedLetterRead(letter.id, currentUser, true)
+      }
+    }
+  }, [letter?.id, currentUser, isBuilderPreview])
 
   const currentBranch = branches.find(
     (b) => b.id === letter?.branchId || b.name === letter?.branchName || b.code === letter?.branchId
@@ -904,6 +916,7 @@ export default function LetterDocumentView({
       {/* Banner Khusus jika surat ini dibagikan ke pengguna yang sedang login (seperti email masuk) */}
       {!isBuilderPreview && letter.sharedWith && letter.sharedWith.some((s) => String(s.userId || s.id) === String(currentUser?.id)) && (() => {
         const shareInfo = letter.sharedWith.find((s) => String(s.userId || s.id) === String(currentUser?.id))
+        const isRead = isSharedLetterRead(letter, currentUser)
         return (
           <div className="no-print bg-gradient-to-r from-violet-900 via-indigo-900 to-slate-900 border border-violet-500/40 text-white rounded-xl p-3.5 sm:p-4 shadow-md flex items-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-violet-600/30 border border-violet-400/40 flex items-center justify-center text-violet-300 shrink-0">
@@ -911,9 +924,20 @@ export default function LetterDocumentView({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-1">
-                <p className="text-xs font-bold text-violet-200">
-                  Surat Dibagikan Kepada Anda
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-bold text-violet-200">
+                    Surat Dibagikan Kepada Anda
+                  </p>
+                  {isRead ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      ✓ Sudah Dibaca
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white shadow-2xs">
+                      Baru
+                    </span>
+                  )}
+                </div>
                 {shareInfo?.sharedAt && (
                   <span className="text-[10px] text-violet-300/80 font-mono">
                     {formatDateTimeId(shareInfo.sharedAt)}
@@ -933,6 +957,18 @@ export default function LetterDocumentView({
                 </p>
               )}
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                const nextRead = !isRead
+                markSharedLetterRead(letter.id, currentUser, nextRead)
+                notify.success('Status Diperbarui', nextRead ? 'Surat ditandai sudah dibaca' : 'Surat ditandai belum dibaca')
+              }}
+              className="text-[11px] text-violet-200 hover:text-white bg-violet-800/40 hover:bg-violet-700/60 border border-violet-500/40 px-2.5 py-1 rounded-lg transition font-medium shrink-0 self-center sm:self-auto"
+              title={isRead ? 'Tandai sebagai belum dibaca' : 'Tandai sebagai sudah dibaca'}
+            >
+              {isRead ? 'Tandai Belum Dibaca' : 'Tandai Sudah Dibaca'}
+            </button>
           </div>
         )
       })()}

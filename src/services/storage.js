@@ -11,7 +11,155 @@ const STORAGE_KEYS = {
   CATEGORIES: 'suratajuan_categories_v2',
   GLOBAL_DEFAULT_VIEWERS: 'suratajuan_global_default_viewers_v2',
   JABATAN: 'suratajuan_jabatan_v2',
+  PRODUCTS: 'suratajuan_products_v2',
 }
+
+export const DEFAULT_PRODUCTS = [
+  {
+    kode_produk: 'PRD-001',
+    nama_produk: 'Minyak Goreng Sawit 2 Liter',
+    satuan: 'DUS',
+    isi_pcs_dus: 6,
+    isi_pack_dus: 6,
+    isi_pcs_pack: 1,
+    kode_kategori_produk: 'SEMBAKO',
+    kode_jenis_produk: 'MINYAK',
+    status_aktif_produk: '1',
+    urutan: 1,
+    kode_sku: 'SKU-MGS-2L',
+    kode_kategori_diskon: 'DISC-A',
+    kode_kategori_komisi: 'KOM-01',
+    created_at: '2026-01-10 08:00:00',
+    updated_at: '2026-01-15 10:30:00',
+    kode_akun: '1141-01',
+  },
+  {
+    kode_produk: 'PRD-002',
+    nama_produk: 'Gula Pasir Kristal Putih 1 Kg',
+    satuan: 'DUS',
+    isi_pcs_dus: 20,
+    isi_pack_dus: 20,
+    isi_pcs_pack: 1,
+    kode_kategori_produk: 'SEMBAKO',
+    kode_jenis_produk: 'GULA',
+    status_aktif_produk: '1',
+    urutan: 2,
+    kode_sku: 'SKU-GPK-1KG',
+    kode_kategori_diskon: 'DISC-A',
+    kode_kategori_komisi: 'KOM-01',
+    created_at: '2026-01-10 08:30:00',
+    updated_at: '2026-01-15 11:00:00',
+    kode_akun: '1141-02',
+  },
+  {
+    kode_produk: 'PRD-003',
+    nama_produk: 'Tepung Terigu Serbaguna Premium 1 Kg',
+    satuan: 'DUS',
+    isi_pcs_dus: 12,
+    isi_pack_dus: 12,
+    isi_pcs_pack: 1,
+    kode_kategori_produk: 'SEMBAKO',
+    kode_jenis_produk: 'TEPUNG',
+    status_aktif_produk: '1',
+    urutan: 3,
+    kode_sku: 'SKU-TTS-1KG',
+    kode_kategori_diskon: 'DISC-B',
+    kode_kategori_komisi: 'KOM-02',
+    created_at: '2026-01-11 09:00:00',
+    updated_at: '2026-01-16 14:20:00',
+    kode_akun: '1141-03',
+  },
+  {
+    kode_produk: 'PRD-004',
+    nama_produk: 'Kopi Bubuk Arabika Blend 250gr',
+    satuan: 'DUS',
+    isi_pcs_dus: 24,
+    isi_pack_dus: 4,
+    isi_pcs_pack: 6,
+    kode_kategori_produk: 'MINUMAN',
+    kode_jenis_produk: 'KOPI',
+    status_aktif_produk: '1',
+    urutan: 4,
+    kode_sku: 'SKU-KBA-250G',
+    kode_kategori_diskon: 'DISC-B',
+    kode_kategori_komisi: 'KOM-02',
+    created_at: '2026-01-12 10:15:00',
+    updated_at: '2026-01-18 16:00:00',
+    kode_akun: '1141-04',
+  },
+  {
+    kode_produk: 'PRD-005',
+    nama_produk: 'Susu Kental Manis Putih 370gr',
+    satuan: 'DUS',
+    isi_pcs_dus: 48,
+    isi_pack_dus: 8,
+    isi_pcs_pack: 6,
+    kode_kategori_produk: 'MINUMAN',
+    kode_jenis_produk: 'SUSU',
+    status_aktif_produk: '1',
+    urutan: 5,
+    kode_sku: 'SKU-SKM-370G',
+    kode_kategori_diskon: 'DISC-A',
+    kode_kategori_komisi: 'KOM-01',
+    created_at: '2026-01-12 11:00:00',
+    updated_at: '2026-01-19 09:45:00',
+    kode_akun: '1141-05',
+  },
+  {
+    kode_produk: 'PRD-006',
+    nama_produk: 'Sabun Mandi Cair Anti Bakteri 450ml Refill',
+    satuan: 'DUS',
+    isi_pcs_dus: 24,
+    isi_pack_dus: 4,
+    isi_pcs_pack: 6,
+    kode_kategori_produk: 'TOILETRIES',
+    kode_jenis_produk: 'SABUN',
+    status_aktif_produk: '1',
+    urutan: 6,
+    kode_sku: 'SKU-SMC-450ML',
+    kode_kategori_diskon: 'DISC-C',
+    kode_kategori_komisi: 'KOM-03',
+    created_at: '2026-01-14 13:20:00',
+    updated_at: '2026-01-20 11:10:00',
+    kode_akun: '1141-06',
+  },
+  {
+    kode_produk: 'PRD-007',
+    nama_produk: 'Deterjen Bubuk Konsentrat 800gr',
+    satuan: 'DUS',
+    isi_pcs_dus: 12,
+    isi_pack_dus: 12,
+    isi_pcs_pack: 1,
+    kode_kategori_produk: 'TOILETRIES',
+    kode_jenis_produk: 'DETERJEN',
+    status_aktif_produk: '0',
+    urutan: 7,
+    kode_sku: 'SKU-DBK-800G',
+    kode_kategori_diskon: 'DISC-C',
+    kode_kategori_komisi: 'KOM-03',
+    created_at: '2026-01-15 14:00:00',
+    updated_at: '2026-01-21 15:30:00',
+    kode_akun: '1141-07',
+  },
+  {
+    kode_produk: 'PRD-008',
+    nama_produk: 'Kecap Manis Botol 600ml',
+    satuan: 'DUS',
+    isi_pcs_dus: 12,
+    isi_pack_dus: 12,
+    isi_pcs_pack: 1,
+    kode_kategori_produk: 'BUMBU',
+    kode_jenis_produk: 'KECAP',
+    status_aktif_produk: '1',
+    urutan: 8,
+    kode_sku: 'SKU-KMB-600ML',
+    kode_kategori_diskon: 'DISC-A',
+    kode_kategori_komisi: 'KOM-01',
+    created_at: '2026-01-16 15:10:00',
+    updated_at: '2026-01-22 10:00:00',
+    kode_akun: '1141-08',
+  },
+]
 
 // Convert month number to Roman numerals
 export const getRomanMonth = (date = new Date()) => {
@@ -351,6 +499,17 @@ export const syncWithDatabase = async () => {
       setStorageItem(STORAGE_KEYS.LETTERS, finalLetters)
       window.dispatchEvent(new Event('letters_change'))
     }
+
+    // Sync Master Produk
+    try {
+      const remoteProduk = await api.getProduk()
+      if (Array.isArray(remoteProduk) && remoteProduk.length > 0) {
+        setStorageItem(STORAGE_KEYS.PRODUCTS, remoteProduk)
+        window.dispatchEvent(new Event('products_change'))
+      }
+    } catch (prodErr) {
+      console.warn('Sync produk warning:', prodErr.message)
+    }
   } catch (err) {
     console.warn('API sync in background skipped or offline:', err.message)
   }
@@ -402,12 +561,53 @@ export const initializeStorage = async () => {
   if (!localStorage.getItem(STORAGE_KEYS.TEMPLATES)) {
     setStorageItem(STORAGE_KEYS.TEMPLATES, [])
   }
+  if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
+    setStorageItem(STORAGE_KEYS.PRODUCTS, DEFAULT_PRODUCTS)
+  }
   if (localStorage.getItem(STORAGE_KEYS.LETTERS) === null && !lettersMemoryCache) {
     setStorageItem(STORAGE_KEYS.LETTERS, [])
   }
 
   // Sinkronisasi data real-time dengan MySQL
   await syncWithDatabase()
+}
+
+// Master Produk Management
+export const getProducts = () => {
+  const prods = getStorageItem(STORAGE_KEYS.PRODUCTS, null)
+  if (Array.isArray(prods) && prods.length > 0) return prods
+  setStorageItem(STORAGE_KEYS.PRODUCTS, DEFAULT_PRODUCTS)
+  return DEFAULT_PRODUCTS
+}
+
+export const saveProduct = (productData) => {
+  const products = getProducts()
+  const idx = products.findIndex((p) => p.kode_produk === productData.kode_produk)
+  const now = new Date().toISOString()
+  if (idx >= 0) {
+    products[idx] = {
+      ...products[idx],
+      ...productData,
+      updated_at: now,
+    }
+  } else {
+    products.push({
+      ...productData,
+      created_at: now,
+      updated_at: now,
+    })
+  }
+  setStorageItem(STORAGE_KEYS.PRODUCTS, products)
+  window.dispatchEvent(new Event('products_change'))
+  return true
+}
+
+export const deleteProduct = (kodeProduk) => {
+  const products = getProducts()
+  const filtered = products.filter((p) => p.kode_produk !== kodeProduk)
+  setStorageItem(STORAGE_KEYS.PRODUCTS, filtered)
+  window.dispatchEvent(new Event('products_change'))
+  return true
 }
 
 // User & Auth Management
@@ -1879,6 +2079,8 @@ export const shareLetterWithUsers = async (letterId, targetUsers, currentUser) =
     sharedBy: u.sharedBy || currentUser?.name || 'User',
     sharedById: u.sharedById || currentUser?.id,
     note: u.note || '',
+    readAt: u.readAt || null,
+    isRead: Boolean(u.isRead || u.readAt),
   }))
 
   const updatedLetter = {
@@ -1907,6 +2109,143 @@ export const shareLetterWithUsers = async (letterId, targetUsers, currentUser) =
 
   return true
 }
+
+// Helper cari info share untuk user saat ini
+export const getSharedLetterInfo = (letter, currentUser) => {
+  if (!letter || !currentUser || !Array.isArray(letter.sharedWith)) return null
+  const myUid = String(currentUser.id || '')
+  const myName = (currentUser.name || currentUser.username || '').trim().toLowerCase()
+  return letter.sharedWith.find((s) => {
+    if (s.userId && String(s.userId) === myUid) return true
+    if (s.id && String(s.id) === myUid) return true
+    if (s.userName && s.userName.trim().toLowerCase() === myName) return true
+    if (typeof s === 'string' && (s === myUid || s.toLowerCase() === myName)) return true
+    return false
+  }) || null
+}
+
+// Cek apakah surat dibagikan sudah dibaca oleh user saat ini
+export const isSharedLetterRead = (letter, currentUser) => {
+  if (!letter || !currentUser) return false
+  const uid = String(currentUser.id || '')
+  // Cek cache lokal khusus user untuk persistensi instan
+  const localReads = getStorageItem(`shared_reads_${uid}`, {})
+  if (localReads[letter.id] !== undefined) {
+    return Boolean(localReads[letter.id])
+  }
+  const share = getSharedLetterInfo(letter, currentUser)
+  if (!share) return false
+  return Boolean(share.readAt || share.isRead)
+}
+
+// Tandai status baca surat yang dibagikan (read / unread)
+export const markSharedLetterRead = (letterId, currentUser, isRead = true) => {
+  if (!letterId || !currentUser) return false
+  const uid = String(currentUser.id || '')
+  const myName = (currentUser.name || currentUser.username || '').trim().toLowerCase()
+
+  // 1. Simpan ke localReads cache
+  const localReads = getStorageItem(`shared_reads_${uid}`, {})
+  localReads[letterId] = Boolean(isRead)
+  setStorageItem(`shared_reads_${uid}`, localReads)
+
+  // 2. Update objek surat di letters
+  const letters = getLetters()
+  const idx = letters.findIndex((l) => l.id === letterId)
+  if (idx >= 0 && Array.isArray(letters[idx].sharedWith)) {
+    let modified = false
+    const updatedSharedWith = letters[idx].sharedWith.map((s) => {
+      const match =
+        (s.userId && String(s.userId) === uid) ||
+        (s.id && String(s.id) === uid) ||
+        (s.userName && s.userName.trim().toLowerCase() === myName) ||
+        (typeof s === 'string' && (s === uid || s.toLowerCase() === myName))
+      if (match) {
+        modified = true
+        return {
+          ...(typeof s === 'object' ? s : { userId: s, userName: s }),
+          isRead: Boolean(isRead),
+          readAt: isRead ? (s.readAt || new Date().toISOString()) : null,
+        }
+      }
+      return s
+    })
+
+    if (modified) {
+      letters[idx] = {
+        ...letters[idx],
+        sharedWith: updatedSharedWith,
+        fieldValues: {
+          ...(letters[idx].fieldValues || {}),
+          sharedWith: updatedSharedWith,
+        },
+      }
+      setStorageItem(STORAGE_KEYS.LETTERS, letters)
+      // Sync background ke backend
+      api.shareLetter(letterId, updatedSharedWith).catch(() => {})
+    }
+  }
+
+  // Trigger event agar semua komponen update
+  window.dispatchEvent(new Event('letters_change'))
+  window.dispatchEvent(new CustomEvent('shared_read_change', { detail: { letterId, isRead } }))
+  return true
+}
+
+// Tandai semua surat yang dibagikan ke currentUser sebagai sudah dibaca
+export const markAllSharedLettersRead = (currentUser) => {
+  if (!currentUser) return false
+  const uid = String(currentUser.id || '')
+  const myName = (currentUser.name || currentUser.username || '').trim().toLowerCase()
+  const letters = getLetters()
+  const localReads = getStorageItem(`shared_reads_${uid}`, {})
+  let anyModified = false
+
+  letters.forEach((l, idx) => {
+    if (Array.isArray(l.sharedWith)) {
+      let letterModified = false
+      const updatedSharedWith = l.sharedWith.map((s) => {
+        const match =
+          (s.userId && String(s.userId) === uid) ||
+          (s.id && String(s.id) === uid) ||
+          (s.userName && s.userName.trim().toLowerCase() === myName) ||
+          (typeof s === 'string' && (s === uid || s.toLowerCase() === myName))
+        if (match) {
+          letterModified = true
+          return {
+            ...(typeof s === 'object' ? s : { userId: s, userName: s }),
+            isRead: true,
+            readAt: s.readAt || new Date().toISOString(),
+          }
+        }
+        return s
+      })
+
+      if (letterModified) {
+        localReads[l.id] = true
+        letters[idx] = {
+          ...l,
+          sharedWith: updatedSharedWith,
+          fieldValues: {
+            ...(l.fieldValues || {}),
+            sharedWith: updatedSharedWith,
+          },
+        }
+        anyModified = true
+        api.shareLetter(l.id, updatedSharedWith).catch(() => {})
+      }
+    }
+  })
+
+  setStorageItem(`shared_reads_${uid}`, localReads)
+  if (anyModified) {
+    setStorageItem(STORAGE_KEYS.LETTERS, letters)
+  }
+  window.dispatchEvent(new Event('letters_change'))
+  window.dispatchEvent(new CustomEvent('shared_read_change', { detail: { all: true } }))
+  return true
+}
+
 
 // Reset data to defaults
 export const resetDemoData = () => {

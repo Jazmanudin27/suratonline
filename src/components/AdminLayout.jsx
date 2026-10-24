@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   LayoutDashboard,
   FilePlus,
@@ -19,6 +19,9 @@ import {
   ShieldCheck,
   Search,
   Inbox,
+  Mail,
+  CheckCheck,
+  Check,
 } from 'lucide-react'
 import {
   getUsers,
@@ -27,6 +30,10 @@ import {
   setCurrentUser,
   getNotifications,
   markNotificationRead,
+  getSharedLetterInfo,
+  isSharedLetterRead,
+  markSharedLetterRead,
+  markAllSharedLettersRead,
 } from '../services/storage'
 import { isCrmOrIt, isDirekturUser } from '../utils'
 
@@ -45,7 +52,39 @@ export default function AdminLayout({
   const [currentDateTime, setCurrentDateTime] = useState('')
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [showNotifDropdown, setShowNotifDropdown] = useState(false)
+  const [showSharedDropdown, setShowSharedDropdown] = useState(false)
+  const [sharedFilter, setSharedFilter] = useState('all') // 'all' | 'unread' | 'read'
+  const [readVersion, setReadVersion] = useState(0)
   const [userSearchTerm, setUserSearchTerm] = useState('')
+
+  const sharedDropdownRef = useRef(null)
+  const notifDropdownRef = useRef(null)
+  const userDropdownRef = useRef(null)
+
+  useEffect(() => {
+    const handleReadChange = () => setReadVersion((v) => v + 1)
+    window.addEventListener('shared_read_change', handleReadChange)
+    window.addEventListener('letters_change', handleReadChange)
+
+    const handleClickOutside = (e) => {
+      if (sharedDropdownRef.current && !sharedDropdownRef.current.contains(e.target)) {
+        setShowSharedDropdown(false)
+      }
+      if (notifDropdownRef.current && !notifDropdownRef.current.contains(e.target)) {
+        setShowNotifDropdown(false)
+      }
+      if (userDropdownRef.current && !userDropdownRef.current.contains(e.target)) {
+        setShowUserDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+
+    return () => {
+      window.removeEventListener('shared_read_change', handleReadChange)
+      window.removeEventListener('letters_change', handleReadChange)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const handleGoToMobile = () => {
     localStorage.setItem('suratajuan_view_mode', 'mobile')
@@ -101,17 +140,33 @@ export default function AdminLayout({
 
   const isDirektur = isDirekturUser(currentUser)
 
-  const myUid = String(currentUser?.id || '')
-  const myName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()
   const allCurrentLetters = letters && letters.length > 0 ? letters : getLetters()
-  const sharedInboxCount = allCurrentLetters.filter((l) => {
-    return (l.sharedWith || []).some((s) => {
-      if (s.userId && String(s.userId) === myUid) return true
-      if (s.id && String(s.id) === myUid) return true
-      if (s.userName && s.userName.trim().toLowerCase() === myName) return true
-      return false
-    })
-  }).length
+
+  const mySharedLetters = useMemo(() => {
+    return allCurrentLetters
+      .filter((l) => getSharedLetterInfo(l, currentUser) !== null)
+      .sort((a, b) => {
+        const infoA = getSharedLetterInfo(a, currentUser)
+        const infoB = getSharedLetterInfo(b, currentUser)
+        const dateA = new Date(infoA?.sharedAt || a.createdAt || 0).getTime()
+        const dateB = new Date(infoB?.sharedAt || b.createdAt || 0).getTime()
+        return dateB - dateA
+      })
+  }, [allCurrentLetters, currentUser, readVersion])
+
+  const unreadSharedCount = useMemo(() => {
+    return mySharedLetters.filter((l) => !isSharedLetterRead(l, currentUser)).length
+  }, [mySharedLetters, currentUser, readVersion])
+
+  const filteredSharedLetters = useMemo(() => {
+    if (sharedFilter === 'unread') {
+      return mySharedLetters.filter((l) => !isSharedLetterRead(l, currentUser))
+    }
+    if (sharedFilter === 'read') {
+      return mySharedLetters.filter((l) => isSharedLetterRead(l, currentUser))
+    }
+    return mySharedLetters
+  }, [mySharedLetters, sharedFilter, currentUser, readVersion])
 
   const menuItems = [
     ...(!isDirektur
@@ -133,14 +188,6 @@ export default function AdminLayout({
       isActive: activeMenu === 'letters',
       badge: pendingCount > 0 ? pendingCount : null,
       badgeClass: 'bg-amber-500 text-slate-950 font-black',
-    },
-    {
-      id: 'inbox',
-      label: 'Kotak Masuk (Dibagikan)',
-      icon: Inbox,
-      isActive: activeMenu === 'inbox',
-      badge: sharedInboxCount > 0 ? sharedInboxCount : null,
-      badgeClass: 'bg-indigo-600 text-white font-black',
     },
     ...(isCrmOrIt(currentUser)
       ? [
@@ -250,10 +297,269 @@ export default function AdminLayout({
                 {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
 
-              {/* Notification Bell */}
-              <div className="relative">
+              {/* Kotak Masuk Surat Dibagikan Dropdown (Icon Surat di Pinggir Notifikasi) */}
+              <div className="relative" ref={sharedDropdownRef}>
                 <button
-                  onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+                  onClick={() => {
+                    setShowSharedDropdown(!showSharedDropdown)
+                    setShowNotifDropdown(false)
+                    setShowUserDropdown(false)
+                  }}
+                  className={`p-1.5 rounded-lg relative transition flex items-center justify-center ${
+                    showSharedDropdown
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title="Kotak Masuk Surat (Dibagikan ke Saya)"
+                >
+                  <Mail className="w-4.5 h-4.5" />
+                  {unreadSharedCount > 0 && (
+                    <span className="absolute top-1 right-1 min-w-[15px] h-3.5 px-1 bg-indigo-500 text-white rounded-full text-[9px] font-black flex items-center justify-center ring-2 ring-slate-900 animate-pulse">
+                      {unreadSharedCount > 9 ? '9+' : unreadSharedCount}
+                    </span>
+                  )}
+                </button>
+
+                {showSharedDropdown && (
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-fadeIn">
+                    {/* Header Dropdown */}
+                    <div className="p-3 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-b border-indigo-950 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-indigo-500/30 flex items-center justify-center">
+                          <Mail className="w-3.5 h-3.5 text-indigo-300" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-xs text-white block leading-tight">Kotak Masuk Surat</span>
+                          <span className="text-[10px] text-indigo-300">Surat dibagikan ke Anda</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {unreadSharedCount > 0 ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white shadow-xs">
+                            {unreadSharedCount} Baru
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Semua Dibaca
+                          </span>
+                        )}
+                        {unreadSharedCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => markAllSharedLettersRead(currentUser)}
+                            className="text-[10px] text-indigo-200 hover:text-white font-bold flex items-center gap-1 hover:underline transition ml-1"
+                            title="Tandai semua surat dibagikan sebagai sudah dibaca"
+                          >
+                            <CheckCheck className="w-3.5 h-3.5 text-indigo-300" />
+                            <span className="hidden sm:inline">Tandai Semua Dibaca</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Filter Tabs (Semua / Belum Dibaca / Sudah Dibaca) */}
+                    <div className="p-2 bg-slate-50 border-b border-slate-200 flex items-center gap-1 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setSharedFilter('all')}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                          sharedFilter === 'all'
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                        }`}
+                      >
+                        <span>Semua</span>
+                        <span className={`px-1 py-0.2 rounded-full text-[9px] font-black ${
+                          sharedFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {mySharedLetters.length}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSharedFilter('unread')}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                          sharedFilter === 'unread'
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                        }`}
+                      >
+                        <span>Belum Dibaca</span>
+                        {unreadSharedCount > 0 && (
+                          <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-rose-500 text-white font-black animate-pulse">
+                            {unreadSharedCount}
+                          </span>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSharedFilter('read')}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                          sharedFilter === 'read'
+                            ? 'bg-emerald-700 text-white shadow-xs'
+                            : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                        }`}
+                      >
+                        <span>Sudah Dibaca</span>
+                        <span className={`px-1 py-0.2 rounded-full text-[9px] font-semibold ${
+                          sharedFilter === 'read' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {mySharedLetters.length - unreadSharedCount}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* List Surat */}
+                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
+                      {filteredSharedLetters.length === 0 ? (
+                        <div className="p-6 text-center text-slate-400 space-y-1.5">
+                          <Mail className="w-8 h-8 mx-auto text-slate-300 stroke-[1.5]" />
+                          <p className="font-semibold text-slate-600 text-xs">
+                            {sharedFilter === 'unread'
+                              ? 'Tidak ada surat yang belum dibaca.'
+                              : sharedFilter === 'read'
+                              ? 'Belum ada surat yang ditandai sudah dibaca.'
+                              : 'Belum ada surat yang dibagikan kepada Anda.'}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            Surat yang dibagikan oleh rekan kerja akan muncul di sini.
+                          </p>
+                        </div>
+                      ) : (
+                        filteredSharedLetters.map((l) => {
+                          const isRead = isSharedLetterRead(l, currentUser)
+                          const shareInfo = getSharedLetterInfo(l, currentUser)
+
+                          return (
+                            <div
+                              key={l.id}
+                              className={`p-3 transition relative group flex items-start justify-between gap-2.5 cursor-pointer ${
+                                !isRead
+                                  ? 'bg-indigo-50/70 hover:bg-indigo-100/70 border-l-4 border-indigo-600'
+                                  : 'bg-white hover:bg-slate-50 border-l-4 border-transparent'
+                              }`}
+                              onClick={() => {
+                                markSharedLetterRead(l.id, currentUser, true)
+                                setShowSharedDropdown(false)
+                                if (onOpenLetterById) {
+                                  onOpenLetterById(l.id)
+                                }
+                              }}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                  <span className="font-mono text-[10px] font-extrabold text-indigo-900 bg-indigo-100/90 px-1.5 py-0.5 rounded">
+                                    {l.letterNumber || 'Tanpa No Surat'}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    {shareInfo?.sharedAt
+                                      ? new Date(shareInfo.sharedAt).toLocaleDateString('id-ID', {
+                                          day: 'numeric',
+                                          month: 'short',
+                                          year: 'numeric',
+                                        })
+                                      : '-'}
+                                  </span>
+                                </div>
+
+                                <h4
+                                  className={`text-xs text-slate-900 leading-snug line-clamp-1 ${
+                                    !isRead ? 'font-black' : 'font-medium'
+                                  }`}
+                                >
+                                  {l.title}
+                                </h4>
+
+                                <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
+                                  <span>
+                                    Dibagikan oleh:{' '}
+                                    <strong className="text-slate-800 font-bold">
+                                      {shareInfo?.sharedBy || l.userName || 'Rekan'}
+                                    </strong>
+                                  </span>
+                                  {shareInfo?.branchName && (
+                                    <span className="text-slate-400">&bull; {shareInfo.branchName}</span>
+                                  )}
+                                </div>
+
+                                {shareInfo?.note && (
+                                  <p className="mt-1.5 p-1.5 bg-slate-100/80 rounded border border-slate-200/60 text-[10px] text-slate-600 italic line-clamp-2">
+                                    "{shareInfo.note}"
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Action & Status Indicator */}
+                              <div className="flex flex-col items-end gap-2 shrink-0 pt-0.5">
+                                {!isRead ? (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-600 text-white shadow-2xs">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> BARU
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                                    <Check className="w-2.5 h-2.5 text-emerald-600" /> Dibaca
+                                  </span>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    markSharedLetterRead(l.id, currentUser, !isRead)
+                                  }}
+                                  className={`p-1.5 rounded-md transition text-xs flex items-center gap-1 font-bold ${
+                                    !isRead
+                                      ? 'bg-indigo-100/80 text-indigo-700 hover:bg-indigo-200'
+                                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800'
+                                  }`}
+                                  title={isRead ? 'Tandai sebagai belum dibaca' : 'Tandai sebagai sudah dibaca'}
+                                >
+                                  {isRead ? (
+                                    <Mail className="w-3.5 h-3.5 text-slate-500" />
+                                  ) : (
+                                    <CheckCheck className="w-3.5 h-3.5 text-indigo-600" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+
+                    {/* Footer Dropdown */}
+                    <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+                      <span className="text-[10px] text-slate-500 font-semibold">
+                        Total {mySharedLetters.length} surat dibagikan
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSharedDropdown(false)
+                          if (typeof onMenuChange === 'function') {
+                            onMenuChange('inbox')
+                          }
+                        }}
+                        className="text-indigo-600 hover:text-indigo-800 font-bold text-xs flex items-center gap-1 hover:underline"
+                      >
+                        <span>Buka Tampilan Lengkap</span>
+                        <span>&rarr;</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Notification Bell */}
+              <div className="relative" ref={notifDropdownRef}>
+                <button
+                  onClick={() => {
+                    setShowNotifDropdown(!showNotifDropdown)
+                    setShowSharedDropdown(false)
+                    setShowUserDropdown(false)
+                  }}
                   className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg relative transition"
                   title="Notifikasi"
                 >
@@ -305,9 +611,13 @@ export default function AdminLayout({
               </div>
 
               {/* User Profile Pill & Dropdown */}
-              <div className="relative">
+              <div className="relative" ref={userDropdownRef}>
                 <button
-                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  onClick={() => {
+                    setShowUserDropdown(!showUserDropdown)
+                    setShowSharedDropdown(false)
+                    setShowNotifDropdown(false)
+                  }}
                   className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1 bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 rounded-lg transition text-left"
                 >
                   <div className="w-7 h-7 rounded-md bg-gradient-to-tr from-indigo-500 to-sky-400 text-white font-black flex items-center justify-center text-xs shrink-0 shadow-xs">

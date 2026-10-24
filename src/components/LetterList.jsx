@@ -19,6 +19,9 @@ import {
   Printer,
   Share2,
   Inbox,
+  Mail,
+  CheckCheck,
+  Check,
 } from 'lucide-react'
 import ShareLetterModal from './ShareLetterModal'
 import {
@@ -38,6 +41,10 @@ import {
   getEffectiveKnownBy,
   canUserEditLetter,
   getCategories,
+  isSharedLetterRead,
+  markSharedLetterRead,
+  markAllSharedLettersRead,
+  getSharedLetterInfo,
 } from '../services/storage'
 import { notify } from '../utils/alert'
 import SearchableSelect from './SearchableSelect'
@@ -263,15 +270,21 @@ export default function LetterList({
     }
   }
 
-  const statusCounts = {
-    all: visibleLetters.length,
-    pending: visibleLetters.filter((l) => l.status === 'pending').length,
-    myAction: visibleLetters.filter((l) => canUserApproveLetter(l)).length,
-    approved: visibleLetters.filter((l) => l.status === 'approved').length,
-    revision: visibleLetters.filter((l) => l.status === 'revision').length,
-    rejected: visibleLetters.filter((l) => l.status === 'rejected').length,
-    draft: visibleLetters.filter((l) => l.status === 'draft').length,
-  }
+  const statusCounts = isInboxView
+    ? {
+        all: visibleLetters.length,
+        unread: visibleLetters.filter((l) => !isSharedLetterRead(l, currentUser)).length,
+        read: visibleLetters.filter((l) => isSharedLetterRead(l, currentUser)).length,
+      }
+    : {
+        all: visibleLetters.length,
+        pending: visibleLetters.filter((l) => l.status === 'pending').length,
+        myAction: visibleLetters.filter((l) => canUserApproveLetter(l)).length,
+        approved: visibleLetters.filter((l) => l.status === 'approved').length,
+        revision: visibleLetters.filter((l) => l.status === 'revision').length,
+        rejected: visibleLetters.filter((l) => l.status === 'rejected').length,
+        draft: visibleLetters.filter((l) => l.status === 'draft').length,
+      }
 
   // Lookup template map
   const templateMap = React.useMemo(() => {
@@ -376,12 +389,22 @@ export default function LetterList({
       l.title?.toLowerCase().includes(search.toLowerCase())
 
     let matchStatus = true
-    if (statusFilter === 'all') {
-      matchStatus = true
-    } else if (statusFilter === 'my_action') {
-      matchStatus = canUserApproveLetter(l)
+    if (isInboxView) {
+      if (statusFilter === 'unread') {
+        matchStatus = !isSharedLetterRead(l, currentUser)
+      } else if (statusFilter === 'read') {
+        matchStatus = isSharedLetterRead(l, currentUser)
+      } else {
+        matchStatus = true
+      }
     } else {
-      matchStatus = l.status === statusFilter
+      if (statusFilter === 'all') {
+        matchStatus = true
+      } else if (statusFilter === 'my_action') {
+        matchStatus = canUserApproveLetter(l)
+      } else {
+        matchStatus = l.status === statusFilter
+      }
     }
 
     const matchBranch =
@@ -428,144 +451,223 @@ export default function LetterList({
 
       {/* Filter Controls Card */}
       <div className="bg-white border border-slate-300 rounded-xl p-3.5 sm:p-4 shadow-md shadow-slate-400/20 space-y-3">
-        {/* Quick Status Filter Pills (Semua, Giliran Saya ACC, Pending, Disetujui, Perlu Revisi, Ditolak, Draf) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto py-1.5 text-xs">
-          <button
-            type="button"
-            onClick={() => setStatusFilter('all')}
-            className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
-              statusFilter === 'all'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-300'
-            }`}
-          >
-            <span>Semua</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-900 font-extrabold'
-              }`}
-            >
-              {statusCounts.all}
-            </span>
-          </button>
+        {/* Quick Status Filter Pills */}
+        <div className="flex items-center justify-between gap-2 overflow-x-auto py-1.5 text-xs">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isInboxView ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    statusFilter === 'all'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-300'
+                  }`}
+                >
+                  <span>Semua Surat</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-900 font-extrabold'
+                    }`}
+                  >
+                    {statusCounts.all}
+                  </span>
+                </button>
 
-          {statusCounts.myAction > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('unread')}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    statusFilter === 'unread'
+                      ? 'bg-indigo-700 text-white shadow-xs ring-2 ring-indigo-400'
+                      : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-950 border border-indigo-300'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <span className="font-extrabold">Belum Dibaca</span>
+                  {statusCounts.unread > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
+                      {statusCounts.unread}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('read')}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    statusFilter === 'read'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300'
+                  }`}
+                >
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-extrabold">Sudah Dibaca</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      statusFilter === 'read' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-950 font-extrabold'
+                    }`}
+                  >
+                    {statusCounts.read}
+                  </span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    statusFilter === 'all'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-300'
+                  }`}
+                >
+                  <span>Semua</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-900 font-extrabold'
+                    }`}
+                  >
+                    {statusCounts.all}
+                  </span>
+                </button>
+
+                {statusCounts.myAction > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter('my_action')}
+                    className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
+                      statusFilter === 'my_action'
+                        ? 'bg-indigo-700 text-white shadow-xs ring-2 ring-indigo-400'
+                        : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-950 border border-indigo-300'
+                    }`}
+                    title="Surat yang saat ini sedang menunggu persetujuan / giliran tanda tangan Anda"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-700 shrink-0" />
+                    <span className="font-extrabold">Giliran Saya ACC</span>
+                    <span className="px-1.5 py-0.2 rounded-full bg-indigo-600 text-white text-[10px] font-black animate-pulse">
+                      {statusCounts.myAction}
+                    </span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('pending')}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    statusFilter === 'pending'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                  <span className="font-extrabold text-amber-950">Pending</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      statusFilter === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-200 text-amber-950 font-extrabold'
+                    }`}
+                  >
+                    {statusCounts.pending}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('approved')}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    statusFilter === 'approved'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  <span className="font-extrabold text-emerald-950">Disetujui</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      statusFilter === 'approved' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-950 font-extrabold'
+                    }`}
+                  >
+                    {statusCounts.approved}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('revision')}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    statusFilter === 'revision'
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : 'bg-orange-50 hover:bg-orange-100 text-orange-950 border border-orange-300'
+                  }`}
+                >
+                  <AlertTriangle className="w-3.5 h-3.5 text-orange-700 shrink-0" />
+                  <span className="font-extrabold text-orange-950">Perlu Revisi</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      statusFilter === 'revision' ? 'bg-white/20 text-white' : 'bg-orange-200 text-orange-950 font-extrabold'
+                    }`}
+                  >
+                    {statusCounts.revision}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('rejected')}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    statusFilter === 'rejected'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'bg-rose-50 hover:bg-rose-100 text-rose-950 border border-rose-300'
+                  }`}
+                >
+                  <XCircle className="w-3.5 h-3.5 text-rose-700 shrink-0" />
+                  <span className="font-extrabold text-rose-950">Ditolak</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      statusFilter === 'rejected' ? 'bg-white/20 text-white' : 'bg-rose-200 text-rose-950 font-extrabold'
+                    }`}
+                  >
+                    {statusCounts.rejected}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('draft')}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    statusFilter === 'draft'
+                      ? 'bg-slate-800 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300'
+                  }`}
+                >
+                  <span className="font-extrabold text-slate-900">Draf</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      statusFilter === 'draft' ? 'bg-white/20 text-white' : 'bg-slate-300 text-slate-900 font-extrabold'
+                    }`}
+                  >
+                    {statusCounts.draft}
+                  </span>
+                </button>
+              </>
+            )}
+          </div>
+
+          {isInboxView && statusCounts.unread > 0 && (
             <button
               type="button"
-              onClick={() => setStatusFilter('my_action')}
-              className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
-                statusFilter === 'my_action'
-                  ? 'bg-indigo-700 text-white shadow-xs ring-2 ring-indigo-400'
-                  : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-950 border border-indigo-300'
-              }`}
-              title="Surat yang saat ini sedang menunggu persetujuan / giliran tanda tangan Anda"
+              onClick={() => {
+                markAllSharedLettersRead(currentUser)
+                notify.success('Berhasil', 'Semua surat dibagikan telah ditandai sudah dibaca.')
+              }}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 transition shrink-0 shadow-xs"
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-indigo-700 shrink-0" />
-              <span className="font-extrabold">Giliran Saya ACC</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-indigo-600 text-white text-[10px] font-black animate-pulse">
-                {statusCounts.myAction}
-              </span>
+              <CheckCheck className="w-3.5 h-3.5" />
+              <span>Tandai Semua Dibaca</span>
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter('pending')}
-            className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
-              statusFilter === 'pending'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-            <span className="font-extrabold text-amber-950">Pending</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                statusFilter === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-200 text-amber-950 font-extrabold'
-              }`}
-            >
-              {statusCounts.pending}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter('approved')}
-            className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
-              statusFilter === 'approved'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300'
-            }`}
-          >
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-            <span className="font-extrabold text-emerald-950">Disetujui</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                statusFilter === 'approved' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-950 font-extrabold'
-              }`}
-            >
-              {statusCounts.approved}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter('revision')}
-            className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
-              statusFilter === 'revision'
-                ? 'bg-orange-600 text-white shadow-xs'
-                : 'bg-orange-50 hover:bg-orange-100 text-orange-950 border border-orange-300'
-            }`}
-          >
-            <AlertTriangle className="w-3.5 h-3.5 text-orange-700 shrink-0" />
-            <span className="font-extrabold text-orange-950">Perlu Revisi</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                statusFilter === 'revision' ? 'bg-white/20 text-white' : 'bg-orange-200 text-orange-950 font-extrabold'
-              }`}
-            >
-              {statusCounts.revision}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter('rejected')}
-            className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
-              statusFilter === 'rejected'
-                ? 'bg-rose-600 text-white shadow-xs'
-                : 'bg-rose-50 hover:bg-rose-100 text-rose-950 border border-rose-300'
-            }`}
-          >
-            <XCircle className="w-3.5 h-3.5 text-rose-700 shrink-0" />
-            <span className="font-extrabold text-rose-950">Ditolak</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                statusFilter === 'rejected' ? 'bg-white/20 text-white' : 'bg-rose-200 text-rose-950 font-extrabold'
-              }`}
-            >
-              {statusCounts.rejected}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter('draft')}
-            className={`px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shrink-0 ${
-              statusFilter === 'draft'
-                ? 'bg-slate-800 text-white shadow-xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300'
-            }`}
-          >
-            <span className="font-extrabold text-slate-900">Draf</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                statusFilter === 'draft' ? 'bg-white/20 text-white' : 'bg-slate-300 text-slate-900 font-extrabold'
-              }`}
-            >
-              {statusCounts.draft}
-            </span>
-          </button>
         </div>
 
         {/* Filter Dropdowns Grid */}
@@ -689,48 +791,64 @@ export default function LetterList({
                       </td>
 
                       <td className="py-2 px-3.5">
-                        {l.status === 'approved' && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-950 border border-emerald-400 shadow-2xs">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" /> Disetujui Penuh
-                          </span>
-                        )}
-                        {l.status === 'pending' && (() => {
-                          if (isLetterAwaitingKnownBy(l)) {
-                            const { name: effectiveKnownName } = getEffectiveKnownBy(l)
-                            const knownName = effectiveKnownName || l.knownByName || l.fieldValues?.knownByName || 'Pihak Mengetahui'
-                            return (
-                              <span
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs"
-                                title="Menunggu tanda tangan / persetujuan dari Pihak Mengetahui"
-                              >
-                                <Clock className="w-3.5 h-3.5 text-amber-800 shrink-0" />
-                                <span>{knownName} (Mengetahui)</span>
-                              </span>
-                            )
-                          }
-                          const activeStep = l.approvalHistory?.[l.currentStep - 1]
-                          const approverName = getApproverName(activeStep, l)
-                          return (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
-                              <Clock className="w-3.5 h-3.5 text-amber-800 shrink-0" />
-                              <span>{approverName}</span>
+                        {isInboxView ? (
+                          !isSharedLetterRead(l, currentUser) ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-indigo-100 text-indigo-950 border border-indigo-400 shadow-2xs">
+                              <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+                              <span>Belum Dibaca</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs">
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Sudah Dibaca</span>
                             </span>
                           )
-                        })()}
-                        {l.status === 'revision' && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-orange-100 text-orange-950 border border-orange-400 shadow-2xs">
-                            <AlertTriangle className="w-3.5 h-3.5 text-orange-700 shrink-0" /> Perlu Revisi
-                          </span>
-                        )}
-                        {l.status === 'rejected' && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-rose-100 text-rose-950 border border-rose-400 shadow-2xs">
-                            <XCircle className="w-3.5 h-3.5 text-rose-700 shrink-0" /> Ditolak
-                          </span>
-                        )}
-                        {l.status === 'draft' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-slate-200 text-slate-900 border border-slate-400 shadow-2xs">
-                            Draf Belum Dikirim
-                          </span>
+                        ) : (
+                          <>
+                            {l.status === 'approved' && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-950 border border-emerald-400 shadow-2xs">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" /> Disetujui Penuh
+                              </span>
+                            )}
+                            {l.status === 'pending' && (() => {
+                              if (isLetterAwaitingKnownBy(l)) {
+                                const { name: effectiveKnownName } = getEffectiveKnownBy(l)
+                                const knownName = effectiveKnownName || l.knownByName || l.fieldValues?.knownByName || 'Pihak Mengetahui'
+                                return (
+                                  <span
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs"
+                                    title="Menunggu tanda tangan / persetujuan dari Pihak Mengetahui"
+                                  >
+                                    <Clock className="w-3.5 h-3.5 text-amber-800 shrink-0" />
+                                    <span>{knownName} (Mengetahui)</span>
+                                  </span>
+                                )
+                              }
+                              const activeStep = l.approvalHistory?.[l.currentStep - 1]
+                              const approverName = getApproverName(activeStep, l)
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
+                                  <Clock className="w-3.5 h-3.5 text-amber-800 shrink-0" />
+                                  <span>{approverName}</span>
+                                </span>
+                              )
+                            })()}
+                            {l.status === 'revision' && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-orange-100 text-orange-950 border border-orange-400 shadow-2xs">
+                                <AlertTriangle className="w-3.5 h-3.5 text-orange-700 shrink-0" /> Perlu Revisi
+                              </span>
+                            )}
+                            {l.status === 'rejected' && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-rose-100 text-rose-950 border border-rose-400 shadow-2xs">
+                                <XCircle className="w-3.5 h-3.5 text-rose-700 shrink-0" /> Ditolak
+                              </span>
+                            )}
+                            {l.status === 'draft' && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-slate-200 text-slate-900 border border-slate-400 shadow-2xs">
+                                Draf Belum Dikirim
+                              </span>
+                            )}
+                          </>
                         )}
                       </td>
 
@@ -738,12 +856,37 @@ export default function LetterList({
                         <div className="flex items-center justify-center gap-1.5">
                           {/* Tombol Lihat (Biru - Icon Only) */}
                           <button
-                            onClick={() => onOpenLetter(l)}
+                            onClick={() => {
+                              if (isInboxView) {
+                                markSharedLetterRead(l.id, currentUser, true)
+                              }
+                              onOpenLetter(l)
+                            }}
                             className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition shadow-xs flex items-center justify-center"
                             title="Lihat Dokumen Surat"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
+
+                          {/* Tombol Toggle Read/Unread khusus Tampilan Kotak Masuk */}
+                          {isInboxView && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextRead = !isSharedLetterRead(l, currentUser)
+                                markSharedLetterRead(l.id, currentUser, nextRead)
+                                notify.success('Status Diperbarui', nextRead ? 'Surat ditandai sudah dibaca' : 'Surat ditandai belum dibaca')
+                              }}
+                              className={`p-2 rounded-lg transition shadow-xs flex items-center justify-center ${
+                                isSharedLetterRead(l, currentUser)
+                                  ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                              }`}
+                              title={isSharedLetterRead(l, currentUser) ? 'Tandai sebagai belum dibaca' : 'Tandai sebagai sudah dibaca'}
+                            >
+                              {isSharedLetterRead(l, currentUser) ? <Mail className="w-4 h-4" /> : <CheckCheck className="w-4 h-4" />}
+                            </button>
+                          )}
 
                           {/* Tombol Cetak Langsung (Slate - Icon Only, Langsung Cetak Tanpa Pratinjau di Layar) */}
                           <button

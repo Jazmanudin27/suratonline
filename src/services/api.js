@@ -40,6 +40,18 @@ export const api = {
     }
   },
 
+  // 2b. Master Produk
+  async getProduk() {
+    try {
+      const res = await fetch(`${API_BASE}/produk`)
+      const json = await res.json()
+      return json.success && Array.isArray(json.data) ? json.data : null
+    } catch (e) {
+      console.warn('API getProduk fallback:', e.message)
+      return null
+    }
+  },
+
   // 3. Pengguna / Users
   async getUsers() {
     try {

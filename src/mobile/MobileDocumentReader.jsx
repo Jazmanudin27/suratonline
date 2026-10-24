@@ -80,64 +80,6 @@ export default function MobileDocumentReader({
   const currentScale =
     scaleMode === 'fit' ? fitScale : scaleMode === 'actual' ? 1 : customScale
 
-  // Gesture Pinch to Zoom (Dua Jari) Khusus Dokumen Lembar A4
-  const scaleRef = useRef(currentScale)
-  scaleRef.current = currentScale
-
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-
-    let initialDistance = 0
-    let startScale = 1
-    let isPinching = false
-
-    const getDistance = (touches) => {
-      const dx = touches[0].clientX - touches[1].clientX
-      const dy = touches[0].clientY - touches[1].clientY
-      return Math.hypot(dx, dy)
-    }
-
-    const onTouchStart = (e) => {
-      if (e.touches.length === 2) {
-        isPinching = true
-        initialDistance = getDistance(e.touches)
-        startScale = scaleRef.current
-      }
-    }
-
-    const onTouchMove = (e) => {
-      if (e.touches.length === 2 && isPinching && initialDistance > 0) {
-        // Cegah browser zoom seluruh viewport layar
-        e.preventDefault()
-        const currentDistance = getDistance(e.touches)
-        const ratio = currentDistance / initialDistance
-        const newScale = Math.min(3.0, Math.max(0.35, Number((startScale * ratio).toFixed(2))))
-        setScaleMode('custom')
-        setCustomScale(newScale)
-      }
-    }
-
-    const onTouchEnd = (e) => {
-      if (e.touches.length < 2) {
-        isPinching = false
-        initialDistance = 0
-      }
-    }
-
-    el.addEventListener('touchstart', onTouchStart, { passive: false })
-    el.addEventListener('touchmove', onTouchMove, { passive: false })
-    el.addEventListener('touchend', onTouchEnd)
-    el.addEventListener('touchcancel', onTouchEnd)
-
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchmove', onTouchMove)
-      el.removeEventListener('touchend', onTouchEnd)
-      el.removeEventListener('touchcancel', onTouchEnd)
-    }
-  }, [])
-
   return (
     <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col justify-between max-w-md mx-auto select-text animate-fadeIn">
       {/* 1. Header Bar Mobile */}
@@ -216,7 +158,6 @@ export default function MobileDocumentReader({
       {/* 3. Main Scaled A4 Document View (100% SAMA PERSIS DENGAN PC/LAPTOP) */}
       <div
         ref={containerRef}
-        style={{ touchAction: 'pan-x pan-y', WebkitOverflowScrolling: 'touch' }}
         className="flex-1 overflow-x-auto overflow-y-auto bg-slate-800 p-2 select-text"
       >
         <div

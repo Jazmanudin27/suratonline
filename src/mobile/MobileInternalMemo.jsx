@@ -155,63 +155,6 @@ export default function MobileInternalMemo({ currentUser }) {
     }
   }
 
-  // Gesture Pinch to Zoom (Dua Jari) Khusus Dokumen Lembar A4 Internal Memo
-  const pdfScaleRef = useRef(pdfScale)
-  pdfScaleRef.current = pdfScale
-
-  useEffect(() => {
-    const el = pdfContainerRef.current
-    if (!el || !readingMemo) return
-
-    let initialDistance = 0
-    let startScale = 1
-    let isPinching = false
-
-    const getDistance = (touches) => {
-      const dx = touches[0].clientX - touches[1].clientX
-      const dy = touches[0].clientY - touches[1].clientY
-      return Math.hypot(dx, dy)
-    }
-
-    const onTouchStart = (e) => {
-      if (e.touches.length === 2) {
-        isPinching = true
-        initialDistance = getDistance(e.touches)
-        startScale = pdfScaleRef.current
-      }
-    }
-
-    const onTouchMove = (e) => {
-      if (e.touches.length === 2 && isPinching && initialDistance > 0) {
-        // Cegah zoom browser bawaan pada seluruh layar (header & bottom bar tetap stabil)
-        e.preventDefault()
-        const currentDistance = getDistance(e.touches)
-        const ratio = currentDistance / initialDistance
-        const newScale = Math.min(3.0, Math.max(0.4, Number((startScale * ratio).toFixed(2))))
-        setPdfScale(newScale)
-      }
-    }
-
-    const onTouchEnd = (e) => {
-      if (e.touches.length < 2) {
-        isPinching = false
-        initialDistance = 0
-      }
-    }
-
-    el.addEventListener('touchstart', onTouchStart, { passive: false })
-    el.addEventListener('touchmove', onTouchMove, { passive: false })
-    el.addEventListener('touchend', onTouchEnd)
-    el.addEventListener('touchcancel', onTouchEnd)
-
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchmove', onTouchMove)
-      el.removeEventListener('touchend', onTouchEnd)
-      el.removeEventListener('touchcancel', onTouchEnd)
-    }
-  }, [readingMemo])
-
   // Aksi Konfirmasi Paham
   const handleAck = async (memoId) => {
     if (!currentUser?.id || submittingAck) return
@@ -884,7 +827,6 @@ export default function MobileInternalMemo({ currentUser }) {
           {/* 4. Canvas Lembar PDF Utama (Scaled A4 Persis Surat Ajuan) */}
           <div
             ref={pdfContainerRef}
-            style={{ touchAction: 'pan-x pan-y', WebkitOverflowScrolling: 'touch' }}
             className="flex-1 overflow-x-auto overflow-y-auto bg-slate-800 p-2.5"
           >
             {pdfLoading ? (

@@ -98,13 +98,13 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
           <button
             type="button"
             onClick={() => onSelectTemplate(BLANK_TEMPLATE)}
-            className="group inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:brightness-110 active:scale-95 transition-all duration-200 border border-white/30 cursor-pointer"
+            className="group inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-950 hover:bg-black text-white font-extrabold text-xs shadow-lg shadow-black/40 hover:shadow-black/60 active:scale-95 transition-all duration-200 border border-slate-700/80 hover:border-slate-500 cursor-pointer"
             title="Buat surat ajuan baru secara mandiri tanpa template baku"
           >
-            <div className="p-1 rounded-md bg-white/20 text-white group-hover:scale-110 transition-transform duration-200">
+            <div className="p-1 rounded-md bg-white/10 text-white group-hover:scale-110 transition-transform duration-200">
               <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </div>
-            <span className="tracking-wide">+ Buat Surat Bebas</span>
+            <span className="tracking-wide">Buat Surat Bebas</span>
           </button>
         </div>
       </div>
@@ -161,7 +161,7 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
             <Layers className="w-10 h-10 text-slate-300 mx-auto mb-2" />
             <h3 className="font-bold text-slate-700 text-sm">Tidak ada template pada kategori ini</h3>
             <p className="text-xs text-slate-500 mt-1">
-              Gunakan tombol <strong>+ Buat Surat Bebas</strong> di kanan atas untuk membuat surat tanpa template.
+              Gunakan tombol <strong>Buat Surat Bebas</strong> di kanan atas untuk membuat surat tanpa template.
             </p>
           </div>
         ) : (

@@ -173,6 +173,8 @@ app.get('/api/produk', async (req, res) => {
   } catch (err) {
     res.json({ success: false, message: err.message, data: [] })
   }
+})
+
 // -------------------------------------------------------------
 // 2c. INTERNAL MEMO (KHUSUS MOBILE)
 // -------------------------------------------------------------

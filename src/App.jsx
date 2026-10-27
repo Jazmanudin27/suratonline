@@ -660,6 +660,8 @@ export default function App() {
       isActive={isTourActive}
       currentUser={currentUser}
       activeMenu={activeMenu}
+      templates={templates}
+      onSelectTemplate={handleStartNewLetter}
       onNavigate={(menu) => setActiveMenu(menu)}
       onComplete={() => setIsTourActive(false)}
       onCancel={() => setIsTourActive(false)}

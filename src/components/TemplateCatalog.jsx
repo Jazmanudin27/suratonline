@@ -229,6 +229,7 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
               {/* Footer Action Button */}
               <div className="p-3 sm:px-4 bg-gradient-to-r from-slate-50 to-indigo-50/40 border-t border-slate-200/80">
                 <button
+                  id={idx === 0 ? 'btn-use-template-first' : `btn-use-template-${idx}`}
                   onClick={() => onSelectTemplate(tpl)}
                   className="w-full py-2 px-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-md shadow-indigo-500/20 active:scale-98 group-hover:shadow-indigo-500/30 cursor-pointer"
                 >

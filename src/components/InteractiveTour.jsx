@@ -35,6 +35,8 @@ export default function InteractiveTour({
   currentUser,
   activeMenu,
   onNavigate,
+  templates = [],
+  onSelectTemplate,
 }) {
   const [stepIndex, setStepIndex] = useState(0)
   const [targetRect, setTargetRect] = useState(null)
@@ -157,6 +159,34 @@ export default function InteractiveTour({
   if (!isActive) return null
 
   const handleNext = () => {
+    // Jalankan aksi tombol yang sedang diarahkan
+    if (currentStep?.id === 'step_menu_create') {
+      if (onNavigate) onNavigate('templates')
+    } else if (currentStep?.id === 'step_pick_template') {
+      // Otomatis pilih template pertama / klik tombol gunakan template
+      const btn = document.querySelector('#btn-use-template-first, #template-card-0 button')
+      if (btn) {
+        btn.click()
+      } else if (onSelectTemplate && templates.length > 0) {
+        onSelectTemplate(templates[0])
+      }
+    } else if (currentStep?.id === 'step_fill_perihal') {
+      // Fokuskan input perihal
+      const input = document.querySelector('#field-perihal-input, input[name="perihal"]')
+      if (input) {
+        if (!input.value) {
+          input.value = 'Permohonan Pengajuan Kebutuhan Operasional'
+          input.dispatchEvent(new Event('input', { bubbles: true }))
+          input.dispatchEvent(new Event('change', { bubbles: true }))
+        }
+        input.focus()
+      }
+    } else if (currentStep?.id === 'step_attachments') {
+      // Buka popup kelola lampiran
+      const btn = document.querySelector('#btn-manage-attachments')
+      if (btn) btn.click()
+    }
+
     if (stepIndex < steps.length - 1) {
       setStepIndex((prev) => prev + 1)
     } else {
@@ -223,16 +253,21 @@ export default function InteractiveTour({
         className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px] transition-opacity duration-300"
       />
 
-      {/* 2. Spotlight Highlight Cutout di sekeliling target */}
+      {/* 2. Spotlight Highlight Cutout di sekeliling target (Bisa diklik langsung oleh user) */}
       {targetRect && (
         <div
+          onClick={(e) => {
+            e.stopPropagation()
+            handleNext()
+          }}
           style={{
             top: targetRect.top - 6,
             left: targetRect.left - 6,
             width: targetRect.width + 12,
             height: targetRect.height + 12,
           }}
-          className="fixed rounded-2xl ring-4 ring-indigo-400 ring-offset-4 ring-offset-slate-950 shadow-[0_0_40px_rgba(99,102,241,0.6)] pointer-events-none transition-all duration-300 animate-pulse bg-white/5"
+          className="fixed rounded-2xl ring-4 ring-indigo-400 ring-offset-4 ring-offset-slate-950 shadow-[0_0_40px_rgba(99,102,241,0.6)] pointer-events-auto cursor-pointer transition-all duration-300 animate-pulse bg-white/5 hover:bg-white/15"
+          title="Klik di sini untuk langsung mencoba"
         />
       )}
 

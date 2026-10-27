@@ -1,10 +1,11 @@
 import React from 'react'
-import { Home, FileText, Inbox, User, Package, FileCheck2 } from 'lucide-react'
+import { Home, Inbox, HelpCircle, User } from 'lucide-react'
 
 export default function MobileBottomNav({
-  activeTab = 'archive',
+  activeTab = 'dashboard',
   onTabChange,
   pendingApprovalsCount = 0,
+  onOpenGuide,
 }) {
   const tabs = [
     {
@@ -13,25 +14,17 @@ export default function MobileBottomNav({
       icon: Home,
     },
     {
-      id: 'archive',
-      label: 'Surat',
-      icon: FileText,
-    },
-    {
       id: 'inbox',
       label: 'Inbox',
       icon: Inbox,
       badge: pendingApprovalsCount,
     },
     {
-      id: 'memo',
-      label: 'IM',
-      icon: FileCheck2,
-    },
-    {
-      id: 'products',
-      label: 'Produk',
-      icon: Package,
+      id: 'guide',
+      label: 'Petunjuk',
+      icon: HelpCircle,
+      isAction: true,
+      onClick: onOpenGuide,
     },
     {
       id: 'profile',
@@ -51,7 +44,13 @@ export default function MobileBottomNav({
             <button
               key={tab.id}
               type="button"
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => {
+                if (tab.isAction && typeof tab.onClick === 'function') {
+                  tab.onClick()
+                } else {
+                  onTabChange(tab.id)
+                }
+              }}
               className={`relative flex-1 flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all duration-200 active:scale-95 ${
                 isActive
                   ? 'bg-gradient-to-b from-blue-600 to-indigo-600 text-white font-extrabold shadow-md shadow-blue-500/30 ring-1 ring-white/20'

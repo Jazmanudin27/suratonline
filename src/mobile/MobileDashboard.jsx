@@ -90,7 +90,7 @@ export default function MobileDashboard({
   const quickActions = [
     {
       id: 'create_letter',
-      label: 'Buat Surat',
+      label: 'Surat Ajuan',
       icon: FilePlus,
       gradient: 'from-blue-500 to-indigo-600',
       shadow: 'shadow-blue-500/30',
@@ -98,7 +98,7 @@ export default function MobileDashboard({
     },
     {
       id: 'inbox_act',
-      label: 'Inbox ACC',
+      label: 'Inbox',
       icon: Inbox,
       badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : null,
       gradient: 'from-rose-500 to-red-600',
@@ -106,16 +106,8 @@ export default function MobileDashboard({
       action: () => onNavigateTab('inbox'),
     },
     {
-      id: 'archive_act',
-      label: 'Arsip Surat',
-      icon: FileText,
-      gradient: 'from-amber-400 to-orange-500',
-      shadow: 'shadow-amber-500/30',
-      action: () => onNavigateTab('archive'),
-    },
-    {
       id: 'memo_act',
-      label: 'Internal Memo',
+      label: 'IM',
       icon: FileCheck2,
       gradient: 'from-emerald-500 to-teal-600',
       shadow: 'shadow-emerald-500/30',
@@ -123,7 +115,7 @@ export default function MobileDashboard({
     },
     {
       id: 'product_act',
-      label: 'Data Produk',
+      label: 'Produk',
       icon: Package,
       gradient: 'from-cyan-500 to-blue-600',
       shadow: 'shadow-cyan-500/30',
@@ -139,19 +131,11 @@ export default function MobileDashboard({
     },
     {
       id: 'profile_act',
-      label: 'Profil Saya',
+      label: 'Profile',
       icon: User,
       gradient: 'from-teal-500 to-emerald-600',
       shadow: 'shadow-teal-500/30',
       action: () => onNavigateTab('profile'),
-    },
-    {
-      id: 'desktop_act',
-      label: 'Mode PC',
-      icon: Monitor,
-      gradient: 'from-slate-700 to-slate-900',
-      shadow: 'shadow-slate-700/30',
-      action: onSwitchToDesktop || (() => {}),
     },
   ]
 

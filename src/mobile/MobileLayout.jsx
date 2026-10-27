@@ -109,11 +109,12 @@ export default function MobileLayout({
           )}
         </main>
 
-        {/* Bottom Floating Navigation Bar (4 Tab Simple) */}
+        {/* Bottom Floating Navigation Bar (4 Tab: Beranda, Inbox, Petunjuk, Profile) */}
         <MobileBottomNav
           activeTab={activeTab}
           onTabChange={(tab) => setActiveTab(tab)}
           pendingApprovalsCount={pendingApprovalsCount}
+          onOpenGuide={onOpenGuide}
         />
 
         {/* Mobile Document Reader (Card Sheet Mobile-First) */}

@@ -49,20 +49,20 @@ export default function UserGuide({
   // Steps untuk panduan interaktif step-by-step
   const walkthroughSteps = [
     {
-      title: '1. Pilih Template Surat',
+      title: '1. Pilih Jalur: Gunakan Template ATAU Buat Surat Bebas (Custom)',
       icon: FilePlus,
       color: 'from-blue-600 to-indigo-600',
       badge: 'Langkah Awal',
-      desc: 'Klik menu "Buat Surat Ajuan" di bagian atas. Pilih template surat yang sesuai dengan kebutuhan Anda (misal: Ajuan Perjalanan Dinas, Perbaikan Aset/Service, Diskon CRM, atau Permohonan Cuti).',
-      tips: 'Setiap template sudah dilengkapi format surat baku, penomoran otomatis, dan alur approver yang disesuaikan divisi/cabang.',
+      desc: 'Ada 2 cara membuat surat: (A) TEMPLATE BAKU (klik "Gunakan Template Ini" untuk surat operasional standar seperti Perdin, Service, Diskon yang formatnya sudah siap pakai dan tinggal diedit), ATAU (B) SURAT BEBAS / CUSTOM (klik tombol hitam "Buat Surat Bebas" di kanan atas jika ingin menulis surat bebas dengan format nomor sendiri & editor Word kosong).',
+      tips: 'Template Baku lebih cepat karena format resmi dan daftar pejabat approver-nya sudah otomatis terisi.',
     },
     {
-      title: '2. Isi Formulir & Detail Pengajuan',
+      title: '2. Isi Formulir (Template) vs Tulis Isi Bebas (Custom)',
       icon: Layers,
       color: 'from-indigo-600 to-purple-600',
       badge: 'Pengisian Data',
-      desc: 'Lengkapi kolom formulir yang tersedia. Masukkan tanggal, kota tujuan/alasan, rincian biaya (jika ada), serta keterangan lengkap yang dibutuhkan untuk verifikasi atasan.',
-      tips: 'Tersedia pratinjau langsung (Live Preview) di sebelah formulir sehingga Anda bisa melihat hasil surat secara riil sebelum diajukan.',
+      desc: 'Untuk Template: Cukup isi kolom nama/perihal, tanggal, dan rincian biaya jika ada. Teks surat langsung terkompilasi otomatis. Untuk Surat Bebas (Custom): Anda dapat mengetik nomor surat sendiri, menyusun teks narasi secara mandiri di editor layar penuh (Word), dan mengatur pihak mengetahui cabang.',
+      tips: 'Pada Template Baku, Anda tetap dapat menyempurnakan kalimat melalui tombol "Edit Isi Surat (Word)" di tab Pratinjau.',
     },
     {
       title: '3. Lampirkan Bukti / Dokumen Pendukung',
@@ -77,7 +77,7 @@ export default function UserGuide({
       icon: Send,
       color: 'from-emerald-600 to-teal-600',
       badge: 'Pengiriman & Tracking',
-      desc: 'Klik tombol "Kirim Ajuan Surat". Surat otomatis terkirim ke kotak masuk atasan/approver tahap pertama. Notifikasi dan riwayat status surat dapat dipantau di menu "Daftar Arsip Surat".',
+      desc: 'Klik tombol "Kirim Ajuan". Surat otomatis terkirim ke kotak masuk atasan/approver tahap pertama. Notifikasi dan riwayat status surat dapat dipantau di menu "Daftar Arsip Surat".',
       tips: 'Setelah disetujui penuh oleh Direktur/Manajemen, surat resmi langsung memuat QR Code keabsahan dan siap dicetak/diunduh.',
     },
   ]
@@ -295,52 +295,42 @@ export default function UserGuide({
                 </p>
               </div>
 
+              {/* Perbandingan Template Baku vs Surat Custom */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-300 transition">
-                  <div className="flex items-center gap-2 mb-2 font-bold text-slate-800 text-sm">
-                    <span className="w-6 h-6 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-black">1</span>
-                    <span>Pilih Template Sesuai Kategori</span>
+                <div className="p-4 rounded-2xl border-2 border-indigo-200 bg-indigo-50/40 hover:bg-white transition shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-600 text-white tracking-wider">
+                      Opsi A: Template Baku
+                    </span>
+                    <span className="text-[11px] font-bold text-emerald-700">Langsung Pakai &amp; Cepat</span>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Sistem menyediakan berbagai template baku seperti:
-                    <br />• <strong>PERDIN:</strong> Perjalanan dinas, tiket, penginapan & uang saku.
-                    <br />• <strong>SERVICE:</strong> Perbaikan kendaraan operasional, inventaris, laptop, atau mesin.
-                    <br />• <strong>DISKON:</strong> Pengajuan diskon CRM untuk kemitraan/pelanggan khusus.
-                    <br />• <strong>CUTI / LAINNYA:</strong> Izin atau keperluan administratif kantor cabang.
-                  </p>
+                  <h4 className="font-extrabold text-slate-900 text-sm mb-1.5">
+                    Surat Operasional Baku (Tinggal Edit Form)
+                  </h4>
+                  <ul className="text-xs text-slate-600 space-y-1.5 leading-relaxed">
+                    <li>• <strong>Format Baku:</strong> Format surat, tata letak, dan bahasa resmi sudah disiapkan oleh manajemen.</li>
+                    <li>• <strong>Nomor Otomatis:</strong> Nomor surat digenerate otomatis sesuai kode cabang &amp; template.</li>
+                    <li>• <strong>Approver Otomatis:</strong> Pejabat yang berhak menyetujui sudah dipasangkan sesuai hierarki divisi.</li>
+                    <li>• <strong>Cukup Edit:</strong> Cukup isi perihal, tanggal, dan rincian biaya (jika ada). Jika butuh penyesuaian kalimat, klik tombol <em>"Edit Isi Surat (Word)"</em>.</li>
+                  </ul>
                 </div>
 
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-300 transition">
-                  <div className="flex items-center gap-2 mb-2 font-bold text-slate-800 text-sm">
-                    <span className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-black">2</span>
-                    <span>Nomor Surat Otomatis</span>
+                <div className="p-4 rounded-2xl border-2 border-slate-300 bg-slate-900 text-white hover:border-slate-400 transition shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-400 text-slate-950 tracking-wider">
+                      Opsi B: Surat Bebas (Custom)
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-300">Fleksibel Penuh</span>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Nomor surat dibuat otomatis oleh sistem dengan format standar:
-                    <br /><code className="text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded font-mono">[NoUrut]/[KODE_TEMPLATE]/[CABANG]/[BULAN_ROMAWI]/[TAHUN]</code>
-                    <br />Anda tidak perlu mengisi nomor surat secara manual.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-300 transition">
-                  <div className="flex items-center gap-2 mb-2 font-bold text-slate-800 text-sm">
-                    <span className="w-6 h-6 rounded-md bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-black">3</span>
-                    <span>Upload Bukti Lampiran</span>
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Setiap bukti fisik (kuitansi/nota/foto kondisi fisik aset) dapat dilampirkan langsung.
-                    File yang didukung: <strong>JPG, PNG, PDF</strong>. Lampiran ini akan ikut tersimpan dalam arsip surat dan dapat dilihat oleh semua approver.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-300 transition">
-                  <div className="flex items-center gap-2 mb-2 font-bold text-slate-800 text-sm">
-                    <span className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black">4</span>
-                    <span>Review Surat & Tandatangan</span>
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Sebelum dikirim, gunakan tab <strong>"Pratinjau & Review"</strong> untuk memeriksa susunan kalimat, paragraf, dan tata letak dokumen resmi. Setelah yakin, klik <strong>Ajukan Surat</strong>.
-                  </p>
+                  <h4 className="font-extrabold text-white text-sm mb-1.5">
+                    Surat Mandiri / Kustom Bebas (Editor Kosong)
+                  </h4>
+                  <ul className="text-xs text-slate-300 space-y-1.5 leading-relaxed">
+                    <li>• <strong>Editor Kosong:</strong> Klik tombol hitam <em>"Buat Surat Bebas"</em>. Halaman dimulai dari lembar Word kosong.</li>
+                    <li>• <strong>Nomor Fleksibel:</strong> Nomor surat dapat diedit manual sesuai kebutuhan penomoran cabang.</li>
+                    <li>• <strong>Tulis Bebas:</strong> Susun tabel, paragraf, dan isi permohonan secara mandiri di editor layar penuh.</li>
+                    <li>• <strong>Approver Mandiri:</strong> Pihak "Mengetahui" (misal Manager Cabang / OM / SMM) dan pejabat penerima dapat disesuaikan per surat.</li>
+                  </ul>
                 </div>
               </div>
             </div>

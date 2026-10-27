@@ -97,6 +97,7 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
           </div>
           <button
             type="button"
+            id="btn-custom-blank-letter"
             onClick={() => onSelectTemplate(BLANK_TEMPLATE)}
             className="group inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-950 hover:bg-black text-white font-extrabold text-xs shadow-lg shadow-black/40 hover:shadow-black/60 active:scale-95 transition-all duration-200 border border-slate-700/80 hover:border-slate-500 cursor-pointer"
             title="Buat surat ajuan baru secara mandiri tanpa template baku"

@@ -40,6 +40,7 @@ export default function UserGuide({
   onClose,
   onStartNewLetter,
   onNavigate,
+  onStartInteractiveTour,
 }) {
   const [activeCategory, setActiveCategory] = useState('pengajuan')
   const [currentStep, setCurrentStep] = useState(0)
@@ -127,6 +128,19 @@ export default function UserGuide({
           </div>
 
           <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0">
+            {onStartInteractiveTour && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onClose) onClose()
+                  onStartInteractiveTour()
+                }}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 transition active:scale-95 border border-emerald-400/40"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+                <span>Mulai Panduan Langsung (Arahkan Step-by-Step)</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleGoCreate}
@@ -141,7 +155,7 @@ export default function UserGuide({
                 onClick={handleFinishOnboarding}
                 className="px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 transition flex items-center justify-center gap-1.5"
               >
-                <span>Saya Sudah Paham & Tutup</span>
+                <span>Saya Sudah Paham &amp; Tutup</span>
               </button>
             )}
           </div>
@@ -637,7 +651,7 @@ export default function UserGuide({
   )
 }
 
-export function UserGuideModal({ isOpen, onClose, onStartNewLetter, onNavigate }) {
+export function UserGuideModal({ isOpen, onClose, onStartNewLetter, onNavigate, onStartInteractiveTour }) {
   if (!isOpen) return null
 
   return (
@@ -666,6 +680,7 @@ export function UserGuideModal({ isOpen, onClose, onStartNewLetter, onNavigate }
             onClose={onClose}
             onStartNewLetter={onStartNewLetter}
             onNavigate={onNavigate}
+            onStartInteractiveTour={onStartInteractiveTour}
           />
         </div>
       </div>

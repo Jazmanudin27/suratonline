@@ -926,6 +926,7 @@ export default function LetterFormBuilder({
 
             <button
               type="button"
+              id="btn-save-draft"
               onClick={handleSaveDraft}
               className="px-3.5 py-1.5 text-xs font-bold text-white bg-white/15 hover:bg-white/25 active:bg-white/30 border border-white/20 rounded-lg transition flex items-center gap-1.5 shadow-xs backdrop-blur-xs"
               title="Simpan dokumen sebagai draf sementara"
@@ -936,6 +937,7 @@ export default function LetterFormBuilder({
 
             <button
               type="button"
+              id="btn-submit-letter"
               onClick={handleSubmit}
               className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 rounded-lg transition flex items-center gap-1.5 shadow-md shadow-emerald-950/30 border border-emerald-400/40"
             >
@@ -981,6 +983,7 @@ export default function LetterFormBuilder({
               {/* Tombol Kelola Lampiran & Foto */}
               <button
                 type="button"
+                id="btn-manage-attachments"
                 onClick={() => setShowAttachmentManager(true)}
                 className="px-3.5 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition border bg-white border-slate-300 hover:bg-slate-50 text-slate-800 shadow-2xs hover:border-indigo-400"
                 title="Buka popup modal untuk mengunggah dan mengatur foto lampiran"
@@ -1218,6 +1221,7 @@ export default function LetterFormBuilder({
                         />
                       ) : (
                         <input
+                          id={field.name === 'perihal' || field.id === 'f_perihal' ? 'field-perihal-input' : undefined}
                           name={field.name}
                           type={
                             field.type === "number"

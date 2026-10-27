@@ -242,6 +242,7 @@ export default function MobileDashboard({
               return (
                 <button
                   key={action.id}
+                  id={`mobile-quick-${action.id}`}
                   type="button"
                   onClick={action.action}
                   className="flex flex-col items-center text-center group active:scale-95 transition-transform"

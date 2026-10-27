@@ -13,6 +13,7 @@ import LetterDocumentView from './components/LetterDocumentView'
 import LoginForm from './components/LoginForm'
 import MobileLayout from './mobile/MobileLayout'
 import UserGuide, { UserGuideModal, isGuideSeen } from './components/UserGuide'
+import InteractiveTour, { isTourCompleted } from './components/InteractiveTour'
 import {
   initializeStorage,
   syncWithDatabase,
@@ -80,6 +81,7 @@ export default function App() {
   const [directPrintLetter, setDirectPrintLetter] = useState(null)
   const [isPreparingPrint, setIsPreparingPrint] = useState(false)
   const [showGuideModal, setShowGuideModal] = useState(false)
+  const [isTourActive, setIsTourActive] = useState(false)
   const printTimeoutRef = useRef(null)
 
   const handleDirectPrint = (ltr) => {
@@ -516,6 +518,9 @@ export default function App() {
         <UserGuide
           onStartNewLetter={() => setActiveMenu('templates')}
           onNavigate={(menu) => setActiveMenu(menu)}
+          onStartInteractiveTour={() => {
+            setIsTourActive(true)
+          }}
         />
       )}
 
@@ -644,6 +649,20 @@ export default function App() {
         setShowGuideModal(false)
         setActiveMenu(menu)
       }}
+      onStartInteractiveTour={() => {
+        setShowGuideModal(false)
+        setIsTourActive(true)
+      }}
+    />
+
+    {/* Interactive Walkthrough Tour (Panduan Langsung di Layar dengan Spotlight) */}
+    <InteractiveTour
+      isActive={isTourActive}
+      currentUser={currentUser}
+      activeMenu={activeMenu}
+      onNavigate={(menu) => setActiveMenu(menu)}
+      onComplete={() => setIsTourActive(false)}
+      onCancel={() => setIsTourActive(false)}
     />
     </>
   )

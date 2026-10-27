@@ -165,12 +165,13 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
             </p>
           </div>
         ) : (
-          filteredTemplates.map((tpl) => {
+          filteredTemplates.map((tpl, idx) => {
           const stepsCount = tpl.approvalSteps?.length || 1
 
           return (
             <div
               key={tpl.id}
+              id={`template-card-${idx}`}
               className="bg-white border border-slate-300/80 hover:border-indigo-400 rounded-2xl shadow-md shadow-slate-900/5 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between group overflow-hidden"
             >
               {/* Top Accent Strip */}

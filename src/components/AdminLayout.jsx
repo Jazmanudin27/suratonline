@@ -743,6 +743,7 @@ export default function AdminLayout({
               return (
                 <button
                   key={item.id}
+                  id={`nav-item-${item.id}`}
                   onClick={() => onMenuChange(item.id)}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-semibold text-xs transition duration-150 shrink-0 ${
                     item.isActive

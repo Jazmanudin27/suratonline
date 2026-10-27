@@ -56,6 +56,8 @@ import {
   formatDateId,
   getGlobalDefaultViewers,
   saveGlobalDefaultViewers,
+  getJabatan,
+  HRD_JABATAN,
 } from '../services/storage'
 import { notify } from '../utils/alert'
 
@@ -83,6 +85,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
   const [showGlobalViewerModal, setShowGlobalViewerModal] = useState(false)
   const [viewerSearchQuery, setViewerSearchQuery] = useState('')
   const [viewerBranchFilter, setViewerBranchFilter] = useState('ALL')
+  const [jabatanList, setJabatanList] = useState(getJabatan())
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -97,19 +100,23 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
   const refreshList = () => {
     setTemplates(getTemplates())
     setLettersList(getLetters())
+    setJabatanList(getJabatan())
   }
 
   useEffect(() => {
     const handleCatChange = () => setCategories(getCategories())
     const handleGlobalViewersChange = () => setGlobalDefaultViewers(getGlobalDefaultViewers())
     const handleTplChange = () => setTemplates(getTemplates())
+    const handleJabatanChange = () => setJabatanList(getJabatan())
     window.addEventListener('categories_change', handleCatChange)
     window.addEventListener('global_viewers_change', handleGlobalViewersChange)
     window.addEventListener('templates_change', handleTplChange)
+    window.addEventListener('jabatan_change', handleJabatanChange)
     return () => {
       window.removeEventListener('categories_change', handleCatChange)
       window.removeEventListener('global_viewers_change', handleGlobalViewersChange)
       window.removeEventListener('templates_change', handleTplChange)
+      window.removeEventListener('jabatan_change', handleJabatanChange)
     }
   }, [])
 
@@ -910,13 +917,13 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                         <SearchableSelect
                           value={step.kodeJabatan || step.approverRole || ''}
                           placeholder="-- Pilih Kode Jabatan HRD --"
-                          options={HRD_JABATAN.map((j) => ({
+                          options={jabatanList.map((j) => ({
                             value: j.kode,
                             label: `${j.kode} - ${j.nama}`,
                             sublabel: j.alias,
                           }))}
                           onChange={(selectedKode) => {
-                            const matched = HRD_JABATAN.find((j) => j.kode === selectedKode)
+                            const matched = jabatanList.find((j) => j.kode === selectedKode)
                             const steps = [...editingTemplate.approvalSteps]
                             steps[idx].kodeJabatan = selectedKode
                             if (matched) {
@@ -1226,13 +1233,13 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                     <SearchableSelect
                       value={step.kodeJabatan || step.approverRole || ''}
                       placeholder="-- Pilih Jabatan HRD --"
-                      options={HRD_JABATAN.map((j) => ({
+                      options={jabatanList.map((j) => ({
                         value: j.kode,
                         label: `${j.kode} - ${j.nama}`,
                         sublabel: j.alias,
                       }))}
                       onChange={(selectedKode) => {
-                        const matched = HRD_JABATAN.find((j) => j.kode === selectedKode)
+                        const matched = jabatanList.find((j) => j.kode === selectedKode)
                         const steps = [...approverModalTemplate.approvalSteps]
                         steps[idx].kodeJabatan = selectedKode
                         if (matched) {

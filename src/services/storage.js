@@ -16,6 +16,42 @@ const STORAGE_KEYS = {
 
 export const DEFAULT_PRODUCTS = []
 
+export const DEFAULT_HRD_JABATAN = [
+  { kode: 'J01', nama: 'DIREKTUR', alias: 'DIR' },
+  { kode: 'J02', nama: 'GENERAL MANAGER', alias: 'GM' },
+  { kode: 'J03', nama: 'REGIONAL SALES MANAGER', alias: 'RSM' },
+  { kode: 'J04', nama: 'REGIONAL OPERATION MANAGER', alias: 'ROM' },
+  { kode: 'J05', nama: 'MANAGER', alias: 'MGR' },
+  { kode: 'J06', nama: 'ASST. MANAGER', alias: 'ASST. MGR' },
+  { kode: 'J07', nama: 'SALES MARKETING MANAGER', alias: 'SMM' },
+  { kode: 'J08', nama: 'OPERATION MANAGER', alias: 'OM' },
+  { kode: 'J09', nama: 'KEPALA PRODUKSI', alias: 'KAPROD' },
+  { kode: 'J10', nama: 'KEPALA GUDANG', alias: 'KAGUD' },
+  { kode: 'J11', nama: 'KEPALA REGU', alias: 'KAREGU' },
+  { kode: 'J12', nama: 'SUPERVISOR', alias: 'SPV' },
+  { kode: 'J13', nama: 'STAFF', alias: 'STAFF' },
+  { kode: 'J14', nama: 'ADMIN', alias: 'ADM' },
+  { kode: 'J15', nama: 'CHECKER', alias: 'CHECKER' },
+  { kode: 'J16', nama: 'OPERATOR', alias: 'OPR' },
+  { kode: 'J17', nama: 'MEKANIK', alias: 'MEK' },
+  { kode: 'J18', nama: 'HELPER', alias: 'HELPER' },
+  { kode: 'J19', nama: 'SALESMAN', alias: 'SLS' },
+  { kode: 'J20', nama: 'SECURITY', alias: 'SEC' },
+  { kode: 'J21', nama: 'SOPIR', alias: 'SOPIR' },
+  { kode: 'J22', nama: 'SPG', alias: 'SPG' },
+  { kode: 'J23', nama: 'SPB', alias: 'SPB' },
+  { kode: 'J24', nama: 'UMUM', alias: 'UMUM' },
+  { kode: 'J25', nama: 'SPV PAJAK', alias: 'SPV PAJAK' },
+  { kode: 'J26', nama: 'CRM', alias: 'CRM' },
+  { kode: 'J27', nama: 'IT', alias: 'IT' },
+  { kode: 'J28', nama: 'KEUANGAN', alias: 'KEU' },
+  { kode: 'J29', nama: 'SALES Exclusive', alias: 'SALES' },
+  { kode: 'J30', nama: 'SPV PAJAK', alias: 'SPV PAJAK' },
+  { kode: 'J31', nama: 'ASPS', alias: 'ASPS' },
+  { kode: 'J32', nama: 'SALES REPRESENTATIF', alias: 'SR' },
+]
+export const HRD_JABATAN = DEFAULT_HRD_JABATAN
+
 // Convert month number to Roman numerals
 export const getRomanMonth = (date = new Date()) => {
   const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
@@ -465,7 +501,10 @@ export const deleteProduct = (kodeProduk) => {
 
 // User & Auth Management
 export const getUsers = () => getStorageItem(STORAGE_KEYS.USERS, [])
-export const getJabatan = () => getStorageItem(STORAGE_KEYS.JABATAN, [])
+export const getJabatan = () => {
+  const list = getStorageItem(STORAGE_KEYS.JABATAN, [])
+  return Array.isArray(list) && list.length > 0 ? list : DEFAULT_HRD_JABATAN
+}
 export const getCurrentUser = () => {
   const user = getStorageItem(STORAGE_KEYS.CURRENT_USER, null)
   if (user) return user

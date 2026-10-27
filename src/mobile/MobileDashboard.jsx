@@ -86,84 +86,78 @@ export default function MobileDashboard({
   // Surat terkini (ambil 6 teratas)
   const recentLetters = letters.slice(0, 6)
 
-  // Tombol aksi pintas di beranda
+  // Tombol aksi pintas di beranda (Format kotak icon di atas, text di bawah)
   const quickActions = [
     {
-      id: 'archive_create',
-      label: 'Ajuan Surat',
-      desc: 'Daftar & buat surat',
-      icon: FileText,
-      color: 'from-blue-600 to-indigo-600',
+      id: 'create_letter',
+      label: 'Buat Surat',
+      icon: FilePlus,
+      gradient: 'from-blue-500 to-indigo-600',
+      shadow: 'shadow-blue-500/30',
       action: () => onNavigateTab('archive'),
     },
     {
       id: 'inbox_act',
-      label: 'Inbox Approval',
-      desc: `${pendingApprovalsCount} butuh ACC`,
+      label: 'Inbox ACC',
       icon: Inbox,
       badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : null,
-      color: 'from-rose-500 to-pink-600',
+      gradient: 'from-rose-500 to-red-600',
+      shadow: 'shadow-rose-500/30',
       action: () => onNavigateTab('inbox'),
+    },
+    {
+      id: 'archive_act',
+      label: 'Arsip Surat',
+      icon: FileText,
+      gradient: 'from-amber-400 to-orange-500',
+      shadow: 'shadow-amber-500/30',
+      action: () => onNavigateTab('archive'),
     },
     {
       id: 'memo_act',
       label: 'Internal Memo',
-      desc: 'Instruksi resmi pusat',
       icon: FileCheck2,
-      color: 'from-purple-600 to-indigo-600',
+      gradient: 'from-emerald-500 to-teal-600',
+      shadow: 'shadow-emerald-500/30',
       action: () => onNavigateTab('memo'),
     },
     {
       id: 'product_act',
       label: 'Data Produk',
-      desc: 'Katalog komoditas',
       icon: Package,
-      color: 'from-amber-500 to-orange-600',
+      gradient: 'from-cyan-500 to-blue-600',
+      shadow: 'shadow-cyan-500/30',
       action: () => onNavigateTab('products'),
+    },
+    {
+      id: 'guide_act',
+      label: 'Petunjuk',
+      icon: HelpCircle,
+      gradient: 'from-purple-500 to-violet-600',
+      shadow: 'shadow-purple-500/30',
+      action: onOpenGuide || (() => onNavigateTab('archive')),
+    },
+    {
+      id: 'profile_act',
+      label: 'Profil Saya',
+      icon: User,
+      gradient: 'from-teal-500 to-emerald-600',
+      shadow: 'shadow-teal-500/30',
+      action: () => onNavigateTab('profile'),
+    },
+    {
+      id: 'desktop_act',
+      label: 'Mode PC',
+      icon: Monitor,
+      gradient: 'from-slate-700 to-slate-900',
+      shadow: 'shadow-slate-700/30',
+      action: onSwitchToDesktop || (() => {}),
     },
   ]
 
   return (
-    <div className="space-y-3.5 pb-28">
-      {/* 1. HERO GREETING BANNER */}
-      <section className="-mt-1 px-1">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-900/60 p-4 text-white shadow-lg">
-          <div className="absolute -right-8 -top-8 w-36 h-36 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
-          <div className="absolute -left-8 -bottom-8 w-36 h-36 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="relative z-10 flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/25 border border-indigo-400/30 text-[10px] font-bold uppercase tracking-wider text-indigo-300">
-                <Sparkles className="w-3 h-3 text-amber-300" />
-                <span>Beranda Surat Ajuan</span>
-              </div>
-              <h2 className="text-base font-extrabold text-white leading-tight">
-                Selamat Datang, {currentUser?.name?.split(' ')[0] || 'User'}!
-              </h2>
-              <p className="text-[11px] text-slate-300 leading-snug">
-                {currentUser?.position || currentUser?.roleLabel || 'Staff Operasional'} &bull; Cabang{' '}
-                <span className="font-semibold text-white">
-                  {currentUser?.branchName || currentUser?.branchId || 'Pusat'}
-                </span>
-              </p>
-            </div>
-
-            {onOpenGuide && (
-              <button
-                type="button"
-                onClick={onOpenGuide}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition flex flex-col items-center justify-center border border-white/15 text-indigo-200 shrink-0 shadow-xs"
-                title="Petunjuk Penggunaan"
-              >
-                <HelpCircle className="w-4 h-4 text-indigo-300" />
-                <span className="text-[9px] font-bold mt-0.5">Petunjuk</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* 2. ALERT PERLU APPROVAL JIKA ADA */}
+    <div className="space-y-3.5 pb-28 pt-1">
+      {/* 1. ALERT PERLU APPROVAL JIKA ADA */}
       {pendingApprovalsCount > 0 && (
         <section className="px-1">
           <div
@@ -195,7 +189,7 @@ export default function MobileDashboard({
         </section>
       )}
 
-      {/* 3. KARTU STATISTIK RINGKAS */}
+      {/* 2. KARTU STATISTIK RINGKAS */}
       <section className="px-1">
         <div className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
@@ -232,40 +226,43 @@ export default function MobileDashboard({
         </div>
       </section>
 
-      {/* 4. MENU PINTAS CEPAT (QUICK ACTIONS) */}
+      {/* 3. MENU AKSES CEPAT (GRID KOTAK ICON ATAS, TEXT BAWAH) */}
       <section className="px-1">
-        <h3 className="text-xs font-bold text-slate-700 mb-2 px-1 flex items-center gap-1.5">
-          <span>⚡ Menu Akses Cepat</span>
-        </h3>
-        <div className="grid grid-cols-2 gap-2.5">
-          {quickActions.map((action) => {
-            const Icon = action.icon
-            return (
-              <button
-                key={action.id}
-                type="button"
-                onClick={action.action}
-                className="bg-white p-3 rounded-2xl border border-slate-200/80 hover:border-indigo-300 shadow-xs flex items-center gap-3 text-left transition active:scale-[0.98]"
-              >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.color} text-white flex items-center justify-center shrink-0 shadow-sm relative`}>
-                  <Icon size={20} strokeWidth={2.2} />
-                  {action.badge && (
-                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-rose-500 text-white rounded-full text-[9px] font-black flex items-center justify-center border-2 border-white">
-                      {action.badge}
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-xs font-bold text-slate-800 truncate leading-snug">
+        <div className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs">
+          <div className="flex items-center justify-between mb-3.5 px-0.5">
+            <h3 className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+              <span>⚡ Menu Akses Cepat</span>
+            </h3>
+            <span className="text-[10px] text-slate-400 font-semibold">Pintas Navigasi</span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-y-3.5 gap-x-2">
+            {quickActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  onClick={action.action}
+                  className="flex flex-col items-center text-center group active:scale-95 transition-transform"
+                >
+                  <div
+                    className={`relative w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${action.gradient} text-white flex items-center justify-center shadow-md ${action.shadow}`}
+                  >
+                    <Icon size={24} strokeWidth={2.2} className="text-white drop-shadow-xs" />
+                    {action.badge && (
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-md ring-2 ring-white animate-pulse">
+                        {action.badge > 99 ? '99+' : action.badge}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-700 group-hover:text-slate-900 mt-1.5 tracking-tight leading-tight text-center">
                     {action.label}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 truncate mt-0.5">
-                    {action.desc}
-                  </p>
-                </div>
-              </button>
-            )
-          })}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </section>
 

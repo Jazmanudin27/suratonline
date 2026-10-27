@@ -9,6 +9,7 @@ import MobileProductList from './MobileProductList'
 import MobileInternalMemo from './MobileInternalMemo'
 import MobileDocumentReader from './MobileDocumentReader'
 import LetterChatModal from '../components/LetterChatModal'
+import UserGuide from '../components/UserGuide'
 import { canUserApproveLetter } from '../components/ApproverInbox'
 import { isLetterVisibleToUser } from '../services/storage'
 
@@ -24,6 +25,7 @@ export default function MobileLayout({
   onRequestRevision,
   onUpdateNotes,
   onOpenGuide,
+  onStartInteractiveTour,
 }) {
   const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard' | 'archive' | 'inbox' | 'memo' | 'products' | 'profile'
   const [chattingLetter, setChattingLetter] = useState(null)
@@ -106,6 +108,18 @@ export default function MobileLayout({
               onSwitchToDesktop={onSwitchToDesktop}
               onSwitchUser={onSwitchUser}
             />
+          )}
+
+          {activeTab === 'guide' && (
+            <div className="pb-24 pt-1">
+              <UserGuide
+                isModal={false}
+                onClose={() => setActiveTab('dashboard')}
+                onStartNewLetter={() => setActiveTab('archive')}
+                onNavigate={(t) => setActiveTab(t)}
+                onStartInteractiveTour={onStartInteractiveTour}
+              />
+            </div>
           )}
         </main>
 

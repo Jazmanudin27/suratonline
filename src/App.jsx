@@ -328,49 +328,82 @@ export default function App() {
   // Render Mobile Layout jika dalam mode mobile
   if (isMobileMode) {
     return (
-      <MobileLayout
-        currentUser={currentUser}
-        letters={letters}
-        branches={branches}
-        onOpenGuide={() => setShowGuideModal(true)}
-        onLogout={() => {
-          clearCurrentUser()
-          setCurrentUser(null)
-        }}
-        onSwitchToDesktop={switchToDesktop}
-        onSwitchUser={(user) => {
-          setCurrentUser(user)
-          refreshAll()
-        }}
-        onApproveLetter={(id, note) => {
-          const updated = approveLetter(id, note)
-          if (updated) {
+      <>
+        <MobileLayout
+          currentUser={currentUser}
+          letters={letters}
+          branches={branches}
+          onOpenGuide={() => setShowGuideModal(true)}
+          onStartInteractiveTour={() => setIsTourActive(true)}
+          onLogout={() => {
+            clearCurrentUser()
+            setCurrentUser(null)
+          }}
+          onSwitchToDesktop={switchToDesktop}
+          onSwitchUser={(user) => {
+            setCurrentUser(user)
             refreshAll()
-            notify.success('Surat Disetujui!', 'Surat berhasil disetujui & diverifikasi sah.')
-          }
-        }}
-        onRejectLetter={(id, reason) => {
-          const updated = rejectLetter(id, reason)
-          if (updated) {
-            refreshAll()
-            notify.warning('Surat Ditolak', 'Surat telah ditolak.')
-          }
-        }}
-        onRequestRevision={(id, note) => {
-          const updated = requestRevisionLetter(id, note)
-          if (updated) {
-            refreshAll()
-            notify.warning('Minta Revisi', 'Surat dikembalikan untuk revisi.')
-          }
-        }}
-        onUpdateNotes={(id, idx, note) => {
-          const updated = updateLetterApprovalNotes(id, idx, note)
-          if (updated) {
-            refreshAll()
-            notify.success('Catatan Diperbarui', 'Catatan persetujuan berhasil diperbarui.')
-          }
-        }}
-      />
+          }}
+          onApproveLetter={(id, note) => {
+            const updated = approveLetter(id, note)
+            if (updated) {
+              refreshAll()
+              notify.success('Surat Disetujui!', 'Surat berhasil disetujui & diverifikasi sah.')
+            }
+          }}
+          onRejectLetter={(id, reason) => {
+            const updated = rejectLetter(id, reason)
+            if (updated) {
+              refreshAll()
+              notify.warning('Surat Ditolak', 'Surat telah ditolak.')
+            }
+          }}
+          onRequestRevision={(id, note) => {
+            const updated = requestRevisionLetter(id, note)
+            if (updated) {
+              refreshAll()
+              notify.warning('Minta Revisi', 'Surat dikembalikan untuk revisi.')
+            }
+          }}
+          onUpdateNotes={(id, idx, note) => {
+            const updated = updateLetterApprovalNotes(id, idx, note)
+            if (updated) {
+              refreshAll()
+              notify.success('Catatan Diperbarui', 'Catatan persetujuan berhasil diperbarui.')
+            }
+          }}
+        />
+
+        {/* Modal Petunjuk Penggunaan di Mobile */}
+        <UserGuideModal
+          isOpen={showGuideModal}
+          onClose={() => setShowGuideModal(false)}
+          onStartNewLetter={() => {
+            setShowGuideModal(false)
+            // Di mobile arahkan ke surat
+            localStorage.setItem('suratajuan_active_mobile_tab', 'archive')
+          }}
+          onNavigate={() => {
+            setShowGuideModal(false)
+          }}
+          onStartInteractiveTour={() => {
+            setShowGuideModal(false)
+            setIsTourActive(true)
+          }}
+        />
+
+        {/* Interactive Walkthrough Tour di Mobile */}
+        <InteractiveTour
+          isActive={isTourActive}
+          currentUser={currentUser}
+          activeMenu={activeMenu}
+          templates={templates}
+          onSelectTemplate={handleStartNewLetter}
+          onNavigate={(menu) => setActiveMenu(menu)}
+          onComplete={() => setIsTourActive(false)}
+          onCancel={() => setIsTourActive(false)}
+        />
+      </>
     )
   }
 

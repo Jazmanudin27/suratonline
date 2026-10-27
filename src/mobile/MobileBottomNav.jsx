@@ -23,8 +23,6 @@ export default function MobileBottomNav({
       id: 'guide',
       label: 'Petunjuk',
       icon: HelpCircle,
-      isAction: true,
-      onClick: onOpenGuide,
     },
     {
       id: 'profile',

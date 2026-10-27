@@ -22,6 +22,7 @@ import {
   Mail,
   CheckCheck,
   Check,
+  HelpCircle,
 } from 'lucide-react'
 import {
   getUsers,
@@ -46,6 +47,7 @@ export default function AdminLayout({
   onOpenLetterById,
   onLogout,
   onSwitchToMobile = () => {},
+  onOpenGuide,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -205,6 +207,12 @@ export default function AdminLayout({
           },
         ]
       : []),
+    {
+      id: 'guide',
+      label: 'Petunjuk Penggunaan',
+      icon: HelpCircle,
+      isActive: activeMenu === 'guide',
+    },
   ]
 
   const filteredUsers = users.filter((u) => {
@@ -264,6 +272,17 @@ export default function AdminLayout({
               >
                 <span>📱</span>
                 <span className="hidden sm:inline">Mode Mobile</span>
+              </button>
+
+              {/* Tombol Petunjuk Penggunaan */}
+              <button
+                type="button"
+                onClick={onOpenGuide || (() => onMenuChange('guide'))}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition text-xs font-semibold shadow-xs"
+                title="Buka Petunjuk & Panduan Penggunaan"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="hidden sm:inline">Petunjuk</span>
               </button>
 
               {/* Fullscreen Toggle */}

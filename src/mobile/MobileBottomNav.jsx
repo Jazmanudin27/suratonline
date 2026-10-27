@@ -1,5 +1,5 @@
 import React from 'react'
-import { FileText, Inbox, User, Package, FileCheck2 } from 'lucide-react'
+import { Home, FileText, Inbox, User, Package, FileCheck2 } from 'lucide-react'
 
 export default function MobileBottomNav({
   activeTab = 'archive',
@@ -7,6 +7,11 @@ export default function MobileBottomNav({
   pendingApprovalsCount = 0,
 }) {
   const tabs = [
+    {
+      id: 'dashboard',
+      label: 'Beranda',
+      icon: Home,
+    },
     {
       id: 'archive',
       label: 'Surat',
@@ -47,7 +52,7 @@ export default function MobileBottomNav({
               key={tab.id}
               type="button"
               onClick={() => onTabChange(tab.id)}
-              className={`relative flex-1 flex flex-col items-center justify-center py-2 px-1.5 rounded-xl transition-all duration-200 active:scale-95 ${
+              className={`relative flex-1 flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all duration-200 active:scale-95 ${
                 isActive
                   ? 'bg-gradient-to-b from-blue-600 to-indigo-600 text-white font-extrabold shadow-md shadow-blue-500/30 ring-1 ring-white/20'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 font-medium'
@@ -55,7 +60,7 @@ export default function MobileBottomNav({
             >
               <div className="relative flex items-center justify-center">
                 <Icon
-                  size={19}
+                  size={18}
                   strokeWidth={isActive ? 2.5 : 1.9}
                   className={`transition-colors ${isActive ? 'text-white' : 'text-slate-400'}`}
                 />
@@ -65,7 +70,7 @@ export default function MobileBottomNav({
                   </span>
                 )}
               </div>
-              <span className={`text-[10.5px] mt-1 tracking-tight leading-none ${isActive ? 'font-extrabold text-white' : 'text-slate-400'}`}>
+              <span className={`text-[10px] mt-1 tracking-tight leading-none truncate ${isActive ? 'font-extrabold text-white' : 'text-slate-400'}`}>
                 {tab.label}
               </span>
             </button>

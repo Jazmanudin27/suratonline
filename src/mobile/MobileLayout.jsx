@@ -23,8 +23,9 @@ export default function MobileLayout({
   onRejectLetter,
   onRequestRevision,
   onUpdateNotes,
+  onOpenGuide,
 }) {
-  const [activeTab, setActiveTab] = useState('archive') // 'archive' | 'inbox' | 'profile'
+  const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard' | 'archive' | 'inbox' | 'memo' | 'products' | 'profile'
   const [chattingLetter, setChattingLetter] = useState(null)
   const [previewingLetter, setPreviewingLetter] = useState(null)
 
@@ -45,6 +46,7 @@ export default function MobileLayout({
           onSwitchToDesktop={onSwitchToDesktop}
           pendingApprovalsCount={pendingApprovalsCount}
           onOpenInbox={() => setActiveTab('inbox')}
+          onOpenGuide={onOpenGuide}
         />
 
         {/* Main Content Area */}
@@ -57,6 +59,8 @@ export default function MobileLayout({
               onNavigateTab={(tab) => setActiveTab(tab)}
               onPreviewLetter={(l) => setPreviewingLetter(l)}
               onOpenChat={(l) => setChattingLetter(l)}
+              onOpenGuide={onOpenGuide}
+              onSwitchToDesktop={onSwitchToDesktop}
             />
           )}
 

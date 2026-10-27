@@ -10,6 +10,7 @@ import {
   Sun,
   Moon,
   Sunset,
+  HelpCircle,
 } from 'lucide-react'
 
 export default function MobileHeader({
@@ -18,6 +19,7 @@ export default function MobileHeader({
   onSwitchToDesktop,
   pendingApprovalsCount = 0,
   onOpenInbox,
+  onOpenGuide,
 }) {
   const [currentTime, setCurrentTime] = useState('')
   const [currentDate, setCurrentDate] = useState('')
@@ -99,6 +101,17 @@ export default function MobileHeader({
           >
             <Monitor size={15} strokeWidth={2} />
           </button>
+
+          {/* Petunjuk Penggunaan Button */}
+          {onOpenGuide && (
+            <button
+              onClick={onOpenGuide}
+              className="w-8 h-8 rounded-xl bg-indigo-500/30 hover:bg-indigo-500/40 active:scale-95 transition flex items-center justify-center border border-indigo-400/30 text-indigo-200"
+              title="Petunjuk & Panduan Penggunaan"
+            >
+              <HelpCircle size={15} strokeWidth={2.2} />
+            </button>
+          )}
 
           {/* Inbox Notification Icon */}
           <button

@@ -101,6 +101,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
     setTemplates(getTemplates())
     setLettersList(getLetters())
     setJabatanList(getJabatan())
+    setUsersList(getUsers())
   }
 
   useEffect(() => {
@@ -108,15 +109,18 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
     const handleGlobalViewersChange = () => setGlobalDefaultViewers(getGlobalDefaultViewers())
     const handleTplChange = () => setTemplates(getTemplates())
     const handleJabatanChange = () => setJabatanList(getJabatan())
+    const handleUsersChange = () => setUsersList(getUsers())
     window.addEventListener('categories_change', handleCatChange)
     window.addEventListener('global_viewers_change', handleGlobalViewersChange)
     window.addEventListener('templates_change', handleTplChange)
     window.addEventListener('jabatan_change', handleJabatanChange)
+    window.addEventListener('users_change', handleUsersChange)
     return () => {
       window.removeEventListener('categories_change', handleCatChange)
       window.removeEventListener('global_viewers_change', handleGlobalViewersChange)
       window.removeEventListener('templates_change', handleTplChange)
       window.removeEventListener('jabatan_change', handleJabatanChange)
+      window.removeEventListener('users_change', handleUsersChange)
     }
   }, [])
 
@@ -887,69 +891,145 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                 </div>
 
                 <div className="space-y-3">
-                  {editingTemplate.approvalSteps?.map((step, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3.5 bg-slate-50/70 border border-slate-200 rounded-xl flex flex-wrap items-center gap-3 text-xs"
-                    >
-                      <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-extrabold flex items-center justify-center shrink-0 shadow-2xs">
-                        {step.step}
-                      </div>
-
-                      <div className="flex-1 min-w-[200px]">
-                        <label className="block text-[11px] text-slate-500 font-semibold mb-0.5">Judul Tahapan</label>
-                        <input
-                          type="text"
-                          value={step.title}
-                          onChange={(e) => {
-                            const steps = [...editingTemplate.approvalSteps]
-                            steps[idx].title = e.target.value
-                            setEditingTemplate({ ...editingTemplate, approvalSteps: steps })
-                          }}
-                          className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                      </div>
-
-                      <div className="w-72">
-                        <label className="block text-[11px] text-slate-500 font-semibold mb-0.5">
-                          Peran / Jabatan Approver (HRD)
-                        </label>
-                        <SearchableSelect
-                          value={step.kodeJabatan || step.approverRole || ''}
-                          placeholder="-- Pilih Kode Jabatan HRD --"
-                          options={jabatanList.map((j) => ({
-                            value: j.kode,
-                            label: `${j.kode} - ${j.nama}`,
-                            sublabel: j.alias,
-                          }))}
-                          onChange={(selectedKode) => {
-                            const matched = jabatanList.find((j) => j.kode === selectedKode)
-                            const steps = [...editingTemplate.approvalSteps]
-                            steps[idx].kodeJabatan = selectedKode
-                            if (matched) {
-                              steps[idx].approverRole = matched.nama
-                              steps[idx].title = `Persetujuan ${matched.nama}`
-                            }
-                            setEditingTemplate({ ...editingTemplate, approvalSteps: steps })
-                          }}
-                          isClearable
-                        />
-                      </div>
-
-                      {editingTemplate.approvalSteps.length > 1 && (
-                        <div className="pt-4">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveApprovalStep(idx)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                            title="Hapus tingkat persetujuan ini"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                  {editingTemplate.approvalSteps?.map((step, idx) => {
+                    const isUserType = step.assignmentType === 'user' || Boolean(step.specificUserId)
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3.5 bg-slate-50/70 border border-slate-200 rounded-xl flex flex-wrap items-center gap-3 text-xs"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-extrabold flex items-center justify-center shrink-0 shadow-2xs">
+                          {step.step}
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        <div className="flex-1 min-w-[200px]">
+                          <label className="block text-[11px] text-slate-500 font-semibold mb-0.5">Judul Tahapan</label>
+                          <input
+                            type="text"
+                            value={step.title}
+                            onChange={(e) => {
+                              const steps = [...editingTemplate.approvalSteps]
+                              steps[idx].title = e.target.value
+                              setEditingTemplate({ ...editingTemplate, approvalSteps: steps })
+                            }}
+                            className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                          />
+                        </div>
+
+                        <div className="w-80 sm:w-96">
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-[11px] text-slate-500 font-semibold">
+                              Target Penyetuju:
+                            </label>
+                            <div className="flex items-center gap-0.5 bg-slate-200/90 p-0.5 rounded-md text-[10px] font-bold">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const steps = [...editingTemplate.approvalSteps]
+                                  steps[idx].assignmentType = 'role'
+                                  steps[idx].specificUserId = null
+                                  steps[idx].specificUserName = null
+                                  setEditingTemplate({ ...editingTemplate, approvalSteps: steps })
+                                }}
+                                className={`px-2 py-0.5 rounded transition ${
+                                  !isUserType
+                                    ? 'bg-white text-indigo-700 shadow-2xs font-extrabold'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                              >
+                                🏢 Jabatan
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const steps = [...editingTemplate.approvalSteps]
+                                  steps[idx].assignmentType = 'user'
+                                  setEditingTemplate({ ...editingTemplate, approvalSteps: steps })
+                                }}
+                                className={`px-2 py-0.5 rounded transition ${
+                                  isUserType
+                                    ? 'bg-white text-indigo-700 shadow-2xs font-extrabold'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                              >
+                                👤 User
+                              </button>
+                            </div>
+                          </div>
+
+                          {!isUserType ? (
+                            <SearchableSelect
+                              value={step.kodeJabatan || step.approverRole || ''}
+                              placeholder="-- Pilih Kode Jabatan HRD --"
+                              options={jabatanList.map((j) => ({
+                                value: j.kode,
+                                label: `${j.kode} - ${j.nama}`,
+                                sublabel: j.alias,
+                              }))}
+                              onChange={(selectedKode) => {
+                                const matched = jabatanList.find((j) => j.kode === selectedKode)
+                                const steps = [...editingTemplate.approvalSteps]
+                                steps[idx].assignmentType = 'role'
+                                steps[idx].kodeJabatan = selectedKode
+                                steps[idx].specificUserId = null
+                                steps[idx].specificUserName = null
+                                if (matched) {
+                                  steps[idx].approverRole = matched.nama
+                                  if (!steps[idx].title || steps[idx].title.startsWith('Persetujuan')) {
+                                    steps[idx].title = `Persetujuan ${matched.nama}`
+                                  }
+                                }
+                                setEditingTemplate({ ...editingTemplate, approvalSteps: steps })
+                              }}
+                              isClearable
+                            />
+                          ) : (
+                            <SearchableSelect
+                              value={step.specificUserId ? String(step.specificUserId) : ''}
+                              placeholder="-- Cari / Pilih Pengguna Approver --"
+                              options={usersList.map((u) => ({
+                                value: String(u.id),
+                                label: u.name,
+                                sublabel: `${u.position || u.roleLabel || 'User'} • Cabang ${u.branchName || u.branchId || 'Pusat'}`,
+                              }))}
+                              onChange={(selectedUserId) => {
+                                const matchedUser = usersList.find((u) => String(u.id) === String(selectedUserId))
+                                const steps = [...editingTemplate.approvalSteps]
+                                steps[idx].assignmentType = 'user'
+                                if (matchedUser) {
+                                  steps[idx].specificUserId = matchedUser.id
+                                  steps[idx].specificUserName = matchedUser.name
+                                  steps[idx].kodeJabatan = matchedUser.kodeJabatan || ''
+                                  steps[idx].approverRole = matchedUser.position || matchedUser.name
+                                  if (!steps[idx].title || steps[idx].title.startsWith('Persetujuan')) {
+                                    steps[idx].title = `Persetujuan ${matchedUser.name}`
+                                  }
+                                } else {
+                                  steps[idx].specificUserId = null
+                                  steps[idx].specificUserName = null
+                                }
+                                setEditingTemplate({ ...editingTemplate, approvalSteps: steps })
+                              }}
+                              isClearable
+                            />
+                          )}
+                        </div>
+
+                        {editingTemplate.approvalSteps.length > 1 && (
+                          <div className="pt-4">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveApprovalStep(idx)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                              title="Hapus tingkat persetujuan ini"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -1207,52 +1287,124 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
             </div>
 
             <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
-              {(approverModalTemplate.approvalSteps || []).map((step, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3 text-xs"
-                >
-                  <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-black flex items-center justify-center shrink-0">
-                    {idx + 1}
-                  </span>
-                  <div className="flex-1">
-                    <label className="block text-[10px] text-slate-400 font-bold mb-0.5">Judul Tahapan</label>
-                    <input
-                      type="text"
-                      value={step.title}
-                      onChange={(e) => {
-                        const steps = [...approverModalTemplate.approvalSteps]
-                        steps[idx].title = e.target.value
-                        setApproverModalTemplate({ ...approverModalTemplate, approvalSteps: steps })
-                      }}
-                      className="w-full p-1.5 bg-white border border-slate-300 rounded-lg font-bold text-slate-800"
-                    />
+              {(approverModalTemplate.approvalSteps || []).map((step, idx) => {
+                const isUserType = step.assignmentType === 'user' || Boolean(step.specificUserId)
+                return (
+                  <div
+                    key={idx}
+                    className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3 text-xs"
+                  >
+                    <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-black flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <div className="flex-1">
+                      <label className="block text-[10px] text-slate-400 font-bold mb-0.5">Judul Tahapan</label>
+                      <input
+                        type="text"
+                        value={step.title}
+                        onChange={(e) => {
+                          const steps = [...approverModalTemplate.approvalSteps]
+                          steps[idx].title = e.target.value
+                          setApproverModalTemplate({ ...approverModalTemplate, approvalSteps: steps })
+                        }}
+                        className="w-full p-1.5 bg-white border border-slate-300 rounded-lg font-bold text-slate-800"
+                      />
+                    </div>
+                    <div className="w-72 sm:w-80">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <label className="block text-[10px] text-slate-400 font-bold">Penyetuju:</label>
+                        <div className="flex items-center gap-0.5 bg-slate-200/90 p-0.5 rounded text-[9px] font-bold">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const steps = [...approverModalTemplate.approvalSteps]
+                              steps[idx].assignmentType = 'role'
+                              steps[idx].specificUserId = null
+                              steps[idx].specificUserName = null
+                              setApproverModalTemplate({ ...approverModalTemplate, approvalSteps: steps })
+                            }}
+                            className={`px-1.5 py-0.5 rounded ${
+                              !isUserType ? 'bg-white text-indigo-700 shadow-2xs font-extrabold' : 'text-slate-600'
+                            }`}
+                          >
+                            🏢 Jabatan
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const steps = [...approverModalTemplate.approvalSteps]
+                              steps[idx].assignmentType = 'user'
+                              setApproverModalTemplate({ ...approverModalTemplate, approvalSteps: steps })
+                            }}
+                            className={`px-1.5 py-0.5 rounded ${
+                              isUserType ? 'bg-white text-indigo-700 shadow-2xs font-extrabold' : 'text-slate-600'
+                            }`}
+                          >
+                            👤 User
+                          </button>
+                        </div>
+                      </div>
+
+                      {!isUserType ? (
+                        <SearchableSelect
+                          value={step.kodeJabatan || step.approverRole || ''}
+                          placeholder="-- Pilih Jabatan HRD --"
+                          options={jabatanList.map((j) => ({
+                            value: j.kode,
+                            label: `${j.kode} - ${j.nama}`,
+                            sublabel: j.alias,
+                          }))}
+                          onChange={(selectedKode) => {
+                            const matched = jabatanList.find((j) => j.kode === selectedKode)
+                            const steps = [...approverModalTemplate.approvalSteps]
+                            steps[idx].assignmentType = 'role'
+                            steps[idx].kodeJabatan = selectedKode
+                            steps[idx].specificUserId = null
+                            steps[idx].specificUserName = null
+                            if (matched) {
+                              steps[idx].approverRole = matched.nama
+                              if (!steps[idx].title || steps[idx].title.startsWith('Persetujuan')) {
+                                steps[idx].title = `Persetujuan ${matched.nama}`
+                              }
+                            }
+                            setApproverModalTemplate({ ...approverModalTemplate, approvalSteps: steps })
+                          }}
+                          isClearable
+                        />
+                      ) : (
+                        <SearchableSelect
+                          value={step.specificUserId ? String(step.specificUserId) : ''}
+                          placeholder="-- Pilih Pengguna Approver --"
+                          options={usersList.map((u) => ({
+                            value: String(u.id),
+                            label: u.name,
+                            sublabel: `${u.position || u.roleLabel || 'User'} • Cabang ${u.branchName || u.branchId || 'Pusat'}`,
+                          }))}
+                          onChange={(selectedUserId) => {
+                            const matchedUser = usersList.find((u) => String(u.id) === String(selectedUserId))
+                            const steps = [...approverModalTemplate.approvalSteps]
+                            steps[idx].assignmentType = 'user'
+                            if (matchedUser) {
+                              steps[idx].specificUserId = matchedUser.id
+                              steps[idx].specificUserName = matchedUser.name
+                              steps[idx].kodeJabatan = matchedUser.kodeJabatan || ''
+                              steps[idx].approverRole = matchedUser.position || matchedUser.name
+                              if (!steps[idx].title || steps[idx].title.startsWith('Persetujuan')) {
+                                steps[idx].title = `Persetujuan ${matchedUser.name}`
+                              }
+                            } else {
+                              steps[idx].specificUserId = null
+                              steps[idx].specificUserName = null
+                            }
+                            setApproverModalTemplate({ ...approverModalTemplate, approvalSteps: steps })
+                          }}
+                          isClearable
+                        />
+                      )}
+                    </div>
                   </div>
-                  <div className="w-60">
-                    <label className="block text-[10px] text-slate-400 font-bold mb-0.5">Jabatan HRD</label>
-                    <SearchableSelect
-                      value={step.kodeJabatan || step.approverRole || ''}
-                      placeholder="-- Pilih Jabatan HRD --"
-                      options={jabatanList.map((j) => ({
-                        value: j.kode,
-                        label: `${j.kode} - ${j.nama}`,
-                        sublabel: j.alias,
-                      }))}
-                      onChange={(selectedKode) => {
-                        const matched = jabatanList.find((j) => j.kode === selectedKode)
-                        const steps = [...approverModalTemplate.approvalSteps]
-                        steps[idx].kodeJabatan = selectedKode
-                        if (matched) {
-                          steps[idx].approverRole = matched.nama
-                          steps[idx].title = `Persetujuan ${matched.nama}`
-                        }
-                        setApproverModalTemplate({ ...approverModalTemplate, approvalSteps: steps })
-                      }}
-                      isClearable
-                    />
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">

@@ -15,7 +15,6 @@ import {
   FilePlus,
   FileCheck2,
   Package,
-  HelpCircle,
   Monitor,
   Sparkles,
   ArrowRight,
@@ -31,7 +30,6 @@ export default function MobileDashboard({
   onNavigateTab,
   onPreviewLetter,
   onOpenChat,
-  onOpenGuide,
   onSwitchToDesktop,
 }) {
   // Hitung status statistik surat
@@ -120,14 +118,6 @@ export default function MobileDashboard({
       gradient: 'from-cyan-500 to-blue-600',
       shadow: 'shadow-cyan-500/30',
       action: () => onNavigateTab('products'),
-    },
-    {
-      id: 'guide_act',
-      label: 'Petunjuk',
-      icon: HelpCircle,
-      gradient: 'from-purple-500 to-violet-600',
-      shadow: 'shadow-purple-500/30',
-      action: onOpenGuide || (() => onNavigateTab('archive')),
     },
     {
       id: 'profile_act',

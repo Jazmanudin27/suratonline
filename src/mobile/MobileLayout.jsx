@@ -9,7 +9,6 @@ import MobileProductList from './MobileProductList'
 import MobileInternalMemo from './MobileInternalMemo'
 import MobileDocumentReader from './MobileDocumentReader'
 import LetterChatModal from '../components/LetterChatModal'
-import UserGuide from '../components/UserGuide'
 import { canUserApproveLetter } from '../components/ApproverInbox'
 import { isLetterVisibleToUser } from '../services/storage'
 
@@ -24,8 +23,6 @@ export default function MobileLayout({
   onRejectLetter,
   onRequestRevision,
   onUpdateNotes,
-  onOpenGuide,
-  onStartInteractiveTour,
 }) {
   const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard' | 'archive' | 'inbox' | 'memo' | 'products' | 'profile'
   const [chattingLetter, setChattingLetter] = useState(null)
@@ -48,7 +45,6 @@ export default function MobileLayout({
           onSwitchToDesktop={onSwitchToDesktop}
           pendingApprovalsCount={pendingApprovalsCount}
           onOpenInbox={() => setActiveTab('inbox')}
-          onOpenGuide={onOpenGuide}
         />
 
         {/* Main Content Area */}
@@ -61,7 +57,6 @@ export default function MobileLayout({
               onNavigateTab={(tab) => setActiveTab(tab)}
               onPreviewLetter={(l) => setPreviewingLetter(l)}
               onOpenChat={(l) => setChattingLetter(l)}
-              onOpenGuide={onOpenGuide}
               onSwitchToDesktop={onSwitchToDesktop}
             />
           )}
@@ -109,26 +104,13 @@ export default function MobileLayout({
               onSwitchUser={onSwitchUser}
             />
           )}
-
-          {activeTab === 'guide' && (
-            <div className="pb-24 pt-1">
-              <UserGuide
-                isModal={false}
-                onClose={() => setActiveTab('dashboard')}
-                onStartNewLetter={() => setActiveTab('archive')}
-                onNavigate={(t) => setActiveTab(t)}
-                onStartInteractiveTour={onStartInteractiveTour}
-              />
-            </div>
-          )}
         </main>
 
-        {/* Bottom Floating Navigation Bar (4 Tab: Beranda, Inbox, Petunjuk, Profile) */}
+        {/* Bottom Floating Navigation Bar (4 Tab: Beranda, Inbox, IM, Profile) */}
         <MobileBottomNav
           activeTab={activeTab}
           onTabChange={(tab) => setActiveTab(tab)}
           pendingApprovalsCount={pendingApprovalsCount}
-          onOpenGuide={onOpenGuide}
         />
 
         {/* Mobile Document Reader (Card Sheet Mobile-First) */}

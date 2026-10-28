@@ -999,7 +999,6 @@ export default function LetterFormBuilder({
       {/* STEP 1: FORM ISIAN */}
       {activeTab === "form" && (
         <div className="bg-white border border-slate-300/80 rounded-xl p-3 sm:p-4 shadow-lg shadow-slate-900/5 space-y-3">
-
           {/* Nomor Surat Khusus Surat Mandiri jika diperlukan */}
           {isMandiri && (
             <div className="bg-slate-50/90 p-2 rounded-lg border border-slate-300/80 flex items-center gap-2 text-xs">
@@ -1221,7 +1220,11 @@ export default function LetterFormBuilder({
                         />
                       ) : (
                         <input
-                          id={field.name === 'perihal' || field.id === 'f_perihal' ? 'field-perihal-input' : undefined}
+                          id={
+                            field.name === "perihal" || field.id === "f_perihal"
+                              ? "field-perihal-input"
+                              : undefined
+                          }
                           name={field.name}
                           type={
                             field.type === "number"
@@ -1520,7 +1523,8 @@ export default function LetterFormBuilder({
                               .map((u) => ({
                                 value: String(u.id),
                                 label: u.name,
-                                sublabel: u.position || u.roleLabel || "Pejabat",
+                                sublabel:
+                                  u.position || u.roleLabel || "Pejabat",
                                 group: "Pejabat Direksi & Manajemen Pusat",
                               }))}
                             isClearable

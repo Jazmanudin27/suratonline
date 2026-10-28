@@ -1,11 +1,10 @@
 import React from 'react'
-import { Home, Inbox, HelpCircle, User } from 'lucide-react'
+import { Home, Inbox, FileCheck2, User } from 'lucide-react'
 
 export default function MobileBottomNav({
   activeTab = 'dashboard',
   onTabChange,
   pendingApprovalsCount = 0,
-  onOpenGuide,
 }) {
   const tabs = [
     {
@@ -20,9 +19,9 @@ export default function MobileBottomNav({
       badge: pendingApprovalsCount,
     },
     {
-      id: 'guide',
-      label: 'Petunjuk',
-      icon: HelpCircle,
+      id: 'memo',
+      label: 'IM',
+      icon: FileCheck2,
     },
     {
       id: 'profile',

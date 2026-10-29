@@ -20,6 +20,7 @@ import {
   Paperclip,
   BookOpen,
 } from 'lucide-react'
+import VisualTemplateTutorial from './VisualTemplateTutorial'
 
 export const GUIDE_STORAGE_KEY = 'suratajuan_guide_seen'
 
@@ -42,7 +43,7 @@ export default function UserGuide({
   onNavigate,
   onStartInteractiveTour,
 }) {
-  const [activeCategory, setActiveCategory] = useState('pengajuan')
+  const [activeCategory, setActiveCategory] = useState('visual')
   const [currentStep, setCurrentStep] = useState(0)
   const [dontShowAgain, setDontShowAgain] = useState(true)
 
@@ -83,6 +84,7 @@ export default function UserGuide({
   ]
 
   const categories = [
+    { id: 'visual', label: '🖼️ Tutorial Gambar & Panah', icon: Sparkles },
     { id: 'pengajuan', label: 'Cara Mengajukan Surat', icon: FilePlus },
     { id: 'approval', label: 'Alur & Persetujuan (Approval)', icon: CheckCircle2 },
     { id: 'tracking', label: 'Status & Notifikasi', icon: Clock },
@@ -281,7 +283,15 @@ export default function UserGuide({
         </div>
 
         {/* Area Isi Kategori */}
-        <div className="p-5 sm:p-7">
+        <div className="p-4 sm:p-6">
+          {/* Kategori 0: Tutorial Gambar & Panah (Visual Diagram) */}
+          {activeCategory === 'visual' && (
+            <VisualTemplateTutorial
+              onStartCreate={handleGoCreate}
+              onClose={isModal ? onClose : undefined}
+            />
+          )}
+
           {/* Kategori 1: Cara Pengajuan Surat */}
           {activeCategory === 'pengajuan' && (
             <div className="space-y-6">

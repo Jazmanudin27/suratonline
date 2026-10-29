@@ -715,13 +715,13 @@ export default function LetterList({
       {/* Letters Table */}
       <div className="bg-white border border-slate-300 rounded-xl shadow-md shadow-slate-400/20 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-blue-600 text-white font-bold border-b border-blue-700 text-xs shadow-xs">
+          <table className="w-full text-xs text-left border-collapse border border-slate-300">
+            <thead className="bg-blue-600 text-white font-bold border-b-2 border-blue-700 text-xs shadow-xs">
               <tr>
-                <th className="py-2.5 px-3.5 font-bold tracking-wide">Nomor & Tanggal</th>
-                <th className="py-2.5 px-3.5 font-bold tracking-wide">Perihal / Judul Surat</th>
-                <th className="py-2.5 px-3.5 font-bold tracking-wide">Pemohon & Cabang</th>
-                <th className="py-2.5 px-3.5 font-bold tracking-wide">Status & Alur</th>
+                <th className="py-2.5 px-3.5 font-bold tracking-wide border-r border-blue-500/50">Nomor & Tanggal</th>
+                <th className="py-2.5 px-3.5 font-bold tracking-wide border-r border-blue-500/50">Perihal / Judul Surat</th>
+                <th className="py-2.5 px-3.5 font-bold tracking-wide border-r border-blue-500/50">Pemohon & Cabang</th>
+                <th className="py-2.5 px-3.5 font-bold tracking-wide border-r border-blue-500/50">Status & Alur</th>
                 <th className="py-2.5 px-3.5 font-bold tracking-wide text-center">Aksi</th>
               </tr>
             </thead>
@@ -739,8 +739,8 @@ export default function LetterList({
                   const isApproved = l.status === 'approved'
 
                   return (
-                    <tr key={l.id} className="hover:bg-slate-50 transition">
-                      <td className="py-2 px-3.5">
+                    <tr key={l.id} className="hover:bg-blue-50/70 border-b border-slate-200 transition-colors">
+                      <td className="py-2 px-3.5 border-r border-slate-200">
                         <span className="font-mono font-black text-indigo-900 block text-xs">
                           {l.letterNumber}
                         </span>
@@ -765,13 +765,13 @@ export default function LetterList({
                         </span>
                       </td>
 
-                      <td className="py-2 px-3.5">
+                      <td className="py-2 px-3.5 border-r border-slate-200">
                         <span className="font-extrabold text-slate-900 block text-xs sm:text-sm uppercase tracking-wide">
                           {l.title ? String(l.title).toUpperCase() : '-'}
                         </span>
                       </td>
 
-                      <td className="py-2 px-3.5">
+                      <td className="py-2 px-3.5 border-r border-slate-200">
                         <div className="flex items-center gap-1 text-slate-900">
                           <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                           <span className="font-bold text-xs">{l.userName}</span>
@@ -787,7 +787,7 @@ export default function LetterList({
                         )}
                       </td>
 
-                      <td className="py-2 px-3.5">
+                      <td className="py-2 px-3.5 border-r border-slate-200">
                         {isInboxView ? (
                           !isSharedLetterRead(l, currentUser) ? (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-indigo-100 text-indigo-950 border border-indigo-400 shadow-2xs">

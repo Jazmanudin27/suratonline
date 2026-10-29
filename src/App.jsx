@@ -12,8 +12,6 @@ import UserMaster from './components/UserMaster'
 import LetterDocumentView from './components/LetterDocumentView'
 import LoginForm from './components/LoginForm'
 import MobileLayout from './mobile/MobileLayout'
-import UserGuide, { UserGuideModal, isGuideSeen } from './components/UserGuide'
-import InteractiveTour, { isTourCompleted } from './components/InteractiveTour'
 import PwaInstallPrompt from './components/PwaInstallPrompt'
 import {
   initializeStorage,
@@ -81,9 +79,7 @@ export default function App() {
   const [previewingLetter, setPreviewingLetter] = useState(null)
   const [directPrintLetter, setDirectPrintLetter] = useState(null)
   const [isPreparingPrint, setIsPreparingPrint] = useState(false)
-  const [showGuideModal, setShowGuideModal] = useState(false)
   const [showInstallModal, setShowInstallModal] = useState(false)
-  const [isTourActive, setIsTourActive] = useState(false)
   const printTimeoutRef = useRef(null)
 
   const handleDirectPrint = (ltr) => {
@@ -211,16 +207,6 @@ export default function App() {
     }
   }, [])
 
-  // Auto-show petunjuk penggunaan untuk pengunjung pertama kali (onboarding)
-  useEffect(() => {
-    if (!isGuideSeen()) {
-      const timer = setTimeout(() => {
-        setShowGuideModal(true)
-      }, 750)
-      return () => clearTimeout(timer)
-    }
-  }, [])
-
   const refreshAll = () => {
     const user = getCurrentUser()
     setCurrentUser(user)
@@ -335,8 +321,6 @@ export default function App() {
           currentUser={currentUser}
           letters={letters}
           branches={branches}
-          onOpenGuide={() => setShowGuideModal(true)}
-          onStartInteractiveTour={() => setIsTourActive(true)}
           onLogout={() => {
             clearCurrentUser()
             setCurrentUser(null)
@@ -377,36 +361,6 @@ export default function App() {
           onOpenInstall={() => setShowInstallModal(true)}
         />
 
-        {/* Modal Petunjuk Penggunaan di Mobile */}
-        <UserGuideModal
-          isOpen={showGuideModal}
-          onClose={() => setShowGuideModal(false)}
-          onStartNewLetter={() => {
-            setShowGuideModal(false)
-            // Di mobile arahkan ke surat
-            localStorage.setItem('suratajuan_active_mobile_tab', 'archive')
-          }}
-          onNavigate={() => {
-            setShowGuideModal(false)
-          }}
-          onStartInteractiveTour={() => {
-            setShowGuideModal(false)
-            setIsTourActive(true)
-          }}
-        />
-
-        {/* Interactive Walkthrough Tour di Mobile */}
-        <InteractiveTour
-          isActive={isTourActive}
-          currentUser={currentUser}
-          activeMenu={activeMenu}
-          templates={templates}
-          onSelectTemplate={handleStartNewLetter}
-          onNavigate={(menu) => setActiveMenu(menu)}
-          onComplete={() => setIsTourActive(false)}
-          onCancel={() => setIsTourActive(false)}
-        />
-
         {/* Banner / Modal Pasang Aplikasi PWA */}
         <PwaInstallPrompt
           forceOpen={showInstallModal}
@@ -432,7 +386,6 @@ export default function App() {
       }}
       pendingCount={pendingCount}
       onOpenLetterById={handleOpenLetterById}
-      onOpenGuide={() => setShowGuideModal(true)}
       onOpenInstall={() => setShowInstallModal(true)}
       onLogout={() => {
         clearCurrentUser()
@@ -557,16 +510,6 @@ export default function App() {
         )
       )}
 
-      {activeMenu === 'guide' && (
-        <UserGuide
-          onStartNewLetter={() => setActiveMenu('templates')}
-          onNavigate={(menu) => setActiveMenu(menu)}
-          onStartInteractiveTour={() => {
-            setIsTourActive(true)
-          }}
-        />
-      )}
-
       {/* Standalone Letter Modal View (for viewing anywhere) */}
       {previewingLetter && (
         <div className="print-modal-backdrop fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:m-0 print:bg-white print:static print:overflow-visible">
@@ -680,35 +623,6 @@ export default function App() {
         </div>
       </div>
     )}
-    {/* Modal Petunjuk Penggunaan (Onboarding pertama kali atau klik bantuan) */}
-    <UserGuideModal
-      isOpen={showGuideModal}
-      onClose={() => setShowGuideModal(false)}
-      onStartNewLetter={() => {
-        setShowGuideModal(false)
-        setActiveMenu('templates')
-      }}
-      onNavigate={(menu) => {
-        setShowGuideModal(false)
-        setActiveMenu(menu)
-      }}
-      onStartInteractiveTour={() => {
-        setShowGuideModal(false)
-        setIsTourActive(true)
-      }}
-    />
-
-    {/* Interactive Walkthrough Tour (Panduan Langsung di Layar dengan Spotlight) */}
-    <InteractiveTour
-      isActive={isTourActive}
-      currentUser={currentUser}
-      activeMenu={activeMenu}
-      templates={templates}
-      onSelectTemplate={handleStartNewLetter}
-      onNavigate={(menu) => setActiveMenu(menu)}
-      onComplete={() => setIsTourActive(false)}
-      onCancel={() => setIsTourActive(false)}
-    />
 
     {/* Banner / Modal Pasang Aplikasi PWA */}
     <PwaInstallPrompt

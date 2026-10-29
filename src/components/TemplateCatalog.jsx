@@ -19,12 +19,10 @@ import {
   MailPlus,
 } from 'lucide-react'
 import { BLANK_TEMPLATE } from '../services/storage'
-import VisualTemplateTutorial from './VisualTemplateTutorial'
 
 export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const [showVisualTutorial, setShowVisualTutorial] = useState(false)
 
   const categories = ['all', ...Array.from(new Set(templates.map((t) => t.category || 'Umum')))]
 
@@ -97,30 +95,18 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowVisualTutorial(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-100 font-bold text-xs border border-indigo-400/40 shadow-xs transition active:scale-95 cursor-pointer"
-              title="Lihat tutorial visual bergambar dengan panah petunjuk"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              <span>Tutorial Bergambar</span>
-            </button>
-
-            <button
-              type="button"
-              id="btn-custom-blank-letter"
-              onClick={() => onSelectTemplate(BLANK_TEMPLATE)}
-              className="group inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-950 hover:bg-black text-white font-extrabold text-xs shadow-lg shadow-black/40 hover:shadow-black/60 active:scale-95 transition-all duration-200 border border-slate-700/80 hover:border-slate-500 cursor-pointer"
-              title="Buat surat ajuan baru secara mandiri tanpa template baku"
-            >
-              <div className="p-1 rounded-md bg-white/10 text-white group-hover:scale-110 transition-transform duration-200">
-                <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-              </div>
-              <span className="tracking-wide">Buat Surat Bebas</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            id="btn-custom-blank-letter"
+            onClick={() => onSelectTemplate(BLANK_TEMPLATE)}
+            className="group inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-950 hover:bg-black text-white font-extrabold text-xs shadow-lg shadow-black/40 hover:shadow-black/60 active:scale-95 transition-all duration-200 border border-slate-700/80 hover:border-slate-500 cursor-pointer"
+            title="Buat surat ajuan baru secara mandiri tanpa template baku"
+          >
+            <div className="p-1 rounded-md bg-white/10 text-white group-hover:scale-110 transition-transform duration-200">
+              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+            </div>
+            <span className="tracking-wide">Buat Surat Bebas</span>
+          </button>
         </div>
       </div>
 
@@ -256,18 +242,6 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
           )
         }))}
       </div>
-
-      {/* Modal Tutorial Bergambar & Panah */}
-      {showVisualTutorial && (
-        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 shadow-2xl border border-slate-200 animate-slideUp">
-            <VisualTemplateTutorial
-              onStartCreate={() => setShowVisualTutorial(false)}
-              onClose={() => setShowVisualTutorial(false)}
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }

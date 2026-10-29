@@ -170,13 +170,10 @@ export default function LetterList({
 
     // JIKA SURAT MASIH MENUNGGU PERSETUJUAN DARI PIHAK MENGETAHUI:
     if (isLetterAwaitingKnownBy(letter)) {
-      if (currentUser.role === 'admin_pusat') return true
       return isUserLetterKnownBy(letter, currentUser)
     }
 
     // JIKA SUDAH DISETUJUI MENGETAHUI, BARU GILIRAN PEJABAT PENYETUJU:
-    if (currentUser.role === 'admin_pusat') return true
-
     const currentStepInfo = letter.approvalHistory?.[letter.currentStep - 1]
     if (!currentStepInfo) return false
 

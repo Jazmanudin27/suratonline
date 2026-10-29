@@ -309,9 +309,7 @@ export default function App() {
     )
   }
 
-  const pendingCount = currentUser?.role === 'admin_pusat'
-    ? letters.filter((l) => l.status === 'pending').length
-    : letters.filter((l) => canUserApproveLetter(l, currentUser)).length
+  const pendingCount = letters.filter((l) => canUserApproveLetter(l, currentUser)).length
 
   // Render Mobile Layout jika dalam mode mobile
   if (isMobileMode) {

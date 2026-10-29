@@ -121,13 +121,10 @@ export const canUserApproveLetter = (letter, user) => {
 
   // JIKA SURAT MASIH MENUNGGU PERSETUJUAN DARI PIHAK MENGETAHUI:
   if (isLetterAwaitingKnownBy(letter)) {
-    if (user.role === 'admin_pusat') return true
     return isUserLetterKnownBy(letter, user)
   }
 
   // JIKA SUDAH DISETUJUI MENGETAHUI, BARU GILIRAN PEJABAT PENYETUJU:
-  if (user.role === 'admin_pusat') return true
-
   const currentStepInfo = letter.approvalHistory?.[letter.currentStep - 1]
   if (!currentStepInfo) return false
 
@@ -287,16 +284,12 @@ export default function ApproverInbox({ onLetterUpdated, onEditLetter }) {
     if (filterStatus === 'all') return true
     if (filterStatus === 'pending') {
       // Tab "Menunggu" menyaring surat yang menunggu persetujuan giliran user saat ini
-      return currentUser.role === 'admin_pusat'
-        ? l.status === 'pending'
-        : canUserApproveLetter(l, currentUser)
+      return canUserApproveLetter(l, currentUser)
     }
     return l.status === filterStatus
   })
 
-  const pendingCount = currentUser.role === 'admin_pusat'
-    ? letters.filter((l) => l.status === 'pending').length
-    : relevantLetters.filter((l) => canUserApproveLetter(l, currentUser)).length
+  const pendingCount = relevantLetters.filter((l) => canUserApproveLetter(l, currentUser)).length
 
   return (
     <div className="space-y-3">

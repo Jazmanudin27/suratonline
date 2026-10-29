@@ -88,7 +88,7 @@ export default function MobileHeader({
           <div className="w-5 h-5 rounded-lg bg-blue-500 flex items-center justify-center text-white">
             <FileText size={12} strokeWidth={2.5} />
           </div>
-          <span className="font-bold text-xs tracking-tight text-white">E-Surat Ajuan</span>
+          <span className="font-bold text-xs tracking-tight text-white">E-Letter MP</span>
         </div>
 
         {/* Quick Action Icons */}

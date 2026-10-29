@@ -102,7 +102,7 @@ export default function PwaInstallPrompt({ forceOpen = false, onCloseModal }) {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xs text-white truncate">Surat Ajuan Online</span>
+                <span className="font-bold text-xs text-white truncate">E-Letter MP</span>
                 <span className="text-[9px] font-bold px-1.5 py-0.2 bg-indigo-500/80 text-white rounded-full">
                   PWA
                 </span>
@@ -143,7 +143,7 @@ export default function PwaInstallPrompt({ forceOpen = false, onCloseModal }) {
                   <img src="/icon-192.png" alt="Logo" className="w-full h-full object-contain" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800 text-sm">Pasang Aplikasi Surat Ajuan</h3>
+                  <h3 className="font-bold text-slate-800 text-sm">Pasang Aplikasi E-Letter MP</h3>
                   <p className="text-xs text-slate-500">
                     {isIOS ? 'Petunjuk untuk iPhone / iPad' : 'Petunjuk Tambah ke Layar Utama'}
                   </p>

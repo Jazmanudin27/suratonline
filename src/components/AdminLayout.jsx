@@ -249,12 +249,12 @@ export default function AdminLayout({
             <div className="flex items-center gap-3 shrink-0">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-sky-500 to-emerald-400 p-0.5 shadow-md shadow-indigo-500/20">
                 <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center font-black text-xs tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-emerald-300">
-                  SA
+                  MP
                 </div>
               </div>
               <div className="leading-tight">
                 <h1 className="font-extrabold text-white text-sm sm:text-base tracking-tight uppercase">
-                  SURAT AJUAN
+                  E-LETTER MP
                 </h1>
                 <p className="text-[10px] text-slate-400 font-medium tracking-wide">
                   CV Makmur Permata

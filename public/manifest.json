@@ -1,7 +1,7 @@
 {
-  "name": "Surat Ajuan Online - CV Makmur Permata",
-  "short_name": "Surat Ajuan",
-  "description": "Aplikasi Pengajuan Surat Online CV Makmur Permata",
+  "name": "E-Letter MP - CV Makmur Permata",
+  "short_name": "E-Letter MP",
+  "description": "Aplikasi Pengajuan Surat Online E-Letter MP CV Makmur Permata",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

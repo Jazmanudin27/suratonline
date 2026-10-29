@@ -65,10 +65,10 @@ export default function LoginForm({ onLoginSuccess }) {
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-slate-950 font-black text-2xl shadow-xl shadow-emerald-500/20 mb-2">
-            SA
+            MP
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-            Portal Surat Ajuan
+            Portal E-Letter MP
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 font-medium">
             Sistem Informasi Surat Ajuan & Alur Persetujuan Online

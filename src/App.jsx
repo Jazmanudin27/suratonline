@@ -14,6 +14,7 @@ import LoginForm from './components/LoginForm'
 import MobileLayout from './mobile/MobileLayout'
 import UserGuide, { UserGuideModal, isGuideSeen } from './components/UserGuide'
 import InteractiveTour, { isTourCompleted } from './components/InteractiveTour'
+import PwaInstallPrompt from './components/PwaInstallPrompt'
 import {
   initializeStorage,
   syncWithDatabase,
@@ -81,6 +82,7 @@ export default function App() {
   const [directPrintLetter, setDirectPrintLetter] = useState(null)
   const [isPreparingPrint, setIsPreparingPrint] = useState(false)
   const [showGuideModal, setShowGuideModal] = useState(false)
+  const [showInstallModal, setShowInstallModal] = useState(false)
   const [isTourActive, setIsTourActive] = useState(false)
   const printTimeoutRef = useRef(null)
 
@@ -372,6 +374,7 @@ export default function App() {
               notify.success('Catatan Diperbarui', 'Catatan persetujuan berhasil diperbarui.')
             }
           }}
+          onOpenInstall={() => setShowInstallModal(true)}
         />
 
         {/* Modal Petunjuk Penggunaan di Mobile */}
@@ -403,6 +406,12 @@ export default function App() {
           onComplete={() => setIsTourActive(false)}
           onCancel={() => setIsTourActive(false)}
         />
+
+        {/* Banner / Modal Pasang Aplikasi PWA */}
+        <PwaInstallPrompt
+          forceOpen={showInstallModal}
+          onCloseModal={() => setShowInstallModal(false)}
+        />
       </>
     )
   }
@@ -424,6 +433,7 @@ export default function App() {
       pendingCount={pendingCount}
       onOpenLetterById={handleOpenLetterById}
       onOpenGuide={() => setShowGuideModal(true)}
+      onOpenInstall={() => setShowInstallModal(true)}
       onLogout={() => {
         clearCurrentUser()
         setCurrentUser(null)
@@ -698,6 +708,12 @@ export default function App() {
       onNavigate={(menu) => setActiveMenu(menu)}
       onComplete={() => setIsTourActive(false)}
       onCancel={() => setIsTourActive(false)}
+    />
+
+    {/* Banner / Modal Pasang Aplikasi PWA */}
+    <PwaInstallPrompt
+      forceOpen={showInstallModal}
+      onCloseModal={() => setShowInstallModal(false)}
     />
     </>
   )

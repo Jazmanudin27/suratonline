@@ -23,6 +23,7 @@ import {
   CheckCheck,
   Check,
   HelpCircle,
+  Download,
 } from 'lucide-react'
 import {
   getUsers,
@@ -48,6 +49,7 @@ export default function AdminLayout({
   onLogout,
   onSwitchToMobile = () => {},
   onOpenGuide,
+  onOpenInstall,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -273,6 +275,19 @@ export default function AdminLayout({
                 <span>📱</span>
                 <span className="hidden sm:inline">Mode Mobile</span>
               </button>
+
+              {/* Tombol Install Aplikasi PWA */}
+              {onOpenInstall && (
+                <button
+                  type="button"
+                  onClick={onOpenInstall}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition text-xs font-semibold shadow-xs"
+                  title="Pasang Aplikasi (Install PWA)"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">Install App</span>
+                </button>
+              )}
 
               {/* Tombol Petunjuk Penggunaan */}
               <button

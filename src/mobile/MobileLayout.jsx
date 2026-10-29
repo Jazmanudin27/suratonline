@@ -23,6 +23,7 @@ export default function MobileLayout({
   onRejectLetter,
   onRequestRevision,
   onUpdateNotes,
+  onOpenInstall,
 }) {
   const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard' | 'archive' | 'inbox' | 'memo' | 'products' | 'profile'
   const [chattingLetter, setChattingLetter] = useState(null)
@@ -45,6 +46,7 @@ export default function MobileLayout({
           onSwitchToDesktop={onSwitchToDesktop}
           pendingApprovalsCount={pendingApprovalsCount}
           onOpenInbox={() => setActiveTab('inbox')}
+          onOpenInstall={onOpenInstall}
         />
 
         {/* Main Content Area */}
@@ -102,6 +104,7 @@ export default function MobileLayout({
               onLogout={onLogout}
               onSwitchToDesktop={onSwitchToDesktop}
               onSwitchUser={onSwitchUser}
+              onOpenInstall={onOpenInstall}
             />
           )}
         </main>

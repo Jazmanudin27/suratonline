@@ -11,6 +11,7 @@ import {
   Shield,
   Briefcase,
   Hash,
+  Download,
 } from 'lucide-react'
 import { getUsers, setCurrentUser as storageSetCurrentUser } from '../services/storage'
 import { notify } from '../utils/alert'
@@ -20,6 +21,7 @@ export default function MobileProfile({
   onLogout,
   onSwitchToDesktop,
   onSwitchUser,
+  onOpenInstall,
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('all') // 'all' | 'pemohon' | 'approver' | 'admin_pusat'
@@ -270,6 +272,16 @@ export default function MobileProfile({
 
       {/* Action Buttons */}
       <div className="space-y-2 pt-1">
+        {onOpenInstall && (
+          <button
+            onClick={onOpenInstall}
+            className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition active:scale-98"
+          >
+            <Download size={14} />
+            <span>Pasang Aplikasi (Install PWA)</span>
+          </button>
+        )}
+
         <button
           onClick={onSwitchToDesktop}
           className="w-full py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition active:scale-98"

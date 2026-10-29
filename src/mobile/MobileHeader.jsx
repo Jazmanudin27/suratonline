@@ -10,6 +10,7 @@ import {
   Sun,
   Moon,
   Sunset,
+  Download,
 } from 'lucide-react'
 
 export default function MobileHeader({
@@ -18,6 +19,7 @@ export default function MobileHeader({
   onSwitchToDesktop,
   pendingApprovalsCount = 0,
   onOpenInbox,
+  onOpenInstall,
 }) {
   const [currentTime, setCurrentTime] = useState('')
   const [currentDate, setCurrentDate] = useState('')
@@ -91,6 +93,17 @@ export default function MobileHeader({
 
         {/* Quick Action Icons */}
         <div className="flex items-center gap-1.5">
+          {/* Install PWA Button */}
+          {onOpenInstall && (
+            <button
+              onClick={onOpenInstall}
+              className="w-8 h-8 rounded-xl bg-indigo-500/30 hover:bg-indigo-500/40 active:scale-95 transition flex items-center justify-center border border-indigo-400/30 text-indigo-200"
+              title="Pasang / Install Aplikasi di HP"
+            >
+              <Download size={15} strokeWidth={2.2} />
+            </button>
+          )}
+
           {/* Switch to Desktop Button */}
           <button
             onClick={onSwitchToDesktop}

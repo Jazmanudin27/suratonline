@@ -767,7 +767,14 @@ export const saveGlobalDefaultViewers = async (viewersList) => {
 }
 
 // Letters Management
-export const getLetters = () => getStorageItem(STORAGE_KEYS.LETTERS, [])
+export const getLetters = () => {
+  const items = getStorageItem(STORAGE_KEYS.LETTERS, [])
+  if (!Array.isArray(items)) return []
+  return items.map((l) => ({
+    ...l,
+    title: l.title ? String(l.title).toUpperCase() : l.title,
+  }))
+}
 export const getLetterById = (id) => getLetters().find((l) => l.id === id)
 
 // Generate letter number per branch & per year
@@ -878,7 +885,7 @@ export const lockLetterNumberInHtml = (html, letterNumber) => {
 export const syncPerihalInHtml = (html, perihal) => {
   if (!html) return html
   let result = html
-  const cleanPerihal = perihal ? String(perihal).trim() : ''
+  const cleanPerihal = perihal ? String(perihal).trim().toUpperCase() : ''
 
   if (cleanPerihal) {
     result = result.replace(/{{perihal}}/g, cleanPerihal)
@@ -914,7 +921,7 @@ export const compileTemplateContent = (template, fieldValues = {}, extra = {}) =
   content = content.replace(/{{tanggal_surat}}/g, extra.tanggal_surat || formatDateId(new Date()))
 
   // Pastikan variabel khusus ter-replace meskipun tidak ada di fieldValues
-  const perihalVal = fieldValues.perihal || fieldValues.f_perihal || ''
+  const perihalVal = (fieldValues.perihal || fieldValues.f_perihal || '').trim().toUpperCase()
   if (perihalVal) {
     content = content.replace(/{{perihal}}/g, perihalVal)
   }
@@ -1028,13 +1035,18 @@ export const saveLetter = (letterData, isSubmit = false) => {
         targetNumber = generateLetterNumber(template, existing.branchId || currentUser.branchId)
       }
 
+      const rawTitle = letterData.title || existing.title || `${template?.name || 'SURAT AJUAN'} - ${currentUser.name}`
+      const targetTitle = String(rawTitle).trim().toUpperCase()
+
       saved = {
         ...existing,
         ...letterData,
+        title: targetTitle,
         letterNumber: targetNumber,
         attachments: persistentAttachments,
         fieldValues: {
           ...(letterData.fieldValues || existing.fieldValues || {}),
+          ...(letterData.fieldValues?.perihal ? { perihal: String(letterData.fieldValues.perihal).trim().toUpperCase() } : {}),
           attachments: persistentAttachments,
         },
         content: lockLetterNumberInHtml(letterData.content || existing.content || '', targetNumber),
@@ -1103,12 +1115,13 @@ export const saveLetter = (letterData, isSubmit = false) => {
       status: isSubmit ? 'pending' : 'draft',
       currentStep: 1,
       totalSteps: stepsCount,
-      title: letterData.title || `${template.name} - ${currentUser.name}`,
+      title: (letterData.title || `${template.name} - ${currentUser.name}`).trim().toUpperCase(),
       includeKnownBy: letterData.includeKnownBy !== undefined ? letterData.includeKnownBy : (currentUser.branchId !== 'PST'),
       knownByName: letterData.knownByName || '',
       knownByPosition: letterData.knownByPosition || '',
       fieldValues: {
         ...(letterData.fieldValues || {}),
+        ...(letterData.fieldValues?.perihal ? { perihal: String(letterData.fieldValues.perihal).trim().toUpperCase() } : {}),
         attachments: persistentAttachments,
         includeKnownBy: letterData.includeKnownBy !== undefined ? letterData.includeKnownBy : (currentUser.branchId !== 'PST'),
         knownByName: letterData.knownByName || '',

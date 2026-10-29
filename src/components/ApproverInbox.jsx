@@ -422,7 +422,9 @@ export default function ApproverInbox({ onLetterUpdated, onEditLetter }) {
                     )}
                   </div>
 
-                  <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">{letter.title}</h3>
+                  <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug uppercase tracking-wide">
+                    {letter.title ? String(letter.title).toUpperCase() : ''}
+                  </h3>
 
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs font-semibold text-slate-700 pt-1">
                     <span className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-slate-800">

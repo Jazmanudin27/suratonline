@@ -83,6 +83,12 @@ pool.getConnection()
       // Column may already exist
     }
     try {
+      await conn.query(`UPDATE letters SET title = UPPER(title) WHERE title IS NOT NULL`)
+      console.log(' [MySQL] Ensured all letter titles are UPPERCASE')
+    } catch (e) {
+      // Ignore if table letters doesn't exist yet
+    }
+    try {
       await conn.query(`
         CREATE TABLE IF NOT EXISTS system_settings (
           key_name VARCHAR(100) NOT NULL PRIMARY KEY,
@@ -824,7 +830,7 @@ app.get('/api/letters', async (req, res) => {
         status: r.status,
         currentStep: r.current_step,
         totalSteps: r.total_steps,
-        title: r.title,
+        title: r.title ? r.title.toUpperCase() : r.title,
         fieldValues: {
           ...fVals,
           attachments: atts,
@@ -978,6 +984,7 @@ app.post('/api/letters', async (req, res) => {
       allowedViewers: Array.isArray(l.allowedViewers) ? l.allowedViewers : (l.fieldValues?.allowedViewers || []),
       sharedWith: Array.isArray(l.sharedWith) ? l.sharedWith : (l.fieldValues?.sharedWith || []),
     }
+    const letterTitle = (l.title || '').trim().toUpperCase()
     const fieldValues = JSON.stringify(fieldValuesObj)
     const approvalHistory = JSON.stringify(l.approvalHistory || [])
     const attachmentsJson = JSON.stringify(cleanAttachments)
@@ -1009,7 +1016,7 @@ app.post('/api/letters', async (req, res) => {
           l.status || 'draft',
           l.currentStep || 1,
           l.totalSteps || 1,
-          l.title,
+          letterTitle,
           fieldValues,
           l.content || '',
           approvalHistory,
@@ -1043,7 +1050,7 @@ app.post('/api/letters', async (req, res) => {
           l.status || 'draft',
           l.currentStep || 1,
           l.totalSteps || 1,
-          l.title,
+          letterTitle,
           fieldValues,
           l.content || '',
           approvalHistory,

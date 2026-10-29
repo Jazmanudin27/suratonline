@@ -766,8 +766,8 @@ export default function LetterList({
                       </td>
 
                       <td className="py-2 px-3.5">
-                        <span className="font-extrabold text-slate-900 block text-xs sm:text-sm">
-                          {l.title}
+                        <span className="font-extrabold text-slate-900 block text-xs sm:text-sm uppercase tracking-wide">
+                          {l.title ? String(l.title).toUpperCase() : '-'}
                         </span>
                       </td>
 
@@ -1280,7 +1280,9 @@ export default function LetterList({
             <div className="p-5 space-y-4 text-xs">
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
                 <p className="text-slate-500 font-medium">Judul / Perihal:</p>
-                <p className="font-bold text-slate-900 text-sm">{approvalModalLetter.title}</p>
+                <p className="font-bold text-slate-900 text-sm uppercase tracking-wide">
+                  {approvalModalLetter.title ? String(approvalModalLetter.title).toUpperCase() : '-'}
+                </p>
                 <div className="flex items-center justify-between text-slate-600 pt-1 border-t border-slate-200 mt-2">
                   <span>Pemohon: <strong>{approvalModalLetter.userName}</strong></span>
                   <span>Cabang: <strong>{approvalModalLetter.branchName}</strong></span>

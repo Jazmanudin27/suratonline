@@ -381,9 +381,17 @@ export default function LetterFormBuilder({
   }, [templateId, initialLetterId, currentUserId]);
 
   const handleFieldChange = (name, value) => {
-    setFieldValues((prev) => ({ ...prev, [name]: value }));
+    const isPerihal =
+      name === "perihal" ||
+      name === "f_perihal" ||
+      name?.toLowerCase().includes("perihal") ||
+      name?.toLowerCase().includes("judul");
+    const formattedValue =
+      isPerihal && typeof value === "string" ? value.toUpperCase() : value;
+
+    setFieldValues((prev) => ({ ...prev, [name]: formattedValue }));
     if ((name === "perihal" || name === "f_perihal") && letterContent) {
-      setLetterContent((prev) => (prev ? syncPerihalInHtml(prev, value) : ""));
+      setLetterContent((prev) => (prev ? syncPerihalInHtml(prev, formattedValue) : ""));
     }
   };
 
@@ -439,12 +447,13 @@ export default function LetterFormBuilder({
 
   const perihalFromFields =
     fieldValues["perihal"] || fieldValues["f_perihal"] || "";
-  const effectiveTitle = decodeHtmlEntities(
+  const rawTitle = decodeHtmlEntities(
     (perihalFromFields && perihalFromFields.trim()) ||
       extractPerihal(letterContent) ||
       initialLetter?.title?.replace(/\s*-\s*[^-]+$/, "").trim() ||
       template.name,
   );
+  const effectiveTitle = rawTitle ? rawTitle.trim().toUpperCase() : "";
 
   // Validasi kolom wajib (termasuk Perihal Surat tidak boleh lanjut jika kosong)
   const validateRequiredFields = () => {

@@ -102,6 +102,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
     setLettersList(getLetters())
     setJabatanList(getJabatan())
     setUsersList(getUsers())
+    setCategories(getCategories())
   }
 
   useEffect(() => {
@@ -1475,12 +1476,13 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
               />
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (!newCategoryName.trim()) return
-                  const updated = addCategory(newCategoryName)
+                  const updated = await addCategory(newCategoryName)
                   setCategories(updated)
                   setNewCategoryName('')
-                  notify.success('Kategori Ditambahkan', 'Kategori baru berhasil dibuat.')
+                  refreshList()
+                  notify.success('Kategori Ditambahkan', 'Kategori baru berhasil disimpan ke database.')
                 }}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0"
               >
@@ -1510,15 +1512,16 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                         />
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             if (!editingCategory.newName.trim()) return
-                            const updated = updateCategory(
+                            const updated = await updateCategory(
                               editingCategory.oldName,
                               editingCategory.newName
                             )
                             setCategories(updated)
                             setEditingCategory({ oldName: '', newName: '' })
                             refreshList()
+                            notify.success('Kategori Diperbarui', 'Nama kategori dan template terkait berhasil diubah di database.')
                           }}
                           className="px-2.5 py-1 bg-emerald-600 text-white rounded-md font-bold text-[11px]"
                         >
@@ -1549,7 +1552,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               if (count > 0) {
                                 notify.warning(
                                   'Kategori Digunakan',
@@ -1557,8 +1560,10 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                                 )
                                 return
                               }
-                              const updated = deleteCategory(cat)
+                              const updated = await deleteCategory(cat)
                               setCategories(updated)
+                              refreshList()
+                              notify.success('Kategori Dihapus', 'Kategori berhasil dihapus dari database.')
                             }}
                             className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition"
                             title="Hapus kategori"

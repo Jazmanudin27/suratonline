@@ -282,14 +282,20 @@ if (typeof window !== 'undefined') {
 // Initialize seed data and sync from MySQL API
 export const syncWithDatabase = async () => {
   try {
-    const [branchesData, usersData, templatesData, lettersData, globalViewersData, jabatanData] = await Promise.all([
+    const [branchesData, usersData, templatesData, lettersData, globalViewersData, jabatanData, categoriesData] = await Promise.all([
       api.getCabang(),
       api.getUsers(),
       api.getTemplates(),
       api.getLetters(),
       api.getSetting('global_default_viewers'),
       api.getJabatan(),
+      api.getCategories(),
     ])
+
+    if (Array.isArray(categoriesData) && categoriesData.length > 0) {
+      setStorageItem(STORAGE_KEYS.CATEGORIES || 'suratajuan_categories_v2', categoriesData)
+      window.dispatchEvent(new Event('categories_change'))
+    }
 
     if (Array.isArray(globalViewersData)) {
       setStorageItem(STORAGE_KEYS.GLOBAL_DEFAULT_VIEWERS, globalViewersData)
@@ -625,17 +631,22 @@ export const saveCategories = (categoriesList) => {
   return categoriesList
 }
 
-export const addCategory = (categoryName) => {
+export const addCategory = async (categoryName) => {
   const cats = getCategories()
   const trimmed = (categoryName || '').trim()
   if (trimmed && !cats.includes(trimmed)) {
     cats.push(trimmed)
     saveCategories(cats)
+    try {
+      await api.addCategory(trimmed)
+    } catch (e) {
+      console.warn('Sync addCategory to API failed:', e.message)
+    }
   }
   return cats
 }
 
-export const updateCategory = (oldName, newName) => {
+export const updateCategory = async (oldName, newName) => {
   const cats = getCategories()
   const trimmedNew = (newName || '').trim()
   const idx = cats.findIndex((c) => c === oldName)
@@ -643,7 +654,7 @@ export const updateCategory = (oldName, newName) => {
     cats[idx] = trimmedNew
     saveCategories(cats)
 
-    // Update templates using this category
+    // Update templates using this category in local storage & memory
     const templates = getTemplates()
     let changed = false
     templates.forEach((t) => {
@@ -656,14 +667,26 @@ export const updateCategory = (oldName, newName) => {
       setStorageItem(STORAGE_KEYS.TEMPLATES, templates)
       window.dispatchEvent(new Event('templates_change'))
     }
+
+    // Persist to MySQL database (updates both categories and templates tables)
+    try {
+      await api.updateCategory(oldName, trimmedNew)
+    } catch (e) {
+      console.warn('Sync updateCategory to API failed:', e.message)
+    }
   }
   return cats
 }
 
-export const deleteCategory = (categoryName) => {
+export const deleteCategory = async (categoryName) => {
   let cats = getCategories()
   cats = cats.filter((c) => c !== categoryName)
   saveCategories(cats)
+  try {
+    await api.deleteCategory(categoryName)
+  } catch (e) {
+    console.warn('Sync deleteCategory to API failed:', e.message)
+  }
   return cats
 }
 

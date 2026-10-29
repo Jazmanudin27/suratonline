@@ -147,6 +147,58 @@ export const api = {
     }
   },
 
+  // 4b. Categories (Template Categories in MySQL)
+  async getCategories() {
+    try {
+      const res = await fetch(`${API_BASE}/categories`)
+      const json = await res.json()
+      return json.success && Array.isArray(json.data) ? json.data : null
+    } catch (e) {
+      console.warn('API getCategories fallback:', e.message)
+      return null
+    }
+  },
+
+  async addCategory(name) {
+    try {
+      const res = await fetch(`${API_BASE}/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      return await res.json()
+    } catch (e) {
+      console.warn('API addCategory error:', e.message)
+      return { success: false, message: e.message }
+    }
+  },
+
+  async updateCategory(oldName, newName) {
+    try {
+      const res = await fetch(`${API_BASE}/categories`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldName, newName }),
+      })
+      return await res.json()
+    } catch (e) {
+      console.warn('API updateCategory error:', e.message)
+      return { success: false, message: e.message }
+    }
+  },
+
+  async deleteCategory(name) {
+    try {
+      const res = await fetch(`${API_BASE}/categories/${encodeURIComponent(name)}`, {
+        method: 'DELETE',
+      })
+      return await res.json()
+    } catch (e) {
+      console.warn('API deleteCategory error:', e.message)
+      return { success: false, message: e.message }
+    }
+  },
+
   // Settings (Global Settings in MySQL)
   async getSetting(key) {
     try {

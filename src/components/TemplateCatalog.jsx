@@ -18,13 +18,28 @@ import {
   Mail,
   MailPlus,
 } from 'lucide-react'
-import { BLANK_TEMPLATE } from '../services/storage'
+import { BLANK_TEMPLATE, getCategories } from '../services/storage'
 
 export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [storedCategories, setStoredCategories] = useState(getCategories())
 
-  const categories = ['all', ...Array.from(new Set(templates.map((t) => t.category || 'Umum')))]
+  React.useEffect(() => {
+    const handleCatChange = () => setStoredCategories(getCategories())
+    window.addEventListener('categories_change', handleCatChange)
+    return () => window.removeEventListener('categories_change', handleCatChange)
+  }, [])
+
+  const categories = [
+    'all',
+    ...Array.from(
+      new Set([
+        ...storedCategories,
+        ...templates.map((t) => t.category || 'Umum'),
+      ])
+    ),
+  ]
 
   const filteredTemplates = templates.filter((tpl) => {
     if (!tpl.isActive) return false

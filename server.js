@@ -94,6 +94,37 @@ pool.getConnection()
     } catch (e) {
       console.warn(' [MySQL] Table system_settings warning:', e.message)
     }
+
+    try {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS categories (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(100) NOT NULL UNIQUE,
+          created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `)
+      console.log(' [MySQL] Checked/created categories table')
+
+      const [catRows] = await conn.query(`SELECT COUNT(*) as cnt FROM categories`)
+      if (catRows[0].cnt === 0) {
+        const defaultCats = [
+          'Umum',
+          'Operasional',
+          'Kepegawaian / HRD',
+          'Marketing',
+          'Sales & CRM',
+          'Keuangan & Anggaran',
+          'Logistik & Distribusi',
+          'Legal & Perizinan',
+        ]
+        for (const cat of defaultCats) {
+          await conn.query(`INSERT IGNORE INTO categories (name) VALUES (?)`, [cat])
+        }
+        console.log(' [MySQL] Seeded default categories to database')
+      }
+    } catch (e) {
+      console.warn(' [MySQL] Table categories warning:', e.message)
+    }
     conn.release()
   })
   .catch((err) => {
@@ -597,6 +628,90 @@ app.delete('/api/templates/:id', async (req, res) => {
 
     await pool.query(`DELETE FROM templates WHERE id = ?`, [id])
     res.json({ success: true, message: 'Template berhasil dihapus' })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+// -------------------------------------------------------------
+// 4b. KATEGORI TEMPLATE (DATABASE MYSQL)
+// -------------------------------------------------------------
+app.get('/api/categories', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`SELECT name FROM categories ORDER BY id ASC`)
+    let categories = rows.map((r) => r.name)
+    if (categories.length === 0) {
+      categories = [
+        'Umum',
+        'Operasional',
+        'Kepegawaian / HRD',
+        'Marketing',
+        'Sales & CRM',
+        'Keuangan & Anggaran',
+        'Logistik & Distribusi',
+        'Legal & Perizinan',
+      ]
+    }
+    res.json({ success: true, data: categories })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: [] })
+  }
+})
+
+app.post('/api/categories', async (req, res) => {
+  try {
+    const { name } = req.body
+    const trimmed = (name || '').trim()
+    if (!trimmed) {
+      return res.status(400).json({ success: false, message: 'Nama kategori wajib diisi' })
+    }
+    await pool.query(`INSERT IGNORE INTO categories (name) VALUES (?)`, [trimmed])
+    res.json({ success: true, message: `Kategori "${trimmed}" berhasil disimpan ke database` })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+app.put('/api/categories', async (req, res) => {
+  try {
+    const { oldName, newName } = req.body
+    const trimmedOld = (oldName || '').trim()
+    const trimmedNew = (newName || '').trim()
+    if (!trimmedOld || !trimmedNew) {
+      return res.status(400).json({ success: false, message: 'Nama kategori lama dan baru wajib diisi' })
+    }
+
+    // Update tabel categories
+    await pool.query(`UPDATE categories SET name = ? WHERE name = ?`, [trimmedNew, trimmedOld])
+
+    // Update semua template di database yang memakai kategori lama
+    await pool.query(`UPDATE templates SET category = ? WHERE category = ?`, [trimmedNew, trimmedOld])
+
+    res.json({
+      success: true,
+      message: `Kategori "${trimmedOld}" berhasil diubah menjadi "${trimmedNew}" dan template terkait diperbarui`,
+    })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+app.delete('/api/categories/:name', async (req, res) => {
+  try {
+    const { name } = req.params
+    const decodedName = decodeURIComponent(name)
+
+    // Cek apakah kategori masih dipakai oleh template aktif di database
+    const [templates] = await pool.query(`SELECT id FROM templates WHERE category = ? LIMIT 1`, [decodedName])
+    if (templates.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Kategori "${decodedName}" tidak dapat dihapus karena masih digunakan oleh template surat.`,
+      })
+    }
+
+    await pool.query(`DELETE FROM categories WHERE name = ?`, [decodedName])
+    res.json({ success: true, message: `Kategori "${decodedName}" berhasil dihapus dari database` })
   } catch (err) {
     res.status(500).json({ success: false, message: err.message })
   }

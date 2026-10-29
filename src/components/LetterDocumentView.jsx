@@ -1078,6 +1078,11 @@ export default function LetterDocumentView({
                   <div className="mt-1.5 text-center text-[11px] leading-snug text-slate-900">
                     <p className="font-bold text-slate-950 underline decoration-slate-900 underline-offset-2">{submitterName}</p>
                     <p className="text-[10px] text-slate-600 font-medium mt-0.5">{submitterPosition || 'Pemohon'}</p>
+                    {(letter?.createdAt || letter?.submittedAt) && (
+                      <p className="text-[9px] text-slate-500 font-mono mt-0.5">
+                        Diajukan: {formatDateTimeId(letter.createdAt || letter.submittedAt)}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1119,6 +1124,11 @@ export default function LetterDocumentView({
                     <div className="mt-1.5 text-center text-[11px] leading-snug text-slate-900">
                       <p className="font-bold text-slate-950 underline decoration-slate-900 underline-offset-2">{effectiveKnownByName}</p>
                       <p className="text-[10px] text-slate-600 font-medium mt-0.5">{effectiveKnownByPosition || 'Mengetahui'}</p>
+                      {isKnownByApproved && (
+                        <p className="text-[9px] text-emerald-700 font-mono mt-0.5 font-medium">
+                          Disetujui: {formatDateTimeId(knownByTime)}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1218,6 +1228,21 @@ export default function LetterDocumentView({
                                 <div className="mt-1.5 w-full text-center text-[11px] leading-snug text-slate-900">
                                   <p className="font-bold text-slate-950 underline decoration-slate-900 underline-offset-2">{getApproverDisplayName(step)}</p>
                                   <p className="text-[10px] text-slate-600 font-medium mt-0.5">{step.approverRole || step.title || 'Pejabat Menyetujui'}</p>
+                                  {isApproved && (step.date || step.approvedAt) && (
+                                    <p className="text-[9px] text-emerald-700 font-mono mt-0.5 font-medium">
+                                      Disetujui: {formatDateTimeId(step.date || step.approvedAt)}
+                                    </p>
+                                  )}
+                                  {isRejected && (step.date || step.rejectedAt) && (
+                                    <p className="text-[9px] text-rose-700 font-mono mt-0.5 font-medium">
+                                      Ditolak: {formatDateTimeId(step.date || step.rejectedAt)}
+                                    </p>
+                                  )}
+                                  {isRevision && (step.date || step.revisionAt) && (
+                                    <p className="text-[9px] text-amber-700 font-mono mt-0.5 font-medium">
+                                      Minta Revisi: {formatDateTimeId(step.date || step.revisionAt)}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </td>

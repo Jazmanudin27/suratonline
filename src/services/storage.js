@@ -1721,22 +1721,13 @@ export const addAuditLog = (letterId, userName, action, notes) => {
 }
 
 // ==========================================
-// Pemeriksaan Hak Edit Surat (Hanya IT dan Pembuat Surat)
+// Pemeriksaan Hak Edit Surat (HANYA Pemohon / Pembuat yang Mengajukan)
 // ==========================================
 export const canUserEditLetter = (letter, currentUser) => {
   if (!letter || !currentUser) return false
   if (letter.status === 'approved' || letter.status === 'rejected' || letter.knownByStatus === 'rejected') return false
 
-  // 1. IT Pusat / Tim IT
-  const isIT =
-    currentUser.role === 'admin_pusat' ||
-    currentUser.kodeJabatan === 'J27' ||
-    (currentUser.position && currentUser.position.toUpperCase().includes('IT')) ||
-    (currentUser.roleLabel && currentUser.roleLabel.toUpperCase().includes('IT'))
-
-  if (isIT) return true
-
-  // 2. Pembuat Surat
+  // Hanya pemohon / pembuat yang mengajukan surat yang berhak mengedit
   const uid = String(currentUser.id || '')
   const uName = (currentUser.name || '').trim().toLowerCase()
   const isCreator =

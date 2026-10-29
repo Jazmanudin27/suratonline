@@ -265,6 +265,10 @@ export default function App() {
   }
 
   const handleEditLetter = (letter) => {
+    if (!canUserEditLetter(letter, currentUser)) {
+      notify.warning('Akses Ditolak', 'Hanya pemohon yang mengajukan surat yang dapat mengedit dokumen ini.')
+      return
+    }
     const tpl =
       templates.find((t) => t.id === letter.templateId) ||
       templates.find((t) => t.name === letter.templateName || t.code === letter.templateCode) ||

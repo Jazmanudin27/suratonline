@@ -1,0 +1,32 @@
+#!/bin/bash
+# Hook post-merge otomatis jalan setiap selesai 'git pull'
+
+echo "========================================="
+echo "⚡ Git pull selesai. Memulai auto-build & restart PM2..."
+echo "========================================="
+
+# Masuk ke direktori root repository
+cd "$(git rev-parse --show-toplevel)"
+
+# 1. Install dependensi baru bila package.json berubah
+if git diff --name-only ORIG_HEAD HEAD | grep -q "package.json"; then
+  echo "📦 Perubahan package.json terdeteksi, menjalankan npm install..."
+  npm install
+fi
+
+# 2. Build frontend
+echo "🔨 Menjalankan npm run build..."
+npm run build
+
+if [ $? -ne 0 ]; then
+  echo "❌ Error: npm run build gagal! PM2 tidak direstart."
+  exit 1
+fi
+
+# 3. Restart PM2
+echo "🔄 Menjalankan pm2 restart all..."
+pm2 restart all
+
+echo "========================================="
+echo "✅ Auto-build & restart PM2 selesai!"
+echo "========================================="

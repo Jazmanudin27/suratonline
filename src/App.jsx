@@ -13,6 +13,7 @@ import LetterDocumentView from './components/LetterDocumentView'
 import LoginForm from './components/LoginForm'
 import MobileLayout from './mobile/MobileLayout'
 import PwaInstallPrompt from './components/PwaInstallPrompt'
+import GpsTracker from './components/GpsTracker'
 import {
   initializeStorage,
   syncWithDatabase,
@@ -36,7 +37,11 @@ import { isCrmOrIt, isDirekturUser } from './utils'
 export default function App() {
   const getInitialMenu = () => {
     const user = getCurrentUser()
-    const hash = window.location.hash.replace(/^#\/?/, '')
+    const path = window.location.pathname.replace(/^\//, '').toLowerCase().split('/')[0]
+    const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().split('?')[0]
+    if (path === 'gps' || hash === 'gps') {
+      return 'gps'
+    }
     if (isDirekturUser(user)) {
       if (!hash || hash === 'dashboard' || hash === 'templates' || hash === 'builder') {
         return 'letters'
@@ -116,7 +121,21 @@ export default function App() {
 
   const setActiveMenu = (menu) => {
     setActiveMenuState(menu)
-    window.location.hash = `#${menu}`
+    if (menu === 'gps') {
+      try {
+        if (window.location.pathname !== '/gps') {
+          window.history.pushState({}, '', '/gps')
+        }
+      } catch (e) {}
+      window.location.hash = '#gps'
+    } else {
+      window.location.hash = `#${menu}`
+      try {
+        if (window.location.pathname === '/gps') {
+          window.history.pushState({}, '', '/')
+        }
+      } catch (e) {}
+    }
     localStorage.setItem('suratajuan_active_menu', menu)
   }
 
@@ -152,9 +171,12 @@ export default function App() {
     }
 
     const handleHashChange = () => {
+      const path = window.location.pathname.replace(/^\//, '').toLowerCase().split('/')[0]
       const rawHash = window.location.hash.replace(/^#\/?/, '')
       const cleanHash = rawHash.split('?')[0]
-      if (cleanHash && cleanHash !== activeMenu) {
+      if (path === 'gps' || cleanHash === 'gps') {
+        setActiveMenuState('gps')
+      } else if (cleanHash && cleanHash !== activeMenu) {
         setActiveMenuState(cleanHash)
       }
       checkViewParam()
@@ -303,6 +325,18 @@ export default function App() {
   }
 
   if (!currentUser) {
+    if (activeMenu === 'gps') {
+      return (
+        <div className="min-h-screen bg-[#dce3ec] py-4 px-2 sm:px-4">
+          <GpsTracker
+            onBack={() => {
+              setActiveMenu('letters')
+              window.location.href = '/'
+            }}
+          />
+        </div>
+      )
+    }
     return (
       <LoginForm
         onLoginSuccess={(user) => {
@@ -510,6 +544,10 @@ export default function App() {
             onOpenLetter={(ltr) => setPreviewingLetter(ltr)}
           />
         )
+      )}
+
+      {activeMenu === 'gps' && (
+        <GpsTracker onBack={() => setActiveMenu('letters')} />
       )}
 
       {/* Standalone Letter Modal View (for viewing anywhere) */}

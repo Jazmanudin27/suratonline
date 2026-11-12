@@ -24,6 +24,7 @@ import {
   Check,
   HelpCircle,
   Download,
+  Navigation,
 } from 'lucide-react'
 import {
   getUsers,
@@ -191,6 +192,14 @@ export default function AdminLayout({
       isActive: activeMenu === 'letters',
       badge: pendingCount > 0 ? pendingCount : null,
       badgeClass: 'bg-amber-500 text-slate-950 font-black',
+    },
+    {
+      id: 'gps',
+      label: 'Pelacak GPS Armada',
+      icon: Navigation,
+      isActive: activeMenu === 'gps',
+      badge: 'LIVE',
+      badgeClass: 'bg-sky-500/20 text-sky-300 border border-sky-500/30',
     },
     ...(isCrmOrIt(currentUser)
       ? [

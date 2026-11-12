@@ -20,6 +20,7 @@ import {
   ArrowRight,
   ShieldAlert,
   TrendingUp,
+  Navigation,
 } from 'lucide-react'
 import { formatDateId } from '../services/storage'
 
@@ -118,6 +119,14 @@ export default function MobileDashboard({
       gradient: 'from-cyan-500 to-blue-600',
       shadow: 'shadow-cyan-500/30',
       action: () => onNavigateTab('products'),
+    },
+    {
+      id: 'gps_act',
+      label: 'GPS Fleet',
+      icon: Navigation,
+      gradient: 'from-amber-500 to-orange-600',
+      shadow: 'shadow-amber-500/30',
+      action: () => onNavigateTab('gps'),
     },
     {
       id: 'profile_act',

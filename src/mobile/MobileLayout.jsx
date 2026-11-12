@@ -9,6 +9,7 @@ import MobileProductList from './MobileProductList'
 import MobileInternalMemo from './MobileInternalMemo'
 import MobileDocumentReader from './MobileDocumentReader'
 import LetterChatModal from '../components/LetterChatModal'
+import GpsTracker from '../components/GpsTracker'
 import { canUserApproveLetter } from '../components/ApproverInbox'
 import { isLetterVisibleToUser } from '../services/storage'
 
@@ -96,6 +97,10 @@ export default function MobileLayout({
 
           {activeTab === 'products' && (
             <MobileProductList currentUser={currentUser} />
+          )}
+
+          {activeTab === 'gps' && (
+            <GpsTracker onBack={() => setActiveTab('dashboard')} />
           )}
 
           {activeTab === 'profile' && (

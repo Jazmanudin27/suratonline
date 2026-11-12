@@ -381,8 +381,18 @@ export default function GpsTracker({ onBack }) {
     return Object.keys(SAMPLE_GPS_DATA.vehicles)[0] || ''
   })
 
-  // Date selection - default to latest date of selected vehicle
-  const [selectedDate, setSelectedDate] = useState('LATEST')
+  // Helper to format today's local date as YYYY-MM-DD
+  const getTodayDateString = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  // Date Range selection - defaults to TODAY's date (tgl sekarang) as requested!
+  const [startDate, setStartDate] = useState(getTodayDateString)
+  const [endDate, setEndDate] = useState(getTodayDateString)
 
   // Hour Filter states: 'ALL' | 'PAGI' | 'SIANG' | 'SORE' | 'MALAM' | 'CUSTOM'
   const [hourPreset, setHourPreset] = useState('ALL')
@@ -422,7 +432,7 @@ export default function GpsTracker({ onBack }) {
     }
   }, [data])
 
-  // Dates available for currently selected vehicle
+  // Dates available in uploaded file for currently selected vehicle
   const availableDatesForVehicle = useMemo(() => {
     if (!data?.vehicles || !selectedVehicle) return []
     const trips = data.vehicles[selectedVehicle] || []
@@ -433,13 +443,7 @@ export default function GpsTracker({ onBack }) {
     return Array.from(dates).sort().reverse()
   }, [data, selectedVehicle])
 
-  // Active Date resolved
-  const activeDateValue = useMemo(() => {
-    if (selectedDate === 'LATEST') {
-      return availableDatesForVehicle[0] || 'ALL'
-    }
-    return selectedDate
-  }, [selectedDate, availableDatesForVehicle])
+  const latestDateInFile = availableDatesForVehicle[0] || ''
 
   // Dynamically load SheetJS if not already present
   const loadSheetJS = () => {
@@ -691,7 +695,6 @@ export default function GpsTracker({ onBack }) {
       setData(parsedData)
       const firstDev = Object.keys(vehicles)[0] || ''
       setSelectedVehicle(firstDev)
-      setSelectedDate('LATEST')
       setHourPreset('ALL')
     } catch (err) {
       console.error('Error parsing Excel GPS:', err)
@@ -710,9 +713,16 @@ export default function GpsTracker({ onBack }) {
     const vehicleTrips = data.vehicles[selectedVehicle] || []
     let targetTrips = vehicleTrips.map((t) => ({ ...t, vehicleName: selectedVehicle }))
 
-    // 1. Filter by Date (Per Hari)
-    if (activeDateValue !== 'ALL') {
-      targetTrips = targetTrips.filter((t) => t.date === activeDateValue)
+    // 1. Filter by Date Range (Dari Tanggal s/d Sampai Tanggal)
+    if (startDate && endDate) {
+      targetTrips = targetTrips.filter((t) => {
+        if (!t.date) return false
+        return t.date >= startDate && t.date <= endDate
+      })
+    } else if (startDate) {
+      targetTrips = targetTrips.filter((t) => t.date >= startDate)
+    } else if (endDate) {
+      targetTrips = targetTrips.filter((t) => t.date <= endDate)
     }
 
     // 2. Filter by Hour (Per Jam)
@@ -789,7 +799,7 @@ export default function GpsTracker({ onBack }) {
     })
 
     return result
-  }, [data, selectedVehicle, activeDateValue, hourPreset, customStartHour, customEndHour, searchLocation, speedFilter])
+  }, [data, selectedVehicle, startDate, endDate, hourPreset, customStartHour, customEndHour, searchLocation, speedFilter])
 
   // Aggregated Statistics for active filtered trips
   const stats = useMemo(() => {
@@ -1140,7 +1150,6 @@ export default function GpsTracker({ onBack }) {
                 setData(SAMPLE_GPS_DATA)
                 const firstDev = Object.keys(SAMPLE_GPS_DATA.vehicles)[0] || ''
                 setSelectedVehicle(firstDev)
-                setSelectedDate('LATEST')
                 setHourPreset('ALL')
               }}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
@@ -1201,7 +1210,6 @@ export default function GpsTracker({ onBack }) {
                   key={vName}
                   onClick={() => {
                     setSelectedVehicle(vName)
-                    setSelectedDate('LATEST') // Auto switch to latest date of selected vehicle
                   }}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border ${
                     isSelected
@@ -1224,41 +1232,63 @@ export default function GpsTracker({ onBack }) {
           </div>
         </div>
 
-        {/* 2. FILTER PER HARI & PER JAM */}
+        {/* 2. FILTER PER HARI (DARI - SAMPAI) & PER JAM */}
         <div className="pt-3 border-t border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-3.5">
-          {/* Filter Tanggal (Per Hari) */}
+          {/* Filter Tanggal (Dari Tanggal - Sampai Tanggal) */}
           <div className="md:col-span-5 space-y-1.5">
-            <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-blue-600" />
-              <span>2. Filter Per Hari (Tanggal):</span>
-            </label>
-
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:outline-indigo-500"
-              >
-                <option value="LATEST">
-                  📅 Tanggal Terakhir ({availableDatesForVehicle[0] || 'Tidak ada'})
-                </option>
-                {availableDatesForVehicle.map((d) => (
-                  <option key={d} value={d}>
-                    📅 {d}
-                  </option>
-                ))}
-                <option value="ALL">🌐 Semua Tanggal ({availableDatesForVehicle.length} Hari)</option>
-              </select>
-
-              {selectedDate !== 'LATEST' && (
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                <span>2. Tanggal Perjalanan:</span>
+              </label>
+              <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setSelectedDate('LATEST')}
-                  className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold whitespace-nowrap cursor-pointer"
-                  title="Kembali ke Tanggal Terakhir"
+                  type="button"
+                  onClick={() => {
+                    const today = getTodayDateString()
+                    setStartDate(today)
+                    setEndDate(today)
+                  }}
+                  className="text-[10px] px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold cursor-pointer"
+                  title="Pilih Hari Ini"
                 >
-                  Terakhir
+                  Hari Ini
                 </button>
-              )}
+                {latestDateInFile && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStartDate(latestDateInFile)
+                      setEndDate(latestDateInFile)
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold cursor-pointer"
+                    title={`Pilih tanggal ${latestDateInFile} dari file`}
+                  >
+                    Data Terakhir ({latestDateInFile})
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Dari:</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:outline-indigo-500"
+                />
+              </div>
+              <div>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Sampai:</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:outline-indigo-500"
+                />
+              </div>
             </div>
           </div>
 
@@ -1490,7 +1520,7 @@ export default function GpsTracker({ onBack }) {
                 </span>
               </h3>
               <p className="text-[10px] text-slate-400">
-                Tanggal: <strong className="text-slate-200">{activeDateValue}</strong> • Jam:{' '}
+                Tanggal: <strong className="text-slate-200">{startDate === endDate ? startDate : `${startDate} s/d ${endDate}`}</strong> • Jam:{' '}
                 <strong className="text-slate-200">
                   {hourPreset === 'ALL'
                     ? '24 Jam'
@@ -1623,14 +1653,29 @@ export default function GpsTracker({ onBack }) {
         </div>
 
         {activeTripsWithStops.length === 0 ? (
-          <div className="bg-white rounded-2xl p-10 text-center border border-dashed border-slate-300">
-            <Navigation className="w-9 h-9 text-slate-300 mx-auto mb-2" />
+          <div className="bg-white rounded-2xl p-10 text-center border border-dashed border-slate-300 space-y-2">
+            <Navigation className="w-9 h-9 text-slate-300 mx-auto" />
             <p className="text-sm font-bold text-slate-700">
-              Tidak ada perjalanan untuk kendaraan & rentang waktu yang dipilih
+              Tidak ada perjalanan pada tanggal {startDate === endDate ? startDate : `${startDate} s/d ${endDate}`}
             </p>
-            <p className="text-xs text-slate-400 mt-1">
-              Pilih tanggal lain atau pilih "24 Jam" pada filter jam di atas.
+            <p className="text-xs text-slate-400">
+              {latestDateInFile && latestDateInFile !== startDate
+                ? `File GPS ini memiliki data terakhir pada tanggal ${latestDateInFile}.`
+                : 'Coba sesuaikan rentang tanggal atau pilih "24 Jam" pada filter jam.'}
             </p>
+            {latestDateInFile && latestDateInFile !== startDate && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStartDate(latestDateInFile)
+                  setEndDate(latestDateInFile)
+                }}
+                className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-sm transition cursor-pointer"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Tampilkan Data Terakhir di File ({latestDateInFile})</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

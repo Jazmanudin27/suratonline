@@ -1678,140 +1678,163 @@ export default function GpsTracker({ onBack }) {
             )}
           </div>
         ) : (
-          <div className="space-y-3">
-            {activeTripsWithStops.map((trip, idx) => {
-              const isOver100 = (trip.maxSpeed || 0) >= 100
-              const isOver80 = (trip.maxSpeed || 0) >= 80 && !isOver100
-              const isFocused = activeFocusedTrip === trip
-              const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
-                trip.startLocation
-              )}&destination=${encodeURIComponent(trip.endLocation)}`
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider border-b border-slate-200 text-[10px]">
+                    <th className="py-3 px-3 text-center w-12">No</th>
+                    <th className="py-3 px-3 w-44">Waktu & Tanggal</th>
+                    <th className="py-3 px-3 min-w-[280px]">Rute Perjalanan (Asal &rarr; Tujuan)</th>
+                    <th className="py-3 px-3 text-right w-24">Jarak</th>
+                    <th className="py-3 px-3 text-right w-28">Kecepatan</th>
+                    <th className="py-3 px-3 text-center w-36">Jeda Parkir</th>
+                    <th className="py-3 px-3 text-center w-28">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {activeTripsWithStops.map((trip, idx) => {
+                    const isOver100 = (trip.maxSpeed || 0) >= 100
+                    const isOver80 = (trip.maxSpeed || 0) >= 80 && !isOver100
+                    const isFocused = activeFocusedTrip === trip
+                    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
+                      trip.startLocation
+                    )}&destination=${encodeURIComponent(trip.endLocation)}`
 
-              return (
-                <React.Fragment key={idx}>
-                  {/* Indicator for Parking / Stop between consecutive trips */}
-                  {trip.stopDurationSeconds > 0 && (
-                    <div className="relative pl-6 pr-4 py-2 bg-amber-50/90 border border-amber-200/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
-                      <div className="flex items-center gap-2 text-xs text-amber-900">
-                        <span className="w-6 h-6 rounded-full bg-amber-200 flex items-center justify-center font-black text-amber-800 text-[11px] shrink-0">
-                          🅿️
-                        </span>
-                        <div>
-                          <span className="font-extrabold text-amber-950">
-                            Parkir / Berhenti Selama: {trip.stopDurationFormatted}
+                    return (
+                      <tr
+                        key={idx}
+                        onClick={() => handleFocusTripOnMap(trip)}
+                        className={`transition cursor-pointer group ${
+                          isFocused
+                            ? 'bg-indigo-50/90 font-medium'
+                            : idx % 2 === 0
+                            ? 'bg-white hover:bg-slate-50'
+                            : 'bg-slate-50/60 hover:bg-slate-100/80'
+                        }`}
+                      >
+                        {/* No */}
+                        <td className="py-3 px-3 text-center">
+                          <span
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-black mx-auto ${
+                              isFocused
+                                ? 'bg-indigo-600 text-white shadow-xs'
+                                : 'bg-slate-800 text-white group-hover:bg-indigo-600'
+                            }`}
+                          >
+                            #{idx + 1}
                           </span>
-                          <p className="text-[11px] text-amber-800 line-clamp-1">
-                            Di: {trip.stopLocation || trip.startLocation}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-amber-700 font-semibold self-start sm:self-center bg-amber-100/80 px-2 py-0.5 rounded-md">
-                        Jeda sebelum trip #{idx + 1}
-                      </span>
-                    </div>
-                  )}
+                        </td>
 
-                  {/* Trip Card */}
-                  <div
-                    onClick={() => handleFocusTripOnMap(trip)}
-                    className={`bg-white rounded-2xl p-4 sm:p-5 shadow-sm border transition-all cursor-pointer ${
-                      isFocused
-                        ? 'border-indigo-600 ring-2 ring-indigo-500/20 shadow-md'
-                        : 'border-slate-200/90 hover:border-indigo-300 hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-black">
-                          #{idx + 1}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-900 text-sm">
-                            {trip.vehicleName}
+                        {/* Waktu & Tanggal */}
+                        <td className="py-3 px-3">
+                          <div className="font-extrabold text-slate-900 text-xs flex items-center gap-1">
+                            <span>{trip.startTime}</span>
+                            <span className="text-slate-400 font-normal">&rarr;</span>
+                            <span>{trip.endTime}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                            <span>📅 {trip.date}</span>
+                            <span>•</span>
+                            <span className="font-mono text-indigo-700 font-semibold">⏱ {trip.travelTime}</span>
+                          </div>
+                        </td>
+
+                        {/* Rute (Asal -> Tujuan) */}
+                        <td className="py-3 px-3">
+                          <div className="space-y-1">
+                            <div className="flex items-start gap-1.5">
+                              <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[9px] font-bold shrink-0 mt-0.5">
+                                A
+                              </span>
+                              <p className="text-slate-700 leading-snug line-clamp-1" title={trip.startLocation}>
+                                {trip.startLocation}
+                              </p>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[9px] font-bold shrink-0 mt-0.5">
+                                B
+                              </span>
+                              <p className="text-slate-900 font-medium leading-snug line-clamp-1" title={trip.endLocation}>
+                                {trip.endLocation}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Jarak */}
+                        <td className="py-3 px-3 text-right">
+                          <span className="font-black text-indigo-700 text-xs">
+                            {trip.mileage} km
                           </span>
-                          <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700">
-                            📅 {trip.date}
-                          </span>
-                          {isFocused && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-600 text-white animate-pulse">
-                              FOKUS DI PETA
+                        </td>
+
+                        {/* Kecepatan */}
+                        <td className="py-3 px-3 text-right">
+                          <div className="text-[11px] text-slate-600">
+                            Rata²: <strong className="text-slate-800">{trip.avgSpeed}</strong> km/h
+                          </div>
+                          <div className="mt-0.5">
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold font-mono inline-block ${
+                                isOver100
+                                  ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                                  : isOver80
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              Max: {trip.maxSpeed} km/h
                             </span>
+                          </div>
+                        </td>
+
+                        {/* Jeda Parkir */}
+                        <td className="py-3 px-3 text-center">
+                          {trip.stopDurationSeconds > 0 ? (
+                            <span
+                              className="px-2 py-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-extrabold inline-block"
+                              title={`Parkir di ${trip.stopLocation || trip.startLocation}`}
+                            >
+                              🅿️ {trip.stopDurationFormatted}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300">-</span>
                           )}
-                        </div>
-                      </div>
+                        </td>
 
-                      {/* Right Badges */}
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold border border-indigo-100">
-                          📏 {trip.mileage} km
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono font-bold">
-                          ⏱ {trip.travelTime}
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono">
-                          Rata²: {trip.avgSpeed} km/h
-                        </span>
-                        <span
-                          className={`px-2.5 py-1 rounded-lg font-mono font-bold flex items-center gap-1 ${
-                            isOver100
-                              ? 'bg-rose-100 text-rose-700 border border-rose-300 animate-pulse'
-                              : isOver80
-                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                              : 'bg-emerald-50 text-emerald-700'
-                          }`}
-                        >
-                          {(isOver100 || isOver80) && <AlertTriangle className="w-3 h-3" />}
-                          Max: {trip.maxSpeed} km/h
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Locations Grid: Departure -> Arrival */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
-                          <MapPin className="w-4 h-4" />
-                        </div>
-                        <div className="text-xs">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="font-bold text-slate-400 text-[10px] uppercase">Berangkat:</span>
-                            <span className="font-mono font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">
-                              {trip.startTime}
-                            </span>
+                        {/* Aksi */}
+                        <td className="py-3 px-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => handleFocusTripOnMap(trip)}
+                              className={`px-2 py-1 rounded-md text-[10px] font-bold transition cursor-pointer ${
+                                isFocused
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'bg-slate-100 hover:bg-indigo-100 text-slate-700 hover:text-indigo-700'
+                              }`}
+                              title="Pusatkan kamera peta ke rute ini"
+                            >
+                              Peta
+                            </button>
+                            <a
+                              href={googleMapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                              title="Buka rute di Google Maps"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
                           </div>
-                          <p className="text-slate-800 leading-snug">{trip.startLocation}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
-                          <Navigation className="w-4 h-4" />
-                        </div>
-                        <div className="text-xs flex-1">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="font-bold text-slate-400 text-[10px] uppercase">Tiba di Tujuan:</span>
-                            <span className="font-mono font-extrabold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded">
-                              {trip.endTime}
-                            </span>
-                          </div>
-                          <p className="text-slate-800 leading-snug">{trip.endLocation}</p>
-                        </div>
-                        <a
-                          href={googleMapsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="self-center p-2 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 transition shrink-0"
-                          title="Buka rute ini di Google Maps"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </React.Fragment>
-              )
-            })}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

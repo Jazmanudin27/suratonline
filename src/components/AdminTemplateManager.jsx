@@ -1093,120 +1093,23 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
           {/* FULLSCREEN MICROSOFT WORD MODE (PERSIS SURAT AJUAN) */}
           {/* ---------------------------------------------------- */}
           {isWordFullscreen && (
-            <div className="fixed inset-0 z-50 bg-[#eef2f6] flex flex-col h-screen w-screen overflow-hidden animate-fadeIn select-none">
-              {/* WORD TOP TITLE BAR */}
-              <div className="bg-[#185abd] text-white px-4 py-2.5 flex items-center justify-between shadow-md shrink-0">
-                {/* Sisi Kiri: Identitas Dokumen Word */}
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#0e4b9e] flex items-center justify-center font-bold text-white shadow-xs border border-blue-400/30">
-                    <FileText className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold leading-tight">
-                        {editingTemplate.name || 'Desain Teks Baku Surat'}
-                      </h3>
-                      <span className="text-[10px] font-mono bg-blue-900/70 text-blue-100 px-1.5 py-0.5 rounded border border-blue-400/30">
-                        {editingTemplate.code || 'TEMPLATE'}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-blue-100/80">
-                      Microsoft Word Mode &bull; Rancang Format Teks Baku Surat &amp; Variabel Dinamis
-                    </p>
-                  </div>
-                </div>
-
-                {/* Sisi Tengah: Tombol Simpan Template Cepat */}
-                <div className="hidden md:flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSaveTemplate}
-                    className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition border border-white/20"
-                    title="Simpan Template"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Simpan Template</span>
-                  </button>
-                </div>
-
-                {/* Sisi Kanan: Kontrol Window Word (Minimize & Tutup/Review) */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsWordFullscreen(false)}
-                    className="px-3.5 py-1.5 bg-white/15 hover:bg-white/25 active:bg-white/35 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition border border-white/20"
-                    title="Kecilkan ke halaman review (Esc)"
-                  >
-                    <Minimize2 className="w-3.5 h-3.5" />
-                    <span>Minimize</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsWordFullscreen(false)
-                      setActiveTab('preview')
-                    }}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
-                    title="Tutup editor Word dan kembali ke lembar review pratinjau surat"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Tutup &amp; Lihat Review Surat</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* BAR VARIABEL DINAMIS DI ATAS EDITOR */}
-              <div className="bg-blue-900 text-blue-100 px-4 py-2 border-b border-blue-800 text-xs flex flex-wrap items-center gap-2 shrink-0">
-                <span className="font-bold text-white flex items-center gap-1">
-                  <Code className="w-3.5 h-3.5 text-amber-300" />
-                  Variabel Tersedia:
-                </span>
-                <span className="text-blue-300 text-[11px] hidden sm:inline">
-                  (Sisipkan kode ini ke teks untuk memuat nilai otomatis dari form):
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {availableVariables.map((v) => (
-                    <span
-                      key={v.key}
-                      className="px-2 py-0.5 rounded bg-blue-800/80 border border-blue-600/60 font-mono text-[11px] text-amber-200"
-                      title={v.label}
-                    >
-                      {`{{${v.key}}}`}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* AREA WORKSPACE EDITOR WORD (SCROLLABLE) */}
-              <div className="flex-1 overflow-y-auto select-text p-4 sm:p-6 bg-slate-300/80">
-                <div className="max-w-6xl mx-auto space-y-6">
-                  <RichEditor
-                    value={editingTemplate.letterTemplate}
-                    onChange={(val) =>
-                      setEditingTemplate((prev) => ({ ...prev, letterTemplate: val }))
-                    }
-                    availableVariables={availableVariables}
-                    letterNumber="001/SP/TSM/X/2026"
-                    perihal={editingTemplate.name || 'Permohonan'}
-                    submitterName="Jazmanudin"
-                    submitterPosition="IT & Administrator Sistem"
-                  />
-                </div>
-              </div>
-
-              {/* WORD STATUS BAR (BOTTOM) */}
-              <div className="bg-[#185abd] text-white/90 px-4 py-1.5 text-xs flex items-center justify-between shadow-inner shrink-0 select-none">
-                <div className="flex items-center gap-2.5 text-[11px]">
-                  <span className="font-semibold">Format Baku Template</span>
-                  <span>&bull;</span>
-                  <span>Bahasa Indonesia (Standar Surat Resmi CV Makmur Permata)</span>
-                </div>
-                <div className="text-[11px] text-blue-100">
-                  Variabel dinamis akan otomatis terisi saat staf membuat surat ajuan
-                </div>
-              </div>
-            </div>
+            <RichEditor
+              value={editingTemplate.letterTemplate}
+              onChange={(val) =>
+                setEditingTemplate((prev) => ({ ...prev, letterTemplate: val }))
+              }
+              availableVariables={availableVariables}
+              letterNumber="001/SP/TSM/X/2026"
+              perihal={editingTemplate.name || 'Permohonan'}
+              submitterName="Jazmanudin"
+              submitterPosition="IT & Administrator Sistem"
+              isFullscreen={true}
+              onSave={handleSaveTemplate}
+              onClose={() => {
+                setIsWordFullscreen(false)
+                setActiveTab('preview')
+              }}
+            />
           )}
         </div>
       )}

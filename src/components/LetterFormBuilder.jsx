@@ -1747,118 +1747,30 @@ export default function LetterFormBuilder({
 
       {/* FULLSCREEN MICROSOFT WORD MODE */}
       {isWordFullscreen && (
-        <div className="fixed inset-0 z-50 bg-[#eef2f6] flex flex-col h-screen w-screen overflow-hidden animate-fadeIn select-none">
-          {/* WORD TOP TITLE BAR */}
-          <div className="bg-[#185abd] text-white px-4 py-2.5 flex items-center justify-between shadow-md shrink-0">
-            {/* Sisi Kiri: Identitas Dokumen Word */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#0e4b9e] flex items-center justify-center font-bold text-white shadow-xs border border-blue-400/30">
-                <FileText className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold leading-tight">
-                    {effectiveTitle || "Surat Ajuan"}
-                  </h3>
-                  <span className="text-[10px] font-mono bg-blue-900/70 text-blue-100 px-1.5 py-0.5 rounded border border-blue-400/30">
-                    {letterNumber || "DRAFT"}
-                  </span>
-                </div>
-                <p className="text-[11px] text-blue-100/80">
-                  Microsoft Word Mode &bull; Pengeditan Surat Resmi Layar Penuh
-                </p>
-              </div>
-            </div>
-
-            {/* Sisi Tengah: Tombol Simpan Draft */}
-            <div className="hidden md:flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleSaveDraft}
-                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition border border-white/20"
-                title="Simpan Perubahan ke Draft"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Simpan Draft</span>
-              </button>
-            </div>
-
-            {/* Sisi Kanan: Kontrol Window Word (Minimize & Tutup/Review) */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsWordFullscreen(false)}
-                className="px-3 py-1.5 bg-white/15 hover:bg-white/25 active:bg-white/35 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition border border-white/20"
-                title="Kecilkan ke halaman review (Esc)"
-              >
-                <Minimize2 className="w-3.5 h-3.5" />
-                <span>Minimize</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsWordFullscreen(false);
-                  setActiveTab("preview");
-                }}
-                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
-                title="Tutup editor Word dan kembali ke lembar review pratinjau surat"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Tutup &amp; Lihat Review Surat</span>
-              </button>
-            </div>
-          </div>
-
-          {/* AREA WORKSPACE EDITOR WORD (SCROLLABLE) */}
-          <div className="flex-1 overflow-y-auto select-text p-4 sm:p-6 bg-slate-300/80">
-            <div className="max-w-6xl mx-auto space-y-6">
-              <RichEditor
-                value={letterContent}
-                onChange={setLetterContent}
-                availableVariables={availableVariables}
-                letterNumber={letterNumber}
-                perihal={
-                  effectiveTitle ||
-                  fieldValues.perihal ||
-                  fieldValues.f_perihal ||
-                  ""
-                }
-                submitterName={
-                  currentUser?.name || fieldValues.nama_pemohon || ""
-                }
-                submitterPosition={
-                  currentUser?.position || fieldValues.jabatan || ""
-                }
-              />
-            </div>
-          </div>
-
-          {/* WORD STATUS BAR (BOTTOM) */}
-          <div className="bg-[#185abd] text-white/90 px-4 py-1.5 text-xs flex items-center justify-between shadow-inner shrink-0 select-none">
-            <div className="flex items-center gap-2.5 text-[11px]">
-              <span className="font-semibold">Halaman 1 dari 1</span>
-              <span>&bull;</span>
-              <span>Bahasa Indonesia (Standar Surat Resmi)</span>
-              <span>&bull;</span>
-              <span className="text-blue-200 hidden md:inline">
-                Tekan tombol Esc atau Tutup untuk kembali ke lembar review
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIsWordFullscreen(false);
-                setActiveTab("preview");
-              }}
-              className="bg-white text-[#185abd] hover:bg-blue-50 font-bold px-3 py-1 rounded text-[11px] flex items-center gap-1.5 transition shadow-xs"
-            >
-              <span>Selesai &amp; Lanjut ke Review Surat</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+        <RichEditor
+          value={letterContent}
+          onChange={setLetterContent}
+          availableVariables={availableVariables}
+          letterNumber={letterNumber}
+          perihal={
+            effectiveTitle ||
+            fieldValues.perihal ||
+            fieldValues.f_perihal ||
+            ""
+          }
+          submitterName={
+            currentUser?.name || fieldValues.nama_pemohon || ""
+          }
+          submitterPosition={
+            currentUser?.position || fieldValues.jabatan || ""
+          }
+          isFullscreen={true}
+          onSave={handleSaveDraft}
+          onClose={() => {
+            setIsWordFullscreen(false);
+            setActiveTab("preview");
+          }}
+        />
       )}
 
       {/* MODAL PILIH PEMBACA / TEMBUSAN (CHECKLIST URUT CABANG & JABATAN) */}

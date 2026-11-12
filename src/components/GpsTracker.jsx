@@ -30,6 +30,10 @@ import {
   LocateFixed,
   Eye,
   EyeOff,
+  Sun,
+  Sunset,
+  Moon,
+  SlidersHorizontal,
 } from 'lucide-react'
 
 // Built-in coordinates dictionary for Indonesian locations in user's data
@@ -367,8 +371,24 @@ export default function GpsTracker({ onBack }) {
     return SAMPLE_GPS_DATA
   })
 
-  const [selectedVehicle, setSelectedVehicle] = useState('ALL')
-  const [selectedDate, setSelectedDate] = useState('ALL')
+  // Available vehicles list
+  const vehicleList = useMemo(() => {
+    return Object.keys(data?.vehicles || {})
+  }, [data])
+
+  // Vehicle selection is mandatory - default to 1st vehicle
+  const [selectedVehicle, setSelectedVehicle] = useState(() => {
+    return Object.keys(SAMPLE_GPS_DATA.vehicles)[0] || ''
+  })
+
+  // Date selection - default to latest date of selected vehicle
+  const [selectedDate, setSelectedDate] = useState('LATEST')
+
+  // Hour Filter states: 'ALL' | 'PAGI' | 'SIANG' | 'SORE' | 'MALAM' | 'CUSTOM'
+  const [hourPreset, setHourPreset] = useState('ALL')
+  const [customStartHour, setCustomStartHour] = useState('00:00')
+  const [customEndHour, setCustomEndHour] = useState('23:59')
+
   const [speedFilter, setSpeedFilter] = useState('ALL') // 'ALL' | 'OVER_80' | 'OVER_100'
   const [searchLocation, setSearchLocation] = useState('')
   const [isParsing, setIsParsing] = useState(false)
@@ -384,6 +404,13 @@ export default function GpsTracker({ onBack }) {
   const markersLayerRef = useRef(null)
   const polylinesLayerRef = useRef(null)
 
+  // Ensure selectedVehicle is valid
+  useEffect(() => {
+    if (vehicleList.length > 0 && (!selectedVehicle || !vehicleList.includes(selectedVehicle))) {
+      setSelectedVehicle(vehicleList[0])
+    }
+  }, [vehicleList, selectedVehicle])
+
   // Save to localStorage whenever data changes
   useEffect(() => {
     if (data) {
@@ -394,6 +421,25 @@ export default function GpsTracker({ onBack }) {
       }
     }
   }, [data])
+
+  // Dates available for currently selected vehicle
+  const availableDatesForVehicle = useMemo(() => {
+    if (!data?.vehicles || !selectedVehicle) return []
+    const trips = data.vehicles[selectedVehicle] || []
+    const dates = new Set()
+    trips.forEach((t) => {
+      if (t.date) dates.add(t.date)
+    })
+    return Array.from(dates).sort().reverse()
+  }, [data, selectedVehicle])
+
+  // Active Date resolved
+  const activeDateValue = useMemo(() => {
+    if (selectedDate === 'LATEST') {
+      return availableDatesForVehicle[0] || 'ALL'
+    }
+    return selectedDate
+  }, [selectedDate, availableDatesForVehicle])
 
   // Dynamically load SheetJS if not already present
   const loadSheetJS = () => {
@@ -643,8 +689,10 @@ export default function GpsTracker({ onBack }) {
       }
 
       setData(parsedData)
-      setSelectedVehicle('ALL')
-      setSelectedDate('ALL')
+      const firstDev = Object.keys(vehicles)[0] || ''
+      setSelectedVehicle(firstDev)
+      setSelectedDate('LATEST')
+      setHourPreset('ALL')
     } catch (err) {
       console.error('Error parsing Excel GPS:', err)
       setParseError(err.message || 'Gagal memproses file Excel.')
@@ -654,36 +702,42 @@ export default function GpsTracker({ onBack }) {
     }
   }
 
-  // Available vehicles list
-  const vehicleList = useMemo(() => {
-    return Object.keys(data?.vehicles || {})
-  }, [data])
-
-  // Get active trips based on selected vehicle & filters with resolved lat/lng
+  // Filter Active Trips: STRICTLY for Selected Vehicle + Date + Hour Range
+  // This keeps the trip count small (~2-15 trips), making the map ultra-responsive and lightweight!
   const activeTripsWithStops = useMemo(() => {
-    if (!data?.vehicles) return []
+    if (!data?.vehicles || !selectedVehicle) return []
 
-    let targetTrips = []
-    if (selectedVehicle === 'ALL') {
-      Object.entries(data.vehicles).forEach(([vName, trips]) => {
-        trips.forEach((t) => {
-          targetTrips.push({ ...t, vehicleName: vName })
-        })
-      })
-      targetTrips.sort((a, b) => {
-        const timeA = new Date(`${a.date}T${a.startTime}`).getTime() || 0
-        const timeB = new Date(`${b.date}T${b.startTime}`).getTime() || 0
-        return timeA - timeB
-      })
-    } else {
-      const trips = data.vehicles[selectedVehicle] || []
-      targetTrips = trips.map((t) => ({ ...t, vehicleName: selectedVehicle }))
+    const vehicleTrips = data.vehicles[selectedVehicle] || []
+    let targetTrips = vehicleTrips.map((t) => ({ ...t, vehicleName: selectedVehicle }))
+
+    // 1. Filter by Date (Per Hari)
+    if (activeDateValue !== 'ALL') {
+      targetTrips = targetTrips.filter((t) => t.date === activeDateValue)
     }
 
-    if (selectedDate !== 'ALL') {
-      targetTrips = targetTrips.filter((t) => t.date === selectedDate)
+    // 2. Filter by Hour (Per Jam)
+    if (hourPreset !== 'ALL') {
+      targetTrips = targetTrips.filter((t) => {
+        if (!t.startTime) return true
+        const timePart = t.startTime.slice(0, 5) // "06:50"
+        const hour = parseInt(t.startTime.split(':')[0], 10) || 0
+
+        if (hourPreset === 'PAGI') {
+          return hour >= 5 && hour < 11 // 05:00 - 10:59
+        } else if (hourPreset === 'SIANG') {
+          return hour >= 11 && hour < 15 // 11:00 - 14:59
+        } else if (hourPreset === 'SORE') {
+          return hour >= 15 && hour < 18 // 15:00 - 17:59
+        } else if (hourPreset === 'MALAM') {
+          return hour >= 18 || hour < 5 // 18:00 - 04:59
+        } else if (hourPreset === 'CUSTOM') {
+          return timePart >= customStartHour && timePart <= customEndHour
+        }
+        return true
+      })
     }
 
+    // 3. Filter by Location Search
     if (searchLocation.trim()) {
       const term = searchLocation.toLowerCase()
       targetTrips = targetTrips.filter(
@@ -693,19 +747,18 @@ export default function GpsTracker({ onBack }) {
       )
     }
 
+    // 4. Filter by Speed
     if (speedFilter === 'OVER_80') {
       targetTrips = targetTrips.filter((t) => (t.maxSpeed || 0) >= 80)
     } else if (speedFilter === 'OVER_100') {
       targetTrips = targetTrips.filter((t) => (t.maxSpeed || 0) >= 100)
     }
 
-    const tripsPerVehicleMap = {}
+    // Calculate Stop / Idle duration between consecutive trips
     const result = []
+    let prevTrip = null
 
     targetTrips.forEach((trip) => {
-      const v = trip.vehicleName
-      const prevTrip = tripsPerVehicleMap[v]
-
       let stopDurationSeconds = 0
       let stopLocation = ''
 
@@ -719,7 +772,7 @@ export default function GpsTracker({ onBack }) {
         stopLocation = prevTrip.endLocation
       }
 
-      tripsPerVehicleMap[v] = trip
+      prevTrip = trip
 
       // Resolve Coordinates for Start & End
       const startCoords = resolveCoordinates(trip.startLocation)
@@ -736,29 +789,9 @@ export default function GpsTracker({ onBack }) {
     })
 
     return result
-  }, [data, selectedVehicle, selectedDate, searchLocation, speedFilter])
+  }, [data, selectedVehicle, activeDateValue, hourPreset, customStartHour, customEndHour, searchLocation, speedFilter])
 
-  // Available dates for filter dropdown
-  const availableDates = useMemo(() => {
-    const dates = new Set()
-    if (!data?.vehicles) return []
-
-    if (selectedVehicle === 'ALL') {
-      Object.values(data.vehicles).forEach((trips) => {
-        trips.forEach((t) => {
-          if (t.date) dates.add(t.date)
-        })
-      })
-    } else {
-      const trips = data.vehicles[selectedVehicle] || []
-      trips.forEach((t) => {
-        if (t.date) dates.add(t.date)
-      })
-    }
-    return Array.from(dates).sort().reverse()
-  }, [data, selectedVehicle])
-
-  // Aggregated Statistics
+  // Aggregated Statistics for active filtered trips
   const stats = useMemo(() => {
     let totalKm = 0
     let maxSpeed = 0
@@ -793,7 +826,7 @@ export default function GpsTracker({ onBack }) {
     }
   }, [activeTripsWithStops])
 
-  // Initialize or Update Leaflet Map
+  // Highly Optimized Leaflet Map: Uses Canvas Renderer & Minimal DOM
   useEffect(() => {
     if (!showMap || !mapContainerRef.current) return
 
@@ -803,12 +836,13 @@ export default function GpsTracker({ onBack }) {
       .then((L) => {
         if (!isMounted || !mapContainerRef.current) return
 
-        // 1. Initialize Map instance once
+        // Initialize Map instance once with preferCanvas = true (Butter smooth 60fps)
         if (!mapInstanceRef.current) {
           const map = L.map(mapContainerRef.current, {
             center: [-7.9839, 112.6214],
-            zoom: 11,
+            zoom: 12,
             zoomControl: false,
+            preferCanvas: true,
           })
 
           L.control.zoom({ position: 'bottomright' }).addTo(map)
@@ -835,7 +869,6 @@ export default function GpsTracker({ onBack }) {
           streetsLayer.addTo(map)
           map._customLayers = { streets: streetsLayer, satellite: satelliteLayer, light: lightLayer }
 
-          // Feature layers
           markersLayerRef.current = L.featureGroup().addTo(map)
           polylinesLayerRef.current = L.featureGroup().addTo(map)
 
@@ -855,18 +888,16 @@ export default function GpsTracker({ onBack }) {
           else map._customLayers.streets.addTo(map)
         }
 
-        // Clear previous markers and paths
+        // Clear previous layers
         if (markersLayerRef.current) markersLayerRef.current.clearLayers()
         if (polylinesLayerRef.current) polylinesLayerRef.current.clearLayers()
 
         if (activeTripsWithStops.length === 0) return
 
         const allLatLngs = []
-        const vehicleColors = ['#4f46e5', '#0284c7', '#059669', '#d97706', '#dc2626']
 
-        // Render Polylines and Markers for each trip
+        // Lightweight rendering for the filtered trips of the single vehicle
         activeTripsWithStops.forEach((trip, idx) => {
-          const color = vehicleColors[idx % vehicleColors.length]
           const isOver100 = (trip.maxSpeed || 0) >= 100
           const isOver80 = (trip.maxSpeed || 0) >= 80
 
@@ -876,12 +907,11 @@ export default function GpsTracker({ onBack }) {
           allLatLngs.push(startLatLng)
           allLatLngs.push(endLatLng)
 
-          // 1. Draw Route Polyline connecting Start -> End
+          // 1. Route Polyline
           const polyline = L.polyline([startLatLng, endLatLng], {
-            color: isOver100 ? '#ef4444' : isOver80 ? '#f59e0b' : color,
+            color: isOver100 ? '#ef4444' : isOver80 ? '#f59e0b' : '#3b82f6',
             weight: 4,
-            opacity: 0.85,
-            dashArray: isOver100 ? '4, 4' : null,
+            opacity: 0.9,
           }).addTo(polylinesLayerRef.current)
 
           polyline.bindPopup(`
@@ -890,13 +920,13 @@ export default function GpsTracker({ onBack }) {
                 🚗 ${trip.vehicleName} • Trip #${idx + 1}
               </div>
               <div>📅 <strong>Tanggal:</strong> ${trip.date}</div>
-              <div>⏱ <strong>Waktu Tempuh:</strong> ${trip.travelTime} (${trip.startTime} - ${trip.endTime})</div>
+              <div>⏱ <strong>Waktu:</strong> ${trip.startTime} &rarr; ${trip.endTime} (${trip.travelTime})</div>
               <div>📏 <strong>Jarak:</strong> ${trip.mileage} km</div>
-              <div>⚡ <strong>Speed:</strong> Rata² ${trip.avgSpeed} km/h | Max <span style="color: ${isOver100 ? '#dc2626' : '#2563eb'}; font-weight: bold;">${trip.maxSpeed} km/h</span></div>
+              <div>⚡ <strong>Speed:</strong> Rata² ${trip.avgSpeed} km/h | Max <strong>${trip.maxSpeed} km/h</strong></div>
             </div>
           `)
 
-          // 2. Start Marker (Green Pin / Start Flag)
+          // 2. Start Marker (Green Pin)
           const startIcon = L.divIcon({
             className: 'custom-gps-pin',
             html: `
@@ -906,10 +936,10 @@ export default function GpsTracker({ onBack }) {
                 font-size: 10px;
                 font-weight: bold;
                 border: 2px solid white;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
                 border-radius: 9999px;
-                width: 24px;
-                height: 24px;
+                width: 22px;
+                height: 22px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -917,18 +947,17 @@ export default function GpsTracker({ onBack }) {
                 ${idx + 1}
               </div>
             `,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12],
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
           })
 
           const startMarker = L.marker(startLatLng, { icon: startIcon }).addTo(markersLayerRef.current)
           startMarker.bindPopup(`
             <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; min-width: 220px;">
-              <span style="background: #ecfdf5; color: #047857; font-weight: 800; padding: 2px 6px; border-radius: 4px; font-size: 10px; text-transform: uppercase;">
-                🟢 Titik Berangkat #${idx + 1}
+              <span style="background: #ecfdf5; color: #047857; font-weight: 800; padding: 2px 6px; border-radius: 4px; font-size: 10px;">
+                🟢 Berangkat #${idx + 1} (${trip.startTime})
               </span>
               <div style="font-weight: 700; color: #0f172a; margin-top: 5px;">${trip.vehicleName}</div>
-              <div style="font-size: 11px; color: #475569; margin: 3px 0;">⏰ <strong>Jam:</strong> ${trip.startTime}</div>
               <div style="font-size: 11px; color: #334155; margin-top: 4px;">📍 ${trip.startLocation}</div>
               <a href="https://www.google.com/maps/search/?api=1&query=${trip.startCoords[0]},${trip.startCoords[1]}" target="_blank" style="display: inline-block; margin-top: 6px; color: #2563eb; font-weight: bold; font-size: 11px; text-decoration: none;">
                 🌐 Buka di Google Maps &rarr;
@@ -936,20 +965,20 @@ export default function GpsTracker({ onBack }) {
             </div>
           `)
 
-          // 3. End Marker (Blue/Red Flag)
+          // 3. End Marker (Blue Pin)
           const endIcon = L.divIcon({
             className: 'custom-gps-pin',
             html: `
               <div style="
                 background: ${isOver100 ? '#ef4444' : '#2563eb'};
                 color: white;
-                font-size: 11px;
+                font-size: 10px;
                 font-weight: bold;
                 border: 2px solid white;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
                 border-radius: 9999px;
-                width: 24px;
-                height: 24px;
+                width: 22px;
+                height: 22px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -957,18 +986,17 @@ export default function GpsTracker({ onBack }) {
                 🏁
               </div>
             `,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12],
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
           })
 
           const endMarker = L.marker(endLatLng, { icon: endIcon }).addTo(markersLayerRef.current)
           endMarker.bindPopup(`
             <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; min-width: 220px;">
-              <span style="background: #eff6ff; color: #1d4ed8; font-weight: 800; padding: 2px 6px; border-radius: 4px; font-size: 10px; text-transform: uppercase;">
-                🏁 Titik Tiba #${idx + 1}
+              <span style="background: #eff6ff; color: #1d4ed8; font-weight: 800; padding: 2px 6px; border-radius: 4px; font-size: 10px;">
+                🏁 Tiba di Tujuan #${idx + 1} (${trip.endTime})
               </span>
-              <div style="font-weight: 700; color: #0f172a; margin-top: 5px;">${trip.vehicleName}</div>
-              <div style="font-size: 11px; color: #475569; margin: 3px 0;">⏰ <strong>Tiba:</strong> ${trip.endTime} | 📏 ${trip.mileage} km</div>
+              <div style="font-weight: 700; color: #0f172a; margin-top: 5px;">${trip.vehicleName} • ${trip.mileage} km</div>
               <div style="font-size: 11px; color: #334155; margin-top: 4px;">📍 ${trip.endLocation}</div>
               <a href="https://www.google.com/maps/search/?api=1&query=${trip.endCoords[0]},${trip.endCoords[1]}" target="_blank" style="display: inline-block; margin-top: 6px; color: #2563eb; font-weight: bold; font-size: 11px; text-decoration: none;">
                 🌐 Buka di Google Maps &rarr;
@@ -976,7 +1004,7 @@ export default function GpsTracker({ onBack }) {
             </div>
           `)
 
-          // 4. Parking / Idle Marker between trips
+          // 4. Parking Marker
           if (trip.stopDurationSeconds > 0) {
             const stopIcon = L.divIcon({
               className: 'custom-gps-pin',
@@ -984,13 +1012,13 @@ export default function GpsTracker({ onBack }) {
                 <div style="
                   background: #f59e0b;
                   color: white;
-                  font-size: 11px;
+                  font-size: 10px;
                   font-weight: 900;
                   border: 2px solid white;
-                  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
                   border-radius: 6px;
-                  width: 22px;
-                  height: 22px;
+                  width: 20px;
+                  height: 20px;
                   display: flex;
                   align-items: center;
                   justify-content: center;
@@ -998,33 +1026,24 @@ export default function GpsTracker({ onBack }) {
                   🅿️
                 </div>
               `,
-              iconSize: [22, 22],
-              iconAnchor: [11, 11],
+              iconSize: [20, 20],
+              iconAnchor: [10, 10],
             })
 
             const stopMarker = L.marker(startLatLng, { icon: stopIcon }).addTo(markersLayerRef.current)
             stopMarker.bindPopup(`
               <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; min-width: 220px;">
-                <span style="background: #fef3c7; color: #b45309; font-weight: 800; padding: 2px 6px; border-radius: 4px; font-size: 10px; text-transform: uppercase;">
-                  🅿️ Jeda Parkir / Berhenti
+                <span style="background: #fef3c7; color: #b45309; font-weight: 800; padding: 2px 6px; border-radius: 4px; font-size: 10px;">
+                  🅿️ Parkir / Singgah: ${trip.stopDurationFormatted}
                 </span>
-                <div style="font-size: 13px; font-weight: 800; color: #92400e; margin-top: 4px;">
-                  Durasi: ${trip.stopDurationFormatted}
-                </div>
-                <div style="font-size: 11px; color: #475569; margin-top: 3px;">
-                  Sebelum Perjalanan #${idx + 1} (${trip.vehicleName})
-                </div>
-                <div style="font-size: 11px; color: #334155; margin-top: 4px;">
-                  📍 ${trip.stopLocation || trip.startLocation}
-                </div>
+                <div style="font-size: 11px; color: #334155; margin-top: 5px;">📍 ${trip.stopLocation || trip.startLocation}</div>
               </div>
             `)
           }
         })
 
-        // Auto zoom and fit bounds so all markers are visible
         if (allLatLngs.length > 0) {
-          map.fitBounds(L.latLngBounds(allLatLngs), { padding: [40, 40], maxZoom: 14 })
+          map.fitBounds(L.latLngBounds(allLatLngs), { padding: [40, 40], maxZoom: 15 })
         }
       })
       .catch((err) => console.warn('Leaflet load error:', err))
@@ -1034,7 +1053,6 @@ export default function GpsTracker({ onBack }) {
     }
   }, [showMap, mapLayer, activeTripsWithStops])
 
-  // Center on a specific trip when clicked in the timeline
   const handleFocusTripOnMap = (trip) => {
     setActiveFocusedTrip(trip)
     if (!showMap) setShowMap(true)
@@ -1042,12 +1060,11 @@ export default function GpsTracker({ onBack }) {
     setTimeout(() => {
       if (mapInstanceRef.current && window.L) {
         const coords = trip.startCoords || resolveCoordinates(trip.startLocation)
-        mapInstanceRef.current.flyTo(coords, 14, { duration: 1.2 })
+        mapInstanceRef.current.flyTo(coords, 14, { duration: 0.8 })
       }
-    }, 100)
+    }, 50)
   }
 
-  // Fit all bounds button action
   const handleFitAllBounds = () => {
     if (mapInstanceRef.current && markersLayerRef.current && window.L) {
       const bounds = markersLayerRef.current.getBounds()
@@ -1058,14 +1075,14 @@ export default function GpsTracker({ onBack }) {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-3 sm:p-6 space-y-6 animate-fadeIn">
+    <div className="w-full max-w-7xl mx-auto p-3 sm:p-6 space-y-5 animate-fadeIn">
       {/* Top Header Card */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-5 sm:p-7 text-white shadow-xl border border-indigo-500/20 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl border border-indigo-500/20 relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent pointer-events-none" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-1.5">
               {onBack && (
                 <button
                   onClick={onBack}
@@ -1075,18 +1092,18 @@ export default function GpsTracker({ onBack }) {
                   <ArrowLeft className="w-4 h-4" />
                 </button>
               )}
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
                 <Navigation className="w-5 h-5 animate-pulse" />
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
                   Pelacak & Analisis GPS Armada
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    Live Analyzer
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    Fast & Light
                   </span>
                 </h1>
                 <p className="text-xs text-slate-300">
-                  Impor & telusuri riwayat rute, peta interaktif, kecepatan laju, dan durasi berhenti/parkir
+                  Telusuri rute harian, jam perjalanan, dan durasi parkir kendaraan secara cepat & ringan
                 </p>
               </div>
             </div>
@@ -1094,8 +1111,7 @@ export default function GpsTracker({ onBack }) {
             {data?.period && (
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 text-[11px] text-slate-300 mt-1">
                 <Calendar className="w-3.5 h-3.5 text-sky-400" />
-                <span>Periode Data: <strong className="text-white">{data.period}</strong></span>
-                {data.fileName && <span className="text-slate-400">({data.fileName})</span>}
+                <span>Periode File: <strong className="text-white">{data.period}</strong></span>
               </div>
             )}
           </div>
@@ -1122,8 +1138,10 @@ export default function GpsTracker({ onBack }) {
             <button
               onClick={() => {
                 setData(SAMPLE_GPS_DATA)
-                setSelectedVehicle('ALL')
-                setSelectedDate('ALL')
+                const firstDev = Object.keys(SAMPLE_GPS_DATA.vehicles)[0] || ''
+                setSelectedVehicle(firstDev)
+                setSelectedDate('LATEST')
+                setHourPreset('ALL')
               }}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
               title="Muat data contoh Z 8273 KL & Z 8281 KL"
@@ -1155,111 +1173,260 @@ export default function GpsTracker({ onBack }) {
         )}
       </div>
 
-      {/* Overview Fleet Recap Table (From Sheet 1) */}
-      {data?.fleetSummary && data.fleetSummary.length > 0 && (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Car className="w-5 h-5 text-indigo-600" />
-              <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">
-                Ringkasan Armada Kendaraan ({data.fleetSummary.length} Unit)
-              </h2>
-            </div>
+      {/* =========================================================================
+          FILTER PANEL UTAMA (KENDARAAN WAJIB + PER HARI + PER JAM)
+          ========================================================================= */}
+      <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 space-y-4">
+        {/* 1. PILIH KENDARAAN / DRIVER (WAJIB) */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Car className="w-4 h-4 text-indigo-600" />
+              <span>1. Pilih Kendaraan / Armada:</span>
+              <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                Wajib Dipilih
+              </span>
+            </label>
             <span className="text-[11px] text-slate-500">
-              Rekapitulasi total jarak & durasi dari perangkat GPS
+              Total {vehicleList.length} Kendaraan Tersedia
             </span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-100/80 text-slate-600 font-bold uppercase tracking-wider border-y border-slate-200 text-[10px]">
-                  <th className="py-2.5 px-3">No</th>
-                  <th className="py-2.5 px-3">Nama Kendaraan / Plat</th>
-                  <th className="py-2.5 px-3">IMEI GPS</th>
-                  <th className="py-2.5 px-3">Model</th>
-                  <th className="py-2.5 px-3 text-right">Total Jarak</th>
-                  <th className="py-2.5 px-3 text-right">Durasi Bergerak</th>
-                  <th className="py-2.5 px-3 text-right">Rata-rata Speed</th>
-                  <th className="py-2.5 px-3 text-right">Max Speed</th>
-                  <th className="py-2.5 px-3 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.fleetSummary.map((item, idx) => {
-                  const isSelected = selectedVehicle === item.deviceName
-                  return (
-                    <tr
-                      key={idx}
-                      className={`hover:bg-slate-50 transition ${
-                        isSelected ? 'bg-indigo-50/70 font-semibold' : ''
-                      }`}
-                    >
-                      <td className="py-2.5 px-3 text-slate-500">{item.no || idx + 1}</td>
-                      <td className="py-2.5 px-3">
-                        <span className="font-extrabold text-slate-900">{item.deviceName}</span>
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">{item.imei || '-'}</td>
-                      <td className="py-2.5 px-3 text-slate-600">{item.model || '-'}</td>
-                      <td className="py-2.5 px-3 text-right font-black text-indigo-700">
-                        {Number(item.totalMileage || 0).toLocaleString('id-ID')} km
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-700">{item.duration || '-'}</td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-700">
-                        {item.avgSpeed ? `${item.avgSpeed} km/h` : '-'}
-                      </td>
-                      <td className="py-2.5 px-3 text-right">
-                        <span
-                          className={`px-2 py-0.5 rounded-md font-mono text-[11px] font-bold ${
-                            item.maxSpeed >= 100
-                              ? 'bg-rose-100 text-rose-700'
-                              : item.maxSpeed >= 80
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-emerald-100 text-emerald-800'
-                          }`}
-                        >
-                          {item.maxSpeed} km/h
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <button
-                          onClick={() => setSelectedVehicle(item.deviceName)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white shadow-sm'
-                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                          }`}
-                        >
-                          {isSelected ? 'Dipilih' : 'Pilih Unit'}
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          <div className="flex flex-wrap gap-2">
+            {vehicleList.map((vName) => {
+              const isSelected = selectedVehicle === vName
+              const count = (data?.vehicles?.[vName] || []).length
+              return (
+                <button
+                  key={vName}
+                  onClick={() => {
+                    setSelectedVehicle(vName)
+                    setSelectedDate('LATEST') // Auto switch to latest date of selected vehicle
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-md shadow-indigo-600/20 scale-[1.02]'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                  }`}
+                >
+                  <Car className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-500'}`} />
+                  <span>{vName}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {count} trip
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
-      )}
 
-      {/* KPI Stats Cards */}
+        {/* 2. FILTER PER HARI & PER JAM */}
+        <div className="pt-3 border-t border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-3.5">
+          {/* Filter Tanggal (Per Hari) */}
+          <div className="md:col-span-5 space-y-1.5">
+            <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-blue-600" />
+              <span>2. Filter Per Hari (Tanggal):</span>
+            </label>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:outline-indigo-500"
+              >
+                <option value="LATEST">
+                  📅 Tanggal Terakhir ({availableDatesForVehicle[0] || 'Tidak ada'})
+                </option>
+                {availableDatesForVehicle.map((d) => (
+                  <option key={d} value={d}>
+                    📅 {d}
+                  </option>
+                ))}
+                <option value="ALL">🌐 Semua Tanggal ({availableDatesForVehicle.length} Hari)</option>
+              </select>
+
+              {selectedDate !== 'LATEST' && (
+                <button
+                  onClick={() => setSelectedDate('LATEST')}
+                  className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold whitespace-nowrap cursor-pointer"
+                  title="Kembali ke Tanggal Terakhir"
+                >
+                  Terakhir
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Per Jam (Preset / Rentang Jam) */}
+          <div className="md:col-span-7 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                <span>3. Filter Per Jam (Rentang Waktu):</span>
+              </label>
+              {hourPreset === 'CUSTOM' && (
+                <span className="text-[10px] text-indigo-600 font-bold">
+                  {customStartHour} s/d {customEndHour}
+                </span>
+              )}
+            </div>
+
+            {/* Presets Jam: Semua, Pagi, Siang, Sore, Malam, Custom */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={() => setHourPreset('ALL')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  hourPreset === 'ALL'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+              >
+                24 Jam
+              </button>
+              <button
+                onClick={() => setHourPreset('PAGI')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                  hourPreset === 'PAGI'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+                title="Pagi: 05:00 - 10:59"
+              >
+                <Sun className="w-3 h-3" />
+                <span>Pagi (05-11)</span>
+              </button>
+              <button
+                onClick={() => setHourPreset('SIANG')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                  hourPreset === 'SIANG'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+                title="Siang: 11:00 - 14:59"
+              >
+                <Sun className="w-3 h-3 text-amber-300" />
+                <span>Siang (11-15)</span>
+              </button>
+              <button
+                onClick={() => setHourPreset('SORE')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                  hourPreset === 'SORE'
+                    ? 'bg-orange-600 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+                title="Sore: 15:00 - 17:59"
+              >
+                <Sunset className="w-3 h-3" />
+                <span>Sore (15-18)</span>
+              </button>
+              <button
+                onClick={() => setHourPreset('MALAM')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                  hourPreset === 'MALAM'
+                    ? 'bg-indigo-900 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+                title="Malam: 18:00 - 04:59"
+              >
+                <Moon className="w-3 h-3" />
+                <span>Malam (18-05)</span>
+              </button>
+              <button
+                onClick={() => setHourPreset('CUSTOM')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                  hourPreset === 'CUSTOM'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+                title="Atur Jam Sendiri"
+              >
+                <SlidersHorizontal className="w-3 h-3" />
+                <span>Custom</span>
+              </button>
+            </div>
+
+            {/* Custom Hour Picker (Muncul jika pilih Custom) */}
+            {hourPreset === 'CUSTOM' && (
+              <div className="pt-2 flex items-center gap-2 animate-fadeIn">
+                <span className="text-[11px] font-semibold text-slate-500">Mulai:</span>
+                <input
+                  type="time"
+                  value={customStartHour}
+                  onChange={(e) => setCustomStartHour(e.target.value)}
+                  className="px-2 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 bg-slate-50"
+                />
+                <span className="text-[11px] font-semibold text-slate-500">s/d</span>
+                <input
+                  type="time"
+                  value={customEndHour}
+                  onChange={(e) => setCustomEndHour(e.target.value)}
+                  className="px-2 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 bg-slate-50"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 3. SUB-FILTER: KECEPATAN & CARI LOKASI */}
+        <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+          <div className="sm:col-span-4">
+            <select
+              value={speedFilter}
+              onChange={(e) => setSpeedFilter(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-slate-50 focus:bg-white"
+            >
+              <option value="ALL">Semua Kecepatan</option>
+              <option value="OVER_80">⚠️ Peringatan Laju (&ge; 80 km/h)</option>
+              <option value="OVER_100">🚨 Bahaya Overspeed (&ge; 100 km/h)</option>
+            </select>
+          </div>
+
+          <div className="sm:col-span-8">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={searchLocation}
+                onChange={(e) => setSearchLocation(e.target.value)}
+                placeholder="Cari nama jalan, pasar, cabang, kota pada kendaraan ini..."
+                className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 bg-slate-50 focus:bg-white"
+              />
+              {searchLocation && (
+                <button
+                  onClick={() => setSearchLocation('')}
+                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Stats Cards (Ringkas Sesuai Filter Aktif) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200">
           <div className="text-[10px] uppercase font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <Navigation className="w-3.5 h-3.5 text-blue-500" />
-            <span>Total Jarak</span>
+            <span>Jarak Rute</span>
           </div>
           <div className="text-lg font-black text-slate-900">{stats.totalKm} <span className="text-xs font-semibold text-slate-500">km</span></div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Dari {stats.tripsCount} perjalanan</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">{stats.tripsCount} trip terfilter</div>
         </div>
 
         <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200">
           <div className="text-[10px] uppercase font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-amber-500" />
-            <span>Total Parkir/Diam</span>
+            <span>Total Parkir</span>
           </div>
           <div className="text-sm font-black text-amber-700">{stats.totalStopDuration}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Waktu jeda antar trip</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Jeda antar perjalanan</div>
         </div>
 
         <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200">
@@ -1268,7 +1435,7 @@ export default function GpsTracker({ onBack }) {
             <span>Kecepatan Rata²</span>
           </div>
           <div className="text-lg font-black text-slate-900">{stats.avgSpeed} <span className="text-xs font-semibold text-slate-500">km/h</span></div>
-          <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">Konsisten normal</div>
+          <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">Laju terkendali</div>
         </div>
 
         <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200">
@@ -1277,7 +1444,7 @@ export default function GpsTracker({ onBack }) {
             <span>Top Speed</span>
           </div>
           <div className="text-lg font-black text-slate-900">{stats.maxSpeed} <span className="text-xs font-semibold text-slate-500">km/h</span></div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Rekor kecepatan tertinggi</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Kecepatan tertinggi</div>
         </div>
 
         <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200">
@@ -1295,112 +1462,12 @@ export default function GpsTracker({ onBack }) {
             <span>Bahaya (&gt;100 km/h)</span>
           </div>
           <div className="text-lg font-black text-rose-600">{stats.totalOver100} <span className="text-xs font-semibold text-slate-500">kali</span></div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Potensi overspeed</div>
-        </div>
-      </div>
-
-      {/* Filter and Control Bar */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
-        {/* Vehicle Selection Tabs */}
-        <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-slate-100">
-          <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
-            <Car className="w-3.5 h-3.5" /> Pilih Armada:
-          </span>
-          <button
-            onClick={() => setSelectedVehicle('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-              selectedVehicle === 'ALL'
-                ? 'bg-slate-900 text-white shadow-md'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-            }`}
-          >
-            Semua Armada ({vehicleList.length})
-          </button>
-          {vehicleList.map((vName) => (
-            <button
-              key={vName}
-              onClick={() => setSelectedVehicle(vName)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                selectedVehicle === vName
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-              }`}
-            >
-              <Car className="w-3 h-3" />
-              <span>{vName}</span>
-              <span className="text-[10px] opacity-75">
-                ({(data?.vehicles?.[vName] || []).length} trip)
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Second Filter Row: Date, Speed, Search */}
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-          {/* Date Filter */}
-          <div className="sm:col-span-3">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-              Tanggal Perjalanan:
-            </label>
-            <select
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50 focus:bg-white focus:outline-indigo-500"
-            >
-              <option value="ALL">Semua Tanggal ({availableDates.length} Hari)</option>
-              {availableDates.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Speed Alert Filter */}
-          <div className="sm:col-span-3">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-              Filter Kecepatan:
-            </label>
-            <select
-              value={speedFilter}
-              onChange={(e) => setSpeedFilter(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50 focus:bg-white focus:outline-indigo-500"
-            >
-              <option value="ALL">Semua Kecepatan</option>
-              <option value="OVER_80">⚠️ Peringatan Laju (&ge; 80 km/h)</option>
-              <option value="OVER_100">🚨 Bahaya Overspeed (&ge; 100 km/h)</option>
-            </select>
-          </div>
-
-          {/* Search Location Input */}
-          <div className="sm:col-span-6">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-              Cari Nama Lokasi / Titik Singgah:
-            </label>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={searchLocation}
-                onChange={(e) => setSearchLocation(e.target.value)}
-                placeholder="Ketik nama jalan, pasar, cabang, kota (contoh: Tulungagung, Bululawang)..."
-                className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 bg-slate-50 focus:bg-white focus:outline-indigo-500"
-              />
-              {searchLocation && (
-                <button
-                  onClick={() => setSearchLocation('')}
-                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs"
-                >
-                  &times;
-                </button>
-              )}
-            </div>
-          </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Potensi bahaya</div>
         </div>
       </div>
 
       {/* =========================================================================
-          PETA INTERAKTIF LIVE TRACKING (LEAFLET + OPENSTREETMAP / SATELIT)
+          PETA INTERAKTIF LIVE TRACKING (RINGAN & CEPAT)
           ========================================================================= */}
       <div
         className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 ${
@@ -1417,20 +1484,26 @@ export default function GpsTracker({ onBack }) {
             </div>
             <div>
               <h3 className="text-xs sm:text-sm font-extrabold tracking-tight flex items-center gap-2">
-                Peta Rute & Titik Singgah Live
+                Peta Rute: <strong className="text-sky-300">{selectedVehicle}</strong>
                 <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
-                  {activeTripsWithStops.length} Rute Terplot
+                  {activeTripsWithStops.length} Rute Terplot (Sangat Ringan)
                 </span>
               </h3>
               <p className="text-[10px] text-slate-400">
-                Garis rute menghubungkan perjalanan kronologis, klik pin untuk detail & arah Google Maps
+                Tanggal: <strong className="text-slate-200">{activeDateValue}</strong> • Jam:{' '}
+                <strong className="text-slate-200">
+                  {hourPreset === 'ALL'
+                    ? '24 Jam'
+                    : hourPreset === 'CUSTOM'
+                    ? `${customStartHour} - ${customEndHour}`
+                    : hourPreset}
+                </strong>
               </p>
             </div>
           </div>
 
           {/* Map Controls */}
           <div className="flex items-center gap-1.5">
-            {/* Tile Layer Selector */}
             <div className="inline-flex rounded-lg bg-slate-800 p-0.5 text-[11px] font-semibold border border-slate-700">
               <button
                 onClick={() => setMapLayer('streets')}
@@ -1458,7 +1531,6 @@ export default function GpsTracker({ onBack }) {
               </button>
             </div>
 
-            {/* Fit Bounds */}
             <button
               onClick={handleFitAllBounds}
               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
@@ -1467,7 +1539,6 @@ export default function GpsTracker({ onBack }) {
               <LocateFixed className="w-4 h-4" />
             </button>
 
-            {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsMapFullscreen(!isMapFullscreen)}
               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
@@ -1476,7 +1547,6 @@ export default function GpsTracker({ onBack }) {
               {isMapFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
 
-            {/* Collapse Map */}
             <button
               onClick={() => setShowMap(!showMap)}
               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
@@ -1492,7 +1562,7 @@ export default function GpsTracker({ onBack }) {
           <div
             ref={mapContainerRef}
             className={`w-full bg-slate-100 relative ${
-              isMapFullscreen ? 'flex-1 h-full' : 'h-[440px] sm:h-[480px]'
+              isMapFullscreen ? 'flex-1 h-full' : 'h-[380px] sm:h-[440px]'
             }`}
           />
         ) : (
@@ -1507,39 +1577,35 @@ export default function GpsTracker({ onBack }) {
           </div>
         )}
 
-        {/* Map Legend Bar */}
+        {/* Map Legend */}
         {showMap && (
           <div className="bg-slate-50 px-4 py-2 border-t border-slate-200 flex flex-wrap items-center justify-between text-[11px] text-slate-600 gap-2">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="font-bold text-slate-700">Legenda Peta:</span>
+              <span className="font-bold text-slate-700">Legenda:</span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block border border-white shadow-2xs" />
-                <span>Titik Berangkat (Start)</span>
+                <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block border border-white" />
+                <span>Berangkat</span>
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-blue-600 inline-block border border-white shadow-2xs" />
-                <span>Titik Tujuan (Finish)</span>
+                <span className="w-3 h-3 rounded-full bg-blue-600 inline-block border border-white" />
+                <span>Tujuan</span>
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-md bg-amber-500 inline-block border border-white shadow-2xs text-[9px] text-white flex items-center justify-center font-bold">
+                <span className="w-3 h-3 rounded-md bg-amber-500 text-white flex items-center justify-center text-[9px] font-bold">
                   P
                 </span>
-                <span>Jeda Parkir / Singgah</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-rose-600 inline-block border border-white shadow-2xs" />
-                <span>Kecepatan Tinggi (&gt;80/100 km/h)</span>
+                <span>Titik Parkir</span>
               </span>
             </div>
             <span className="text-[10px] text-slate-400">
-              Klik kartu perjalanan di bawah untuk fokuskan kamera ke titik tersebut
+              Peta render secepat kilat dengan Canvas Hardware Acceleration
             </span>
           </div>
         )}
       </div>
 
       {/* Trips Timeline */}
-      <div className="space-y-4">
+      <div className="space-y-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Navigation className="w-5 h-5 text-indigo-600" />
@@ -1557,11 +1623,13 @@ export default function GpsTracker({ onBack }) {
         </div>
 
         {activeTripsWithStops.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-slate-300">
-            <Navigation className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-bold text-slate-700">Tidak ada log perjalanan yang cocok</p>
+          <div className="bg-white rounded-2xl p-10 text-center border border-dashed border-slate-300">
+            <Navigation className="w-9 h-9 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm font-bold text-slate-700">
+              Tidak ada perjalanan untuk kendaraan & rentang waktu yang dipilih
+            </p>
             <p className="text-xs text-slate-400 mt-1">
-              Coba sesuaikan filter kendaraan, tanggal, atau kata kunci pencarian.
+              Pilih tanggal lain atau pilih "24 Jam" pada filter jam di atas.
             </p>
           </div>
         ) : (
@@ -1593,7 +1661,7 @@ export default function GpsTracker({ onBack }) {
                         </div>
                       </div>
                       <span className="text-[10px] text-amber-700 font-semibold self-start sm:self-center bg-amber-100/80 px-2 py-0.5 rounded-md">
-                        Jeda sebelum perjalanan #{idx + 1}
+                        Jeda sebelum trip #{idx + 1}
                       </span>
                     </div>
                   )}
@@ -1627,7 +1695,7 @@ export default function GpsTracker({ onBack }) {
                         </div>
                       </div>
 
-                      {/* Right Badges: Mileage, Time, Speed */}
+                      {/* Right Badges */}
                       <div className="flex flex-wrap items-center gap-2 text-xs">
                         <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold border border-indigo-100">
                           📏 {trip.mileage} km
@@ -1655,7 +1723,6 @@ export default function GpsTracker({ onBack }) {
 
                     {/* Locations Grid: Departure -> Arrival */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
-                      {/* Departure */}
                       <div className="flex items-start gap-2.5">
                         <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
                           <MapPin className="w-4 h-4" />
@@ -1671,7 +1738,6 @@ export default function GpsTracker({ onBack }) {
                         </div>
                       </div>
 
-                      {/* Arrival */}
                       <div className="flex items-start gap-2.5">
                         <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
                           <Navigation className="w-4 h-4" />

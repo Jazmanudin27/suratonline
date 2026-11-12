@@ -1156,11 +1156,6 @@ export const getEffectiveKnownBy = (letter) => {
     hasKnownBy = false
   }
 
-  // Unit cabang (bukan kantor pusat) SELALU mewajibkan tanda tangan pihak Mengetahui
-  if (!isPST) {
-    hasKnownBy = true
-  }
-
   if (!hasKnownBy) {
     return { name: '', position: '', hasKnownBy: false }
   }

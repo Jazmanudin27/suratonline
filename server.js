@@ -1,90 +1,104 @@
-import express from 'express'
-import cors from 'cors'
-import dotenv from 'dotenv'
-import mysql from 'mysql2/promise'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import fs from 'fs'
-import fsPromises from 'fs/promises'
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import mysql from "mysql2/promise";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+import fsPromises from "fs/promises";
 
-dotenv.config()
+dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const app = express()
-const PORT = process.env.PORT || 5000
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-app.use(cors())
-app.use(express.json({ limit: '50mb' }))
-app.use(express.urlencoded({ limit: '50mb', extended: true }))
+app.use(cors());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Ensure directories exist for public/lampiran
 const ensureDir = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true })
+    fs.mkdirSync(dirPath, { recursive: true });
   }
-}
-ensureDir(path.join(__dirname, 'public/lampiran/gambar'))
-ensureDir(path.join(__dirname, 'public/lampiran/pdf'))
-ensureDir(path.join(__dirname, 'public/lampiran/dokumen'))
+};
+ensureDir(path.join(__dirname, "public/lampiran/gambar"));
+ensureDir(path.join(__dirname, "public/lampiran/pdf"));
+ensureDir(path.join(__dirname, "public/lampiran/dokumen"));
 
 // Static file serving for uploads & public assets
-app.use('/lampiran', express.static(path.join(__dirname, 'public/lampiran')))
-app.use('/api/lampiran', express.static(path.join(__dirname, 'public/lampiran')))
-app.use('/public', express.static(path.join(__dirname, 'public')))
+app.use("/lampiran", express.static(path.join(__dirname, "public/lampiran")));
+app.use(
+  "/api/lampiran",
+  express.static(path.join(__dirname, "public/lampiran")),
+);
+app.use("/public", express.static(path.join(__dirname, "public")));
 
 // MySQL Connection Pool
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || '31.97.109.165',
+  host: process.env.DB_HOST || "31.97.109.165",
   port: Number(process.env.DB_PORT) || 3306,
-  user: process.env.DB_USER || 'portal',
-  password: process.env.DB_PASSWORD || 'Jazman@271998',
-  database: process.env.DB_NAME || 'portal',
+  user: process.env.DB_USER || "portal",
+  password: process.env.DB_PASSWORD || "Jazman@271998",
+  database: process.env.DB_NAME || "portal",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
   connectTimeout: 30000,
   ssl: false,
-})
+});
 
 // Test connection on boot and ensure comments, attachments, default_viewers, and system_settings exist
-pool.getConnection()
+pool
+  .getConnection()
   .then(async (conn) => {
-    console.log(' [MySQL] Connected successfully to database: portal')
+    console.log(" [MySQL] Connected successfully to database: portal");
     try {
-      await conn.query(`ALTER TABLE letters ADD COLUMN comments JSON NULL`)
-      console.log(' [MySQL] Checked/added comments column to letters table')
+      await conn.query(`ALTER TABLE letters ADD COLUMN comments JSON NULL`);
+      console.log(" [MySQL] Checked/added comments column to letters table");
     } catch (e) {
       // Column may already exist
     }
     try {
-      await conn.query(`ALTER TABLE letters ADD COLUMN attachments JSON NULL`)
-      console.log(' [MySQL] Checked/added attachments column to letters table')
+      await conn.query(`ALTER TABLE letters ADD COLUMN attachments JSON NULL`);
+      console.log(" [MySQL] Checked/added attachments column to letters table");
     } catch (e) {
       // Column may already exist
     }
     try {
-      await conn.query(`UPDATE letters SET attachments = field_values->'$.attachments' WHERE (attachments IS NULL OR JSON_LENGTH(attachments) = 0) AND field_values->'$.attachments' IS NOT NULL`)
-      console.log(' [MySQL] Synced existing field_values attachments to attachments column')
+      await conn.query(
+        `UPDATE letters SET attachments = field_values->'$.attachments' WHERE (attachments IS NULL OR JSON_LENGTH(attachments) = 0) AND field_values->'$.attachments' IS NOT NULL`,
+      );
+      console.log(
+        " [MySQL] Synced existing field_values attachments to attachments column",
+      );
     } catch (e) {
       // Ignore if JSON functions differ
     }
     try {
-      await conn.query(`ALTER TABLE templates ADD COLUMN default_viewers JSON NULL`)
-      console.log(' [MySQL] Checked/added default_viewers column to templates table')
+      await conn.query(
+        `ALTER TABLE templates ADD COLUMN default_viewers JSON NULL`,
+      );
+      console.log(
+        " [MySQL] Checked/added default_viewers column to templates table",
+      );
     } catch (e) {
       // Column may already exist
     }
     try {
-      await conn.query(`ALTER TABLE letters ADD COLUMN shared_with JSON NULL`)
-      console.log(' [MySQL] Checked/added shared_with column to letters table')
+      await conn.query(`ALTER TABLE letters ADD COLUMN shared_with JSON NULL`);
+      console.log(" [MySQL] Checked/added shared_with column to letters table");
     } catch (e) {
       // Column may already exist
     }
     try {
-      await conn.query(`UPDATE letters SET title = UPPER(title) WHERE title IS NOT NULL`)
-      console.log(' [MySQL] Ensured all letter titles are UPPERCASE')
+      await conn.query(
+        `UPDATE letters SET title = UPPER(title) WHERE title IS NOT NULL`,
+      );
+      console.log(" [MySQL] Ensured all letter titles are UPPERCASE");
     } catch (e) {
       // Ignore if table letters doesn't exist yet
     }
@@ -95,35 +109,16 @@ pool.getConnection()
           value_data LONGTEXT NULL,
           updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      `)
-      console.log(' [MySQL] Checked/created system_settings table')
+      `);
+      console.log(" [MySQL] Checked/created system_settings table");
     } catch (e) {
-      console.warn(' [MySQL] Table system_settings warning:', e.message)
+      console.warn(" [MySQL] Table system_settings warning:", e.message);
     }
     try {
-      await conn.query(`ALTER TABLE users ADD COLUMN phone VARCHAR(30) NULL`)
-      console.log(' [MySQL] Checked/added phone column to users table')
+      await conn.query(`ALTER TABLE users ADD COLUMN phone VARCHAR(30) NULL`);
+      console.log(" [MySQL] Checked/added phone column to users table");
     } catch (e) {
       // Column may already exist
-    }
-
-    try {
-      const waDefaultConfig = {
-        enabled: true,
-        provider: 'custom',
-        apiKey: 'V8q2Zp7Lm4Xr9Nc6Tj3Ks5Wd1Hy7Fa8Qv2Bn6Rx4Pc9Mz1',
-        endpoint: 'https://wa.aspartech.com/api/send-message',
-        adminPhone: '',
-      }
-      await conn.query(
-        `INSERT INTO system_settings (key_name, value_data)
-         VALUES ('whatsapp_settings', ?)
-         ON DUPLICATE KEY UPDATE value_data = VALUES(value_data)`,
-        [JSON.stringify(waDefaultConfig)]
-      )
-      console.log(' [MySQL] WhatsApp Gateway Aspartech berhasil diterapkan & diaktifkan')
-    } catch (e) {
-      console.warn(' [MySQL] Init WhatsApp settings warning:', e.message)
     }
 
     try {
@@ -133,39 +128,21 @@ pool.getConnection()
           name VARCHAR(100) NOT NULL UNIQUE,
           created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      `)
-      console.log(' [MySQL] Checked/created categories table')
-
-      const [catRows] = await conn.query(`SELECT COUNT(*) as cnt FROM categories`)
-      if (catRows[0].cnt === 0) {
-        const defaultCats = [
-          'Umum',
-          'Operasional',
-          'Kepegawaian / HRD',
-          'Marketing',
-          'Sales & CRM',
-          'Keuangan & Anggaran',
-          'Logistik & Distribusi',
-          'Legal & Perizinan',
-        ]
-        for (const cat of defaultCats) {
-          await conn.query(`INSERT IGNORE INTO categories (name) VALUES (?)`, [cat])
-        }
-        console.log(' [MySQL] Seeded default categories to database')
-      }
+      `);
+      console.log(" [MySQL] Checked/created categories table");
     } catch (e) {
-      console.warn(' [MySQL] Table categories warning:', e.message)
+      console.warn(" [MySQL] Table categories warning:", e.message);
     }
-    conn.release()
+    conn.release();
   })
   .catch((err) => {
-    console.error(' [MySQL] Connection failed:', err.message)
-  })
+    console.error(" [MySQL] Connection failed:", err.message);
+  });
 
 // -------------------------------------------------------------
 // 1. MASTER CABANG
 // -------------------------------------------------------------
-app.get('/api/cabang', async (req, res) => {
+app.get("/api/cabang", async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT kode_cabang AS id, kode_cabang AS code, nama_cabang AS name,
@@ -173,38 +150,38 @@ app.get('/api/cabang', async (req, res) => {
               nama_pt AS pt, kode_pt, status_aktif_cabang, email
        FROM cabang
        WHERE status_aktif_cabang = '1'
-       ORDER BY urutan ASC`
-    )
-    res.json({ success: true, data: rows })
+       ORDER BY urutan ASC`,
+    );
+    res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // 2. MASTER HRD JABATAN
 // -------------------------------------------------------------
-app.get('/api/jabatan', async (req, res) => {
+app.get("/api/jabatan", async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT kode_jabatan AS kode, nama_jabatan AS nama, alias, kategori
        FROM hrd_jabatan
-       ORDER BY kode_jabatan ASC`
-    )
-    res.json({ success: true, data: rows })
+       ORDER BY kode_jabatan ASC`,
+    );
+    res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // 2b. MASTER PRODUK
 // -------------------------------------------------------------
-app.get('/api/produk', async (req, res) => {
+app.get("/api/produk", async (req, res) => {
   try {
     const [products] = await pool.query(
-      `SELECT * FROM produk ORDER BY urutan ASC, kode_produk ASC`
-    )
+      `SELECT * FROM produk ORDER BY urutan ASC, kode_produk ASC`,
+    );
 
     const [prices] = await pool.query(
       `SELECT 
@@ -214,92 +191,92 @@ app.get('/api/produk', async (req, res) => {
       LEFT JOIN cabang c ON ph.kode_cabang = c.kode_cabang
       WHERE (ph.status_aktif_harga = 1 OR ph.status_aktif_harga = '1')
         AND (ph.kode_pelanggan IS NULL OR ph.kode_pelanggan = '')
-      ORDER BY ph.kode_cabang ASC, ph.kode_kategori_salesman ASC`
-    )
+      ORDER BY ph.kode_cabang ASC, ph.kode_kategori_salesman ASC`,
+    );
 
     // Petakan harga ke masing-masing produk
-    const priceMap = {}
+    const priceMap = {};
     prices.forEach((p) => {
       if (!priceMap[p.kode_produk]) {
-        priceMap[p.kode_produk] = []
+        priceMap[p.kode_produk] = [];
       }
-      priceMap[p.kode_produk].push(p)
-    })
+      priceMap[p.kode_produk].push(p);
+    });
 
     const data = products.map((prod) => ({
       ...prod,
       daftar_harga: priceMap[prod.kode_produk] || [],
-    }))
+    }));
 
-    res.json({ success: true, data })
+    res.json({ success: true, data });
   } catch (err) {
-    res.json({ success: false, message: err.message, data: [] })
+    res.json({ success: false, message: err.message, data: [] });
   }
-})
+});
 
 // -------------------------------------------------------------
 // 2c. INTERNAL MEMO (KHUSUS MOBILE)
 // -------------------------------------------------------------
-app.get('/api/internal_memo', async (req, res) => {
+app.get("/api/internal_memo", async (req, res) => {
   try {
-    const rawUserId = req.query.userId || req.headers['x-user-id'] || null
-    const userId = Number(rawUserId) || 0
+    const rawUserId = req.query.userId || req.headers["x-user-id"] || null;
+    const userId = Number(rawUserId) || 0;
 
     // 1. Ambil data internal memo aktif
     const [rows] = await pool.query(
       `SELECT * FROM internal_memo 
        WHERE status = 'aktif' OR status IS NULL OR status = ''
-       ORDER BY tanggal_im DESC, id DESC`
-    )
+       ORDER BY tanggal_im DESC, id DESC`,
+    );
 
     // 2. Ambil ack user saat ini jika ada
-    let ackMap = {}
-    let readMap = {}
+    let ackMap = {};
+    let readMap = {};
     if (userId > 0) {
       try {
         const [acks] = await pool.query(
           `SELECT internal_memo_id, status, updated_at FROM internal_memo_ack WHERE user_id = ?`,
-          [userId]
-        )
+          [userId],
+        );
         acks.forEach((a) => {
-          ackMap[a.internal_memo_id] = a
-        })
+          ackMap[a.internal_memo_id] = a;
+        });
       } catch (e) {
-        console.warn('ack query warn:', e.message)
+        console.warn("ack query warn:", e.message);
       }
 
       try {
         const [reads] = await pool.query(
           `SELECT internal_memo_id, dibaca_pada FROM internal_memo_log_baca WHERE user_id = ?`,
-          [userId]
-        )
+          [userId],
+        );
         reads.forEach((r) => {
-          readMap[r.internal_memo_id] = r.dibaca_pada
-        })
+          readMap[r.internal_memo_id] = r.dibaca_pada;
+        });
       } catch (e) {
-        console.warn('read query warn:', e.message)
+        console.warn("read query warn:", e.message);
       }
     }
 
     // 3. Ambil tujuan cabang
-    let branchMap = {}
+    let branchMap = {};
     try {
       const [branchesRows] = await pool.query(
         `SELECT imtc.internal_memo_id, imtc.kode_cabang, c.nama_cabang
          FROM internal_memo_tujuan_cabang imtc
-         LEFT JOIN cabang c ON imtc.kode_cabang = c.kode_cabang`
-      )
+         LEFT JOIN cabang c ON imtc.kode_cabang = c.kode_cabang`,
+      );
       branchesRows.forEach((b) => {
         if (!branchMap[b.internal_memo_id]) {
-          branchMap[b.internal_memo_id] = []
+          branchMap[b.internal_memo_id] = [];
         }
         branchMap[b.internal_memo_id].push({
           kode_cabang: b.kode_cabang,
           nama_cabang: b.nama_cabang || b.kode_cabang,
-        })
-      })
+        });
+      });
     } catch (e) {
-      console.warn('branch query warn:', e.message)
+      console.warn("branch query warn:", e.message);
     }
 
     const data = rows.map((im) => ({
@@ -308,87 +285,95 @@ app.get('/api/internal_memo', async (req, res) => {
       ack_at: ackMap[im.id]?.updated_at || null,
       read_at: readMap[im.id] || null,
       tujuan_cabang: branchMap[im.id] || [],
-    }))
+    }));
 
-    res.json({ success: true, data })
+    res.json({ success: true, data });
   } catch (err) {
-    console.error('API /api/internal_memo error:', err.message)
-    res.json({ success: false, message: err.message, data: [] })
+    console.error("API /api/internal_memo error:", err.message);
+    res.json({ success: false, message: err.message, data: [] });
   }
-})
+});
 
 // Proxy fetch berkas PDF Internal Memo dari server app.portalmp.com (mengatasi CORS & same-origin)
-app.get('/api/internal_memo/pdf/:filename', async (req, res) => {
+app.get("/api/internal_memo/pdf/:filename", async (req, res) => {
   try {
-    const { filename } = req.params
-    const remoteUrl = `https://app.portalmp.com/storage/internal_memo/${encodeURIComponent(filename)}`
-    
-    const response = await fetch(remoteUrl)
+    const { filename } = req.params;
+    const remoteUrl = `https://app.portalmp.com/storage/internal_memo/${encodeURIComponent(filename)}`;
+
+    const response = await fetch(remoteUrl);
     if (!response.ok) {
-      return res.status(response.status).json({ success: false, message: 'Berkas PDF tidak ditemukan di server pusat' })
+      return res.status(response.status).json({
+        success: false,
+        message: "Berkas PDF tidak ditemukan di server pusat",
+      });
     }
 
-    res.setHeader('Content-Type', 'application/pdf')
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`)
-    const arrayBuffer = await response.arrayBuffer()
-    res.send(Buffer.from(arrayBuffer))
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+    const arrayBuffer = await response.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
   } catch (err) {
-    console.error('Proxy PDF IM Error:', err.message)
-    res.status(500).json({ success: false, message: err.message })
+    console.error("Proxy PDF IM Error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // Catat log baca memo
-app.post('/api/internal_memo/:id/read', async (req, res) => {
+app.post("/api/internal_memo/:id/read", async (req, res) => {
   try {
-    const memoId = req.params.id
-    const { userId } = req.body
+    const memoId = req.params.id;
+    const { userId } = req.body;
     if (memoId && userId) {
       await pool.query(
         `INSERT INTO internal_memo_log_baca (internal_memo_id, user_id, dibaca_pada)
          VALUES (?, ?, NOW())
          ON DUPLICATE KEY UPDATE dibaca_pada = NOW()`,
-        [memoId, userId]
-      )
+        [memoId, userId],
+      );
     }
-    res.json({ success: true })
+    res.json({ success: true });
   } catch (err) {
-    res.json({ success: false, message: err.message })
+    res.json({ success: false, message: err.message });
   }
-})
+});
 
 // Konfirmasi Paham Memo (Ack)
-app.post('/api/internal_memo/:id/ack', async (req, res) => {
+app.post("/api/internal_memo/:id/ack", async (req, res) => {
   try {
-    const memoId = req.params.id
-    const { userId, status = 'paham' } = req.body
+    const memoId = req.params.id;
+    const { userId, status = "paham" } = req.body;
     if (!memoId || !userId) {
-      return res.status(400).json({ success: false, message: 'ID memo dan user wajib diisi' })
+      return res
+        .status(400)
+        .json({ success: false, message: "ID memo dan user wajib diisi" });
     }
 
     await pool.query(
       `INSERT INTO internal_memo_ack (internal_memo_id, user_id, status, created_at, updated_at)
        VALUES (?, ?, ?, NOW(), NOW())
        ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()`,
-      [memoId, userId, status]
-    )
+      [memoId, userId, status],
+    );
 
-    res.json({ success: true, message: 'Status konfirmasi berhasil disimpan' })
+    res.json({ success: true, message: "Status konfirmasi berhasil disimpan" });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // 3. AUTHENTICATION & MASTER USERS
 // -------------------------------------------------------------
-import bcrypt from 'bcryptjs'
+import bcrypt from "bcryptjs";
 
-app.post('/api/login', async (req, res) => {
+app.post("/api/login", async (req, res) => {
   try {
-    const { username, password } = req.body
+    const { username, password } = req.body;
     if (!username || !password) {
-      return res.status(400).json({ success: false, message: 'Username / Email dan password wajib diisi' })
+      return res.status(400).json({
+        success: false,
+        message: "Username / Email dan password wajib diisi",
+      });
     }
 
     const [rows] = await pool.query(
@@ -414,50 +399,61 @@ app.post('/api/login', async (req, res) => {
        LEFT JOIN hrd_jabatan j ON u.kode_jabatan = j.kode_jabatan
        WHERE (u.username = ? OR u.email = ?) AND u.status = '1'
        LIMIT 1`,
-      [username.trim(), username.trim()]
-    )
+      [username.trim(), username.trim()],
+    );
 
     if (rows.length === 0) {
-      return res.status(401).json({ success: false, message: 'Username atau email tidak terdaftar atau akun non-aktif.' })
+      return res.status(401).json({
+        success: false,
+        message: "Username atau email tidak terdaftar atau akun non-aktif.",
+      });
     }
 
-    const user = rows[0]
-    const dbHash = user.password
+    const user = rows[0];
+    const dbHash = user.password;
 
     // Verify bcrypt hash or fallback to direct/master login
-    let isValid = false
+    let isValid = false;
     try {
-      if (dbHash && (dbHash.startsWith('$2y$') || dbHash.startsWith('$2a$') || dbHash.startsWith('$2b$'))) {
+      if (
+        dbHash &&
+        (dbHash.startsWith("$2y$") ||
+          dbHash.startsWith("$2a$") ||
+          dbHash.startsWith("$2b$"))
+      ) {
         // Standardize $2y$ to $2a$ for bcryptjs compatibility
-        const standardHash = dbHash.replace(/^\$2y\$/, '$2a$')
-        isValid = await bcrypt.compare(password, standardHash)
+        const standardHash = dbHash.replace(/^\$2y\$/, "$2a$");
+        isValid = await bcrypt.compare(password, standardHash);
       }
     } catch (e) {
-      console.warn('Bcrypt compare error:', e.message)
+      console.warn("Bcrypt compare error:", e.message);
     }
 
-    // Master password override for development / portal admin convenience
-    if (!isValid && (password === 'Jazman@271998' || password === 'admin123' || password === 'password')) {
-      isValid = true
+    // Plain text password comparison if not hashed with bcrypt in database
+    if (!isValid && dbHash && password === dbHash) {
+      isValid = true;
     }
 
     if (!isValid) {
-      return res.status(401).json({ success: false, message: 'Password salah. Silakan coba kembali.' })
+      return res.status(401).json({
+        success: false,
+        message: "Password salah. Silakan coba kembali.",
+      });
     }
 
     // Clean user response
-    delete user.password
+    delete user.password;
     res.json({
       success: true,
-      message: 'Login berhasil!',
+      message: "Login berhasil!",
       data: user,
-    })
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
-app.get('/api/users', async (req, res) => {
+app.get("/api/users", async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT u.id, u.name, u.username, u.email, u.kode_cabang AS branchId,
@@ -481,20 +477,22 @@ app.get('/api/users', async (req, res) => {
        LEFT JOIN cabang c ON u.kode_cabang = c.kode_cabang
        LEFT JOIN hrd_jabatan j ON u.kode_jabatan = j.kode_jabatan
        WHERE u.status = '1'
-       ORDER BY u.id ASC`
-    )
-    res.json({ success: true, data: rows })
+       ORDER BY u.id ASC`,
+    );
+    res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // 4. TEMPLATES (MANAJEMEN TEMPLATE SURAT)
 // -------------------------------------------------------------
-app.get('/api/templates', async (req, res) => {
+app.get("/api/templates", async (req, res) => {
   try {
-    const [rows] = await pool.query(`SELECT * FROM templates ORDER BY created_at DESC`)
+    const [rows] = await pool.query(
+      `SELECT * FROM templates ORDER BY created_at DESC`,
+    );
     const formatted = rows.map((r) => ({
       id: r.id,
       code: r.code,
@@ -502,28 +500,38 @@ app.get('/api/templates', async (req, res) => {
       category: r.category,
       description: r.description,
       numberFormat: r.number_format,
-      allowedBranches: typeof r.allowed_branches === 'string' ? JSON.parse(r.allowed_branches) : r.allowed_branches,
+      allowedBranches:
+        typeof r.allowed_branches === "string"
+          ? JSON.parse(r.allowed_branches)
+          : r.allowed_branches,
       isActive: Boolean(r.is_active),
-      approvalSteps: typeof r.approval_steps === 'string' ? JSON.parse(r.approval_steps) : r.approval_steps,
-      fields: typeof r.fields === 'string' ? JSON.parse(r.fields) : r.fields,
+      approvalSteps:
+        typeof r.approval_steps === "string"
+          ? JSON.parse(r.approval_steps)
+          : r.approval_steps,
+      fields: typeof r.fields === "string" ? JSON.parse(r.fields) : r.fields,
       letterTemplate: r.letter_template,
-      defaultViewers: r.default_viewers ? (typeof r.default_viewers === 'string' ? JSON.parse(r.default_viewers) : r.default_viewers) : [],
+      defaultViewers: r.default_viewers
+        ? typeof r.default_viewers === "string"
+          ? JSON.parse(r.default_viewers)
+          : r.default_viewers
+        : [],
       createdAt: r.created_at,
-    }))
-    res.json({ success: true, data: formatted })
+    }));
+    res.json({ success: true, data: formatted });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
-app.post('/api/templates', async (req, res) => {
+app.post("/api/templates", async (req, res) => {
   try {
-    const t = req.body
-    const id = t.id || `tpl-${Date.now().toString(36)}`
-    const allowed = JSON.stringify(t.allowedBranches || ['all'])
-    const steps = JSON.stringify(t.approvalSteps || [])
-    const fields = JSON.stringify(t.fields || [])
-    const defaultViewers = JSON.stringify(t.defaultViewers || [])
+    const t = req.body;
+    const id = t.id || `tpl-${Date.now().toString(36)}`;
+    const allowed = JSON.stringify(t.allowedBranches || ["all"]);
+    const steps = JSON.stringify(t.approvalSteps || []);
+    const fields = JSON.stringify(t.fields || []);
+    const defaultViewers = JSON.stringify(t.defaultViewers || []);
 
     try {
       await pool.query(
@@ -544,17 +552,17 @@ app.post('/api/templates', async (req, res) => {
           id,
           t.code,
           t.name,
-          t.category || 'Umum',
-          t.description || '',
+          t.category || "Umum",
+          t.description || "",
           t.numberFormat,
           allowed,
           t.isActive !== false ? 1 : 0,
           steps,
           fields,
-          t.letterTemplate || '',
+          t.letterTemplate || "",
           defaultViewers,
-        ]
-      )
+        ],
+      );
     } catch (insertColErr) {
       // Fallback jika default_viewers belum terbaca di skema lama
       await pool.query(
@@ -574,179 +582,204 @@ app.post('/api/templates', async (req, res) => {
           id,
           t.code,
           t.name,
-          t.category || 'Umum',
-          t.description || '',
+          t.category || "Umum",
+          t.description || "",
           t.numberFormat,
           allowed,
           t.isActive !== false ? 1 : 0,
           steps,
           fields,
-          t.letterTemplate || '',
-        ]
-      )
+          t.letterTemplate || "",
+        ],
+      );
     }
 
-    res.json({ success: true, id, message: 'Template berhasil disimpan' })
+    res.json({ success: true, id, message: "Template berhasil disimpan" });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // SYSTEM SETTINGS (GLOBAL SETTINGS SEPERTI DEFAULT VIEWERS SEMUA SURAT)
 // -------------------------------------------------------------
-app.get('/api/settings/:key', async (req, res) => {
+app.get("/api/settings/:key", async (req, res) => {
   try {
-    const { key } = req.params
-    const [rows] = await pool.query(`SELECT value_data FROM system_settings WHERE key_name = ?`, [key])
+    const { key } = req.params;
+    const [rows] = await pool.query(
+      `SELECT value_data FROM system_settings WHERE key_name = ?`,
+      [key],
+    );
     if (rows.length === 0) {
-      return res.json({ success: true, data: null })
+      return res.json({ success: true, data: null });
     }
-    let parsed = rows[0].value_data
+    let parsed = rows[0].value_data;
     try {
-      parsed = JSON.parse(rows[0].value_data)
+      parsed = JSON.parse(rows[0].value_data);
     } catch {
       // String biasa
     }
-    res.json({ success: true, data: parsed })
+    res.json({ success: true, data: parsed });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
-app.post('/api/settings/:key', async (req, res) => {
+app.post("/api/settings/:key", async (req, res) => {
   try {
-    const { key } = req.params
-    const { value } = req.body
-    const stringVal = typeof value === 'string' ? value : JSON.stringify(value)
+    const { key } = req.params;
+    const { value } = req.body;
+    const stringVal = typeof value === "string" ? value : JSON.stringify(value);
 
     await pool.query(
       `INSERT INTO system_settings (key_name, value_data)
        VALUES (?, ?)
        ON DUPLICATE KEY UPDATE value_data = VALUES(value_data), updated_at = CURRENT_TIMESTAMP`,
-      [key, stringVal]
-    )
+      [key, stringVal],
+    );
 
-    res.json({ success: true, message: `Setting ${key} berhasil disimpan ke database` })
+    res.json({
+      success: true,
+      message: `Setting ${key} berhasil disimpan ke database`,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // Toggle template active
-app.patch('/api/templates/:id/toggle', async (req, res) => {
+app.patch("/api/templates/:id/toggle", async (req, res) => {
   try {
-    const { id } = req.params
-    await pool.query(`UPDATE templates SET is_active = NOT is_active WHERE id = ?`, [id])
-    res.json({ success: true, message: 'Status template diperbarui' })
+    const { id } = req.params;
+    await pool.query(
+      `UPDATE templates SET is_active = NOT is_active WHERE id = ?`,
+      [id],
+    );
+    res.json({ success: true, message: "Status template diperbarui" });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // Delete template (only if not used by any letters)
-app.delete('/api/templates/:id', async (req, res) => {
+app.delete("/api/templates/:id", async (req, res) => {
   try {
-    const { id } = req.params
+    const { id } = req.params;
     // Check if used in letters
-    const [letters] = await pool.query(`SELECT id FROM letters WHERE template_id = ? LIMIT 1`, [id])
+    const [letters] = await pool.query(
+      `SELECT id FROM letters WHERE template_id = ? LIMIT 1`,
+      [id],
+    );
     if (letters.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Template tidak dapat dihapus karena sudah pernah digunakan dalam pembuatan surat ajuan.',
-      })
+        message:
+          "Template tidak dapat dihapus karena sudah pernah digunakan dalam pembuatan surat ajuan.",
+      });
     }
 
-    await pool.query(`DELETE FROM templates WHERE id = ?`, [id])
-    res.json({ success: true, message: 'Template berhasil dihapus' })
+    await pool.query(`DELETE FROM templates WHERE id = ?`, [id]);
+    res.json({ success: true, message: "Template berhasil dihapus" });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // 4b. KATEGORI TEMPLATE (DATABASE MYSQL)
 // -------------------------------------------------------------
-app.get('/api/categories', async (req, res) => {
+app.get("/api/categories", async (req, res) => {
   try {
-    const [rows] = await pool.query(`SELECT name FROM categories ORDER BY id ASC`)
-    let categories = rows.map((r) => r.name)
-    if (categories.length === 0) {
-      categories = [
-        'Umum',
-        'Operasional',
-        'Kepegawaian / HRD',
-        'Marketing',
-        'Sales & CRM',
-        'Keuangan & Anggaran',
-        'Logistik & Distribusi',
-        'Legal & Perizinan',
-      ]
-    }
-    res.json({ success: true, data: categories })
+    const [rows] = await pool.query(
+      `SELECT name FROM categories ORDER BY id ASC`,
+    );
+    const categories = rows.map((r) => r.name);
+    res.json({ success: true, data: categories });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message, data: [] })
+    res.status(500).json({ success: false, message: err.message, data: [] });
   }
-})
+});
 
-app.post('/api/categories', async (req, res) => {
+app.post("/api/categories", async (req, res) => {
   try {
-    const { name } = req.body
-    const trimmed = (name || '').trim()
+    const { name } = req.body;
+    const trimmed = (name || "").trim();
     if (!trimmed) {
-      return res.status(400).json({ success: false, message: 'Nama kategori wajib diisi' })
+      return res
+        .status(400)
+        .json({ success: false, message: "Nama kategori wajib diisi" });
     }
-    await pool.query(`INSERT IGNORE INTO categories (name) VALUES (?)`, [trimmed])
-    res.json({ success: true, message: `Kategori "${trimmed}" berhasil disimpan ke database` })
+    await pool.query(`INSERT IGNORE INTO categories (name) VALUES (?)`, [
+      trimmed,
+    ]);
+    res.json({
+      success: true,
+      message: `Kategori "${trimmed}" berhasil disimpan ke database`,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
-app.put('/api/categories', async (req, res) => {
+app.put("/api/categories", async (req, res) => {
   try {
-    const { oldName, newName } = req.body
-    const trimmedOld = (oldName || '').trim()
-    const trimmedNew = (newName || '').trim()
+    const { oldName, newName } = req.body;
+    const trimmedOld = (oldName || "").trim();
+    const trimmedNew = (newName || "").trim();
     if (!trimmedOld || !trimmedNew) {
-      return res.status(400).json({ success: false, message: 'Nama kategori lama dan baru wajib diisi' })
+      return res.status(400).json({
+        success: false,
+        message: "Nama kategori lama dan baru wajib diisi",
+      });
     }
 
     // Update tabel categories
-    await pool.query(`UPDATE categories SET name = ? WHERE name = ?`, [trimmedNew, trimmedOld])
+    await pool.query(`UPDATE categories SET name = ? WHERE name = ?`, [
+      trimmedNew,
+      trimmedOld,
+    ]);
 
     // Update semua template di database yang memakai kategori lama
-    await pool.query(`UPDATE templates SET category = ? WHERE category = ?`, [trimmedNew, trimmedOld])
+    await pool.query(`UPDATE templates SET category = ? WHERE category = ?`, [
+      trimmedNew,
+      trimmedOld,
+    ]);
 
     res.json({
       success: true,
       message: `Kategori "${trimmedOld}" berhasil diubah menjadi "${trimmedNew}" dan template terkait diperbarui`,
-    })
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
-app.delete('/api/categories/:name', async (req, res) => {
+app.delete("/api/categories/:name", async (req, res) => {
   try {
-    const { name } = req.params
-    const decodedName = decodeURIComponent(name)
+    const { name } = req.params;
+    const decodedName = decodeURIComponent(name);
 
     // Cek apakah kategori masih dipakai oleh template aktif di database
-    const [templates] = await pool.query(`SELECT id FROM templates WHERE category = ? LIMIT 1`, [decodedName])
+    const [templates] = await pool.query(
+      `SELECT id FROM templates WHERE category = ? LIMIT 1`,
+      [decodedName],
+    );
     if (templates.length > 0) {
       return res.status(400).json({
         success: false,
         message: `Kategori "${decodedName}" tidak dapat dihapus karena masih digunakan oleh template surat.`,
-      })
+      });
     }
 
-    await pool.query(`DELETE FROM categories WHERE name = ?`, [decodedName])
-    res.json({ success: true, message: `Kategori "${decodedName}" berhasil dihapus dari database` })
+    await pool.query(`DELETE FROM categories WHERE name = ?`, [decodedName]);
+    res.json({
+      success: true,
+      message: `Kategori "${decodedName}" berhasil dihapus dari database`,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // 5. LETTERS (SURAT AJUAN) & LAMPIRAN
@@ -754,94 +787,119 @@ app.delete('/api/categories/:name', async (req, res) => {
 
 // Helper untuk menyimpan data base64 berkas lampiran fisik ke public/lampiran (gambar/pdf/dokumen)
 const saveAttachmentFile = async (fileName, fileType, dataUrl) => {
-  if (!dataUrl || !fileName) return null
+  if (!dataUrl || !fileName) return null;
 
-  let fileBuffer
-  let mimeType = fileType
-  if (typeof dataUrl === 'string' && dataUrl.includes(';base64,')) {
-    const parts = dataUrl.split(';base64,')
-    fileBuffer = Buffer.from(parts[1], 'base64')
-    const mimeMatch = parts[0].match(/data:(.+)/)
-    if (mimeMatch) mimeType = mimeMatch[1]
-  } else if (typeof dataUrl === 'string' && dataUrl.startsWith('/lampiran')) {
+  let fileBuffer;
+  let mimeType = fileType;
+  if (typeof dataUrl === "string" && dataUrl.includes(";base64,")) {
+    const parts = dataUrl.split(";base64,");
+    fileBuffer = Buffer.from(parts[1], "base64");
+    const mimeMatch = parts[0].match(/data:(.+)/);
+    if (mimeMatch) mimeType = mimeMatch[1];
+  } else if (typeof dataUrl === "string" && dataUrl.startsWith("/lampiran")) {
     // Sudah berupa relative URL yang tersimpan di disk
-    return { url: dataUrl, fileName }
+    return { url: dataUrl, fileName };
   } else {
-    fileBuffer = Buffer.from(dataUrl, 'base64')
+    fileBuffer = Buffer.from(dataUrl, "base64");
   }
 
-  const ext = fileName.split('.').pop().toLowerCase()
-  let subfolder = 'dokumen'
-  if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext) || (mimeType && mimeType.startsWith('image/'))) {
-    subfolder = 'gambar'
-  } else if (ext === 'pdf' || mimeType === 'application/pdf') {
-    subfolder = 'pdf'
+  const ext = fileName.split(".").pop().toLowerCase();
+  let subfolder = "dokumen";
+  if (
+    ["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(ext) ||
+    (mimeType && mimeType.startsWith("image/"))
+  ) {
+    subfolder = "gambar";
+  } else if (ext === "pdf" || mimeType === "application/pdf") {
+    subfolder = "pdf";
     // Validasi berkas PDF: pastikan bukan HTML error page
-    const header = fileBuffer.slice(0, 5).toString('ascii')
-    if (header.startsWith('<!doc') || header.startsWith('<html')) {
-      throw new Error(`File "${fileName}" bukan berkas PDF yang valid (terdeteksi halaman web HTML). Harap upload file PDF asli.`)
+    const header = fileBuffer.slice(0, 5).toString("ascii");
+    if (header.startsWith("<!doc") || header.startsWith("<html")) {
+      throw new Error(
+        `File "${fileName}" bukan berkas PDF yang valid (terdeteksi halaman web HTML). Harap upload file PDF asli.`,
+      );
     }
   }
 
-  const cleanName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
-  const finalFileName = `${Date.now()}_${cleanName}`
-  const targetDir = path.join(__dirname, 'public/lampiran', subfolder)
-  ensureDir(targetDir)
+  const cleanName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const finalFileName = `${Date.now()}_${cleanName}`;
+  const targetDir = path.join(__dirname, "public/lampiran", subfolder);
+  ensureDir(targetDir);
 
-  const targetPath = path.join(targetDir, finalFileName)
-  await fsPromises.writeFile(targetPath, fileBuffer)
+  const targetPath = path.join(targetDir, finalFileName);
+  await fsPromises.writeFile(targetPath, fileBuffer);
 
-  const relativeUrl = `/lampiran/${subfolder}/${finalFileName}`
-  console.log(` [Upload] Berkas disimpan: public/lampiran/${subfolder}/${finalFileName} (${fileBuffer.length} bytes)`)
+  const relativeUrl = `/lampiran/${subfolder}/${finalFileName}`;
+  console.log(
+    ` [Upload] Berkas disimpan: public/lampiran/${subfolder}/${finalFileName} (${fileBuffer.length} bytes)`,
+  );
 
   return {
     url: relativeUrl,
     fileName,
     size: fileBuffer.length,
-    category: subfolder === 'gambar' ? 'image' : subfolder === 'pdf' ? 'pdf' : 'other',
+    category:
+      subfolder === "gambar" ? "image" : subfolder === "pdf" ? "pdf" : "other",
     extension: ext,
-  }
-}
+  };
+};
 
 // Upload file lampiran (gambar/pdf/excel) ke public/lampiran
-app.post('/api/upload-lampiran', async (req, res) => {
+app.post("/api/upload-lampiran", async (req, res) => {
   try {
-    const { fileName, fileType, dataUrl } = req.body
+    const { fileName, fileType, dataUrl } = req.body;
     if (!dataUrl || !fileName) {
-      return res.status(400).json({ success: false, message: 'File data atau nama file tidak valid' })
+      return res.status(400).json({
+        success: false,
+        message: "File data atau nama file tidak valid",
+      });
     }
 
-    const saved = await saveAttachmentFile(fileName, fileType, dataUrl)
+    const saved = await saveAttachmentFile(fileName, fileType, dataUrl);
     if (!saved) {
-      return res.status(400).json({ success: false, message: 'Gagal memproses file' })
+      return res
+        .status(400)
+        .json({ success: false, message: "Gagal memproses file" });
     }
 
     res.json({
       success: true,
       ...saved,
-    })
+    });
   } catch (err) {
-    console.error(' [Upload] Gagal menyimpan lampiran:', err.message)
-    res.status(500).json({ success: false, message: err.message })
+    console.error(" [Upload] Gagal menyimpan lampiran:", err.message);
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
-app.get('/api/letters', async (req, res) => {
+app.get("/api/letters", async (req, res) => {
   try {
-    const [rows] = await pool.query(`SELECT * FROM letters ORDER BY created_at DESC`)
+    const [rows] = await pool.query(
+      `SELECT * FROM letters ORDER BY created_at DESC`,
+    );
     const formatted = rows.map((r) => {
-      const fVals = typeof r.field_values === 'string' ? JSON.parse(r.field_values) : r.field_values || {}
+      const fVals =
+        typeof r.field_values === "string"
+          ? JSON.parse(r.field_values)
+          : r.field_values || {};
       const rawAtts = r.attachments
-        ? (typeof r.attachments === 'string' ? JSON.parse(r.attachments) : r.attachments)
-        : (fVals.attachments || [])
+        ? typeof r.attachments === "string"
+          ? JSON.parse(r.attachments)
+          : r.attachments
+        : fVals.attachments || [];
       const atts = (Array.isArray(rawAtts) ? rawAtts : []).map((a) => {
-        const url = a.url || (typeof a.dataUrl === 'string' && (a.dataUrl.startsWith('/lampiran') || a.dataUrl.startsWith('http')) ? a.dataUrl : '')
+        const url =
+          a.url ||
+          (typeof a.dataUrl === "string" &&
+          (a.dataUrl.startsWith("/lampiran") || a.dataUrl.startsWith("http"))
+            ? a.dataUrl
+            : "");
         return {
           ...a,
           url,
-          dataUrl: a.dataUrl || url || '',
-        }
-      })
+          dataUrl: a.dataUrl || url || "",
+        };
+      });
       return {
         id: r.id,
         templateId: r.template_id,
@@ -861,313 +919,434 @@ app.get('/api/letters', async (req, res) => {
           attachments: atts,
         },
         attachments: atts,
-        includeKnownBy: fVals.includeKnownBy !== undefined ? Boolean(fVals.includeKnownBy) : (r.branch_id !== 'PST'),
+        includeKnownBy:
+          fVals.includeKnownBy !== undefined
+            ? Boolean(fVals.includeKnownBy)
+            : r.branch_id !== "PST",
         knownByName: fVals.knownByName || null,
         knownByPosition: fVals.knownByPosition || null,
-        knownByApproved: Boolean(fVals.knownByApproved || fVals.knownByStatus === 'approved'),
+        knownByApproved: Boolean(
+          fVals.knownByApproved || fVals.knownByStatus === "approved",
+        ),
         knownByStatus: fVals.knownByStatus || null,
         knownByApprovedAt: fVals.knownByApprovedAt || null,
         knownByApprovedBy: fVals.knownByApprovedBy || null,
         knownByNotes: fVals.knownByNotes || null,
-        allowedViewers: Array.isArray(fVals.allowedViewers) ? fVals.allowedViewers : [],
+        allowedViewers: Array.isArray(fVals.allowedViewers)
+          ? fVals.allowedViewers
+          : [],
         sharedWith: r.shared_with
-          ? (typeof r.shared_with === 'string' ? JSON.parse(r.shared_with) : r.shared_with)
-          : (Array.isArray(fVals.sharedWith) ? fVals.sharedWith : []),
+          ? typeof r.shared_with === "string"
+            ? JSON.parse(r.shared_with)
+            : r.shared_with
+          : Array.isArray(fVals.sharedWith)
+            ? fVals.sharedWith
+            : [],
         content: r.content,
-        approvalHistory: typeof r.approval_history === 'string' ? JSON.parse(r.approval_history) : r.approval_history,
-        comments: r.comments ? (typeof r.comments === 'string' ? JSON.parse(r.comments) : r.comments) : [],
+        approvalHistory:
+          typeof r.approval_history === "string"
+            ? JSON.parse(r.approval_history)
+            : r.approval_history,
+        comments: r.comments
+          ? typeof r.comments === "string"
+            ? JSON.parse(r.comments)
+            : r.comments
+          : [],
         createdAt: r.created_at,
         updatedAt: r.updated_at,
-      }
-    })
-    res.json({ success: true, data: formatted })
+      };
+    });
+    res.json({ success: true, data: formatted });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // Bagikan akses surat ke user lain (Share Letter)
-app.post('/api/letters/:id/share', async (req, res) => {
+app.post("/api/letters/:id/share", async (req, res) => {
   try {
-    const { id } = req.params
-    const { sharedWith } = req.body
-    const cleanSharedWith = Array.isArray(sharedWith) ? sharedWith : []
+    const { id } = req.params;
+    const { sharedWith } = req.body;
+    const cleanSharedWith = Array.isArray(sharedWith) ? sharedWith : [];
 
-    const [rows] = await pool.query(`SELECT id, field_values FROM letters WHERE id = ?`, [id])
-    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Surat tidak ditemukan' })
+    const [rows] = await pool.query(
+      `SELECT id, field_values FROM letters WHERE id = ?`,
+      [id],
+    );
+    if (rows.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "Surat tidak ditemukan" });
 
-    const fVals = typeof rows[0].field_values === 'string' ? JSON.parse(rows[0].field_values) : rows[0].field_values || {}
-    fVals.sharedWith = cleanSharedWith
+    const fVals =
+      typeof rows[0].field_values === "string"
+        ? JSON.parse(rows[0].field_values)
+        : rows[0].field_values || {};
+    fVals.sharedWith = cleanSharedWith;
 
     try {
       await pool.query(
         `UPDATE letters SET shared_with = ?, field_values = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        [JSON.stringify(cleanSharedWith), JSON.stringify(fVals), id]
-      )
+        [JSON.stringify(cleanSharedWith), JSON.stringify(fVals), id],
+      );
     } catch (colErr) {
       await pool.query(
         `UPDATE letters SET field_values = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        [JSON.stringify(fVals), id]
-      )
+        [JSON.stringify(fVals), id],
+      );
     }
 
-    res.json({ success: true, message: 'Akses surat berhasil dibagikan', sharedWith: cleanSharedWith })
+    res.json({
+      success: true,
+      message: "Akses surat berhasil dibagikan",
+      sharedWith: cleanSharedWith,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // Ambil komentar / chat surat
-app.get('/api/letters/:id/comments', async (req, res) => {
+app.get("/api/letters/:id/comments", async (req, res) => {
   try {
-    const { id } = req.params
-    const [rows] = await pool.query(`SELECT comments FROM letters WHERE id = ?`, [id])
-    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Surat tidak ditemukan' })
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `SELECT comments FROM letters WHERE id = ?`,
+      [id],
+    );
+    if (rows.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "Surat tidak ditemukan" });
     const comments = rows[0].comments
-      ? (typeof rows[0].comments === 'string' ? JSON.parse(rows[0].comments) : rows[0].comments)
-      : []
-    res.json({ success: true, data: comments })
+      ? typeof rows[0].comments === "string"
+        ? JSON.parse(rows[0].comments)
+        : rows[0].comments
+      : [];
+    res.json({ success: true, data: comments });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // Kirim komentar / chat baru ke surat
-app.post('/api/letters/:id/comments', async (req, res) => {
+app.post("/api/letters/:id/comments", async (req, res) => {
   try {
-    const { id } = req.params
-    const newComment = req.body
+    const { id } = req.params;
+    const newComment = req.body;
 
-    const [rows] = await pool.query(`SELECT comments FROM letters WHERE id = ?`, [id])
-    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Surat tidak ditemukan' })
+    const [rows] = await pool.query(
+      `SELECT comments FROM letters WHERE id = ?`,
+      [id],
+    );
+    if (rows.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "Surat tidak ditemukan" });
 
     const existing = rows[0].comments
-      ? (typeof rows[0].comments === 'string' ? JSON.parse(rows[0].comments) : rows[0].comments)
-      : []
+      ? typeof rows[0].comments === "string"
+        ? JSON.parse(rows[0].comments)
+        : rows[0].comments
+      : [];
 
-    const updated = [...existing, newComment]
+    const updated = [...existing, newComment];
     try {
-      await pool.query(`UPDATE letters SET comments = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
-        JSON.stringify(updated),
-        id,
-      ])
+      await pool.query(
+        `UPDATE letters SET comments = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [JSON.stringify(updated), id],
+      );
     } catch (colErr) {
       // Jika kolom comments belum ada, tambahkan kolom lalu coba lagi
-      await pool.query(`ALTER TABLE letters ADD COLUMN comments JSON NULL`)
-      await pool.query(`UPDATE letters SET comments = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [
-        JSON.stringify(updated),
-        id,
-      ])
+      await pool.query(`ALTER TABLE letters ADD COLUMN comments JSON NULL`);
+      await pool.query(
+        `UPDATE letters SET comments = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [JSON.stringify(updated), id],
+      );
     }
 
-    res.json({ success: true, data: newComment, comments: updated })
+    res.json({ success: true, data: newComment, comments: updated });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // WHATSAPP NOTIFICATION HELPER & SETTINGS
 // -------------------------------------------------------------
 const getUserPhone = async (userId, userName) => {
   try {
+    // 1. Cek tabel users (berdasarkan id atau nama)
     if (userId) {
-      const [uRows] = await pool.query(`SELECT phone FROM users WHERE id = ? LIMIT 1`, [userId])
-      if (uRows.length > 0 && uRows[0].phone) return uRows[0].phone
+      const [uRows] = await pool.query(
+        `SELECT phone FROM users WHERE id = ? LIMIT 1`,
+        [userId],
+      );
+      if (uRows.length > 0 && uRows[0].phone) return uRows[0].phone;
     }
     if (userName) {
-      const [uRows] = await pool.query(`SELECT phone FROM users WHERE name = ? LIMIT 1`, [userName])
-      if (uRows.length > 0 && uRows[0].phone) return uRows[0].phone
+      const [uRows] = await pool.query(
+        `SELECT phone FROM users WHERE name = ? OR username = ? LIMIT 1`,
+        [userName, userName],
+      );
+      if (uRows.length > 0 && uRows[0].phone) return uRows[0].phone;
     }
+
+    // 2. Cek tabel hrd_karyawan jika ada di database portal
+    try {
+      if (userName) {
+        const [kRows] = await pool.query(
+          `SELECT no_hp FROM hrd_karyawan WHERE nama_karyawan = ? OR nama_karyawan LIKE ? LIMIT 1`,
+          [userName, `%${userName}%`],
+        );
+        if (kRows.length > 0 && kRows[0].no_hp) return kRows[0].no_hp;
+      }
+    } catch {}
+
+    // 3. Cek tabel karyawan umum jika ada
+    try {
+      if (userName) {
+        const [kRows] = await pool.query(
+          `SELECT no_hp FROM karyawan WHERE nama = ? OR nama LIKE ? LIMIT 1`,
+          [userName, `%${userName}%`],
+        );
+        if (kRows.length > 0 && kRows[0].no_hp) return kRows[0].no_hp;
+      }
+    } catch {}
   } catch (e) {
     // Column might not exist or error
   }
-  return null
-}
+  return null;
+};
 
 const sendWhatsAppNotification = async ({ phone, message }) => {
-  if (!phone || !message) return { success: false, message: 'Nomor telepon atau pesan kosong' }
+  if (!phone || !message)
+    return { success: false, message: "Nomor telepon atau pesan kosong" };
 
   try {
-    const [rows] = await pool.query(`SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`)
-    let config = {
-      enabled: true,
-      provider: 'custom',
-      apiKey: 'V8q2Zp7Lm4Xr9Nc6Tj3Ks5Wd1Hy7Fa8Qv2Bn6Rx4Pc9Mz1',
-      endpoint: 'https://wa.aspartech.com/api/send-message',
+    const [rows] = await pool.query(
+      `SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`,
+    );
+    if (rows.length === 0 || !rows[0].value_data) {
+      return {
+        success: false,
+        message: "Pengaturan WhatsApp belum dikonfigurasi di database",
+      };
     }
-    if (rows.length > 0 && rows[0].value_data) {
-      try {
-        config = { ...config, ...JSON.parse(rows[0].value_data) }
-      } catch {}
+
+    let config = {};
+    try {
+      config = JSON.parse(rows[0].value_data);
+    } catch {
+      return {
+        success: false,
+        message: "Format pengaturan WhatsApp tidak valid di database",
+      };
     }
 
     if (!config.enabled) {
-      return { success: false, message: 'Notifikasi WhatsApp sedang non-aktif' }
+      return {
+        success: false,
+        message: "Notifikasi WhatsApp sedang non-aktif",
+      };
     }
 
-    let cleanPhone = String(phone).replace(/[^0-9]/g, '')
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = '62' + cleanPhone.slice(1)
+    let cleanPhone = String(phone).replace(/[^0-9]/g, "");
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = "62" + cleanPhone.slice(1);
     }
 
     if (!cleanPhone || cleanPhone.length < 9) {
-      return { success: false, message: 'Nomor telepon tidak valid. Masukkan nomor HP penerima (contoh: 089523888200).' }
+      return {
+        success: false,
+        message:
+          "Nomor telepon tidak valid. Masukkan nomor HP penerima (contoh: 089523888200).",
+      };
     }
 
-    const provider = config.provider || 'fonnte'
-    const apiKey = config.apiKey || ''
+    const provider = config.provider || "fonnte";
+    const apiKey = config.apiKey || "";
 
     if (!apiKey) {
-      return { success: false, message: 'API Key WhatsApp belum diisi' }
+      return { success: false, message: "API Key WhatsApp belum diisi" };
     }
 
-    if (provider === 'fonnte') {
-      const endpoint = config.endpoint || 'https://api.fonnte.com/send'
+    if (provider === "fonnte") {
+      const endpoint = config.endpoint || "https://api.fonnte.com/send";
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': apiKey,
-          'Content-Type': 'application/json',
+          Authorization: apiKey,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           target: cleanPhone,
           message: message,
-          countryCode: '62',
+          countryCode: "62",
         }),
-      })
-      const result = await response.json()
-      console.log(` [WhatsApp Fonnte] Sent to ${cleanPhone}:`, result?.status || result?.message || result)
-      return { success: true, data: result }
-    } else if (provider === 'wablas') {
-      const endpoint = config.endpoint || 'https://tegal.wablas.com/api/send-message'
+      });
+      const result = await response.json();
+      console.log(
+        ` [WhatsApp Fonnte] Sent to ${cleanPhone}:`,
+        result?.status || result?.message || result,
+      );
+      return { success: true, data: result };
+    } else if (provider === "wablas") {
+      const endpoint =
+        config.endpoint || "https://tegal.wablas.com/api/send-message";
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': apiKey,
-          'Content-Type': 'application/json',
+          Authorization: apiKey,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           phone: cleanPhone,
           message: message,
         }),
-      })
-      const result = await response.json()
-      console.log(` [WhatsApp Wablas] Sent to ${cleanPhone}:`, result)
-      return { success: true, data: result }
+      });
+      const result = await response.json();
+      console.log(` [WhatsApp Wablas] Sent to ${cleanPhone}:`, result);
+      return { success: true, data: result };
     } else {
       // Generic Webhook / WA Gateway (Aspartech, Baileys, dll)
-      const endpoint = config.endpoint
-      if (!endpoint) return { success: false, message: 'Endpoint kustom belum diatur' }
+      const endpoint = config.endpoint;
+      if (!endpoint)
+        return { success: false, message: "Endpoint kustom belum diatur" };
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          session: 'wasurat',
+          session: "wasurat",
           phone: cleanPhone,
           to: cleanPhone,
           target: cleanPhone,
           message: message,
           text: message,
         }),
-      })
-      const resultText = await response.text()
-      let result = resultText
+      });
+      const resultText = await response.text();
+      let result = resultText;
       try {
-        result = JSON.parse(resultText)
+        result = JSON.parse(resultText);
       } catch {}
-      console.log(` [WhatsApp Custom] Response from gateway for ${cleanPhone}:`, result)
+      console.log(
+        ` [WhatsApp Custom] Response from gateway for ${cleanPhone}:`,
+        result,
+      );
 
       if (!response.ok) {
-        return { success: false, message: `Gateway HTTP Error ${response.status}: ${resultText}` }
+        return {
+          success: false,
+          message: `Gateway HTTP Error ${response.status}: ${resultText}`,
+        };
       }
-      if (typeof result === 'object' && result !== null) {
-        if (result.success === false || result.status === false || result.error) {
-          return { success: false, message: result.message || result.error || 'Ditolak gateway' }
+      if (typeof result === "object" && result !== null) {
+        if (
+          result.success === false ||
+          result.status === false ||
+          result.error
+        ) {
+          return {
+            success: false,
+            message: result.message || result.error || "Ditolak gateway",
+          };
         }
       }
-      return { success: true, data: result }
+      return { success: true, data: result };
     }
   } catch (err) {
-    console.warn(' [WhatsApp] Send notification error:', err.message)
-    return { success: false, message: err.message }
+    console.warn(" [WhatsApp] Send notification error:", err.message);
+    return { success: false, message: err.message };
   }
-}
+};
 
-app.get('/api/settings/whatsapp', async (req, res) => {
+app.get("/api/settings/whatsapp", async (req, res) => {
   try {
-    const [rows] = await pool.query(`SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`)
-    let data = {
-      enabled: true,
-      provider: 'custom',
-      apiKey: 'V8q2Zp7Lm4Xr9Nc6Tj3Ks5Wd1Hy7Fa8Qv2Bn6Rx4Pc9Mz1',
-      endpoint: 'https://wa.aspartech.com/api/send-message',
-      adminPhone: '',
+    const [rows] = await pool.query(
+      `SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`,
+    );
+    if (rows.length === 0 || !rows[0].value_data) {
+      return res.json({ success: true, data: null });
     }
-    if (rows.length > 0 && rows[0].value_data) {
-      try {
-        data = { ...data, ...JSON.parse(rows[0].value_data) }
-      } catch {}
+    let data = null;
+    try {
+      data = JSON.parse(rows[0].value_data);
+    } catch {
+      data = null;
     }
-    res.json({ success: true, data })
+    res.json({ success: true, data });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
-app.post('/api/settings/whatsapp', async (req, res) => {
+app.post("/api/settings/whatsapp", async (req, res) => {
   try {
-    const settings = req.body || {}
+    const settings = req.body || {};
     await pool.query(
       `INSERT INTO system_settings (key_name, value_data)
        VALUES ('whatsapp_settings', ?)
        ON DUPLICATE KEY UPDATE value_data = VALUES(value_data), updated_at = CURRENT_TIMESTAMP`,
-      [JSON.stringify(settings)]
-    )
-    res.json({ success: true, message: 'Pengaturan WhatsApp berhasil disimpan' })
+      [JSON.stringify(settings)],
+    );
+    res.json({
+      success: true,
+      message: "Pengaturan WhatsApp berhasil disimpan",
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
-app.post('/api/whatsapp/test', async (req, res) => {
+app.post("/api/whatsapp/test", async (req, res) => {
   try {
-    const { phone } = req.body
-    if (!phone) return res.status(400).json({ success: false, message: 'Nomor WhatsApp tujuan wajib diisi' })
-    const msg = `🔔 *TES NOTIFIKASI SISTEM E-LETTER MP*\n\nKoneksi WhatsApp Gateway berhasil aktif!\nTanggal: ${new Date().toLocaleString('id-ID')}`
-    const result = await sendWhatsAppNotification({ phone, message: msg })
-    res.json(result)
+    const { phone } = req.body;
+    if (!phone)
+      return res
+        .status(400)
+        .json({ success: false, message: "Nomor WhatsApp tujuan wajib diisi" });
+    const msg = `🔔 *TES NOTIFIKASI SISTEM E-LETTER MP*\n\nKoneksi WhatsApp Gateway berhasil aktif!\nTanggal: ${new Date().toLocaleString("id-ID")}`;
+    const result = await sendWhatsAppNotification({ phone, message: msg });
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // PUBLIC VERIFICATION (QR CODE SCAN TANPA LOGIN)
 // -------------------------------------------------------------
-app.get('/api/public/verify/:id', async (req, res) => {
+app.get("/api/public/verify/:id", async (req, res) => {
   try {
-    const { id } = req.params
+    const { id } = req.params;
     const [rows] = await pool.query(
       `SELECT * FROM letters WHERE id = ? OR letter_number = ? LIMIT 1`,
-      [id, id]
-    )
+      [id, id],
+    );
 
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
         valid: false,
-        message: 'Dokumen surat dengan nomor/ID tersebut tidak ditemukan dalam sistem resmi.',
-      })
+        message:
+          "Dokumen surat dengan nomor/ID tersebut tidak ditemukan dalam sistem resmi.",
+      });
     }
 
-    const r = rows[0]
-    const fVals = typeof r.field_values === 'string' ? JSON.parse(r.field_values) : (r.field_values || {})
-    const history = typeof r.approval_history === 'string' ? JSON.parse(r.approval_history) : (r.approval_history || [])
+    const r = rows[0];
+    const fVals =
+      typeof r.field_values === "string"
+        ? JSON.parse(r.field_values)
+        : r.field_values || {};
+    const history =
+      typeof r.approval_history === "string"
+        ? JSON.parse(r.approval_history)
+        : r.approval_history || [];
 
     res.json({
       success: true,
@@ -1188,38 +1367,59 @@ app.get('/api/public/verify/:id', async (req, res) => {
         approvalHistory: history,
         knownByName: fVals.knownByName || null,
         knownByPosition: fVals.knownByPosition || null,
-        knownByApproved: Boolean(fVals.knownByApproved || fVals.knownByStatus === 'approved'),
+        knownByApproved: Boolean(
+          fVals.knownByApproved || fVals.knownByStatus === "approved",
+        ),
         knownByStatus: fVals.knownByStatus || null,
         knownByApprovedAt: fVals.knownByApprovedAt || null,
         knownByApprovedBy: fVals.knownByApprovedBy || null,
       },
-    })
+    });
   } catch (err) {
-    res.status(500).json({ success: false, valid: false, message: err.message })
+    res
+      .status(500)
+      .json({ success: false, valid: false, message: err.message });
   }
-})
+});
 
 // Simpan surat (Draf atau Submit)
-app.post('/api/letters', async (req, res) => {
+app.post("/api/letters", async (req, res) => {
   try {
-    const l = req.body
-    const id = l.id || `ltr-${Date.now().toString(36)}`
-    const rawAttachments = l.attachments || (l.fieldValues && l.fieldValues.attachments) || []
+    const l = req.body;
+    const id = l.id || `ltr-${Date.now().toString(36)}`;
+    const rawAttachments =
+      l.attachments || (l.fieldValues && l.fieldValues.attachments) || [];
     const cleanAttachments = await Promise.all(
       (Array.isArray(rawAttachments) ? rawAttachments : []).map(async (a) => {
-        let finalUrl = a.url || (typeof a.dataUrl === 'string' && (a.dataUrl.startsWith('/lampiran') || a.dataUrl.startsWith('http')) ? a.dataUrl : '')
-        let finalDataUrl = a.dataUrl || a.url || ''
+        let finalUrl =
+          a.url ||
+          (typeof a.dataUrl === "string" &&
+          (a.dataUrl.startsWith("/lampiran") || a.dataUrl.startsWith("http"))
+            ? a.dataUrl
+            : "");
+        let finalDataUrl = a.dataUrl || a.url || "";
 
         // Jika dataUrl berupa base64 murni dan belum punya file fisik di disk, simpan otomatis
-        if ((!finalUrl || !finalUrl.startsWith('/lampiran')) && typeof finalDataUrl === 'string' && finalDataUrl.startsWith('data:')) {
+        if (
+          (!finalUrl || !finalUrl.startsWith("/lampiran")) &&
+          typeof finalDataUrl === "string" &&
+          finalDataUrl.startsWith("data:")
+        ) {
           try {
-            const saved = await saveAttachmentFile(a.name || 'lampiran', a.type, finalDataUrl)
+            const saved = await saveAttachmentFile(
+              a.name || "lampiran",
+              a.type,
+              finalDataUrl,
+            );
             if (saved && saved.url) {
-              finalUrl = saved.url
-              finalDataUrl = saved.url
+              finalUrl = saved.url;
+              finalDataUrl = saved.url;
             }
           } catch (e) {
-            console.warn('Auto-save base64 attachment to disk warning:', e.message)
+            console.warn(
+              "Auto-save base64 attachment to disk warning:",
+              e.message,
+            );
           }
         }
 
@@ -1232,20 +1432,24 @@ app.post('/api/letters', async (req, res) => {
           url: finalUrl,
           dataUrl: finalDataUrl,
           uploadedAt: a.uploadedAt,
-        }
-      })
-    )
+        };
+      }),
+    );
 
     const fieldValuesObj = {
       ...(l.fieldValues || {}),
       attachments: cleanAttachments,
-      allowedViewers: Array.isArray(l.allowedViewers) ? l.allowedViewers : (l.fieldValues?.allowedViewers || []),
-      sharedWith: Array.isArray(l.sharedWith) ? l.sharedWith : (l.fieldValues?.sharedWith || []),
-    }
-    const letterTitle = (l.title || '').trim().toUpperCase()
-    const fieldValues = JSON.stringify(fieldValuesObj)
-    const approvalHistory = JSON.stringify(l.approvalHistory || [])
-    const attachmentsJson = JSON.stringify(cleanAttachments)
+      allowedViewers: Array.isArray(l.allowedViewers)
+        ? l.allowedViewers
+        : l.fieldValues?.allowedViewers || [],
+      sharedWith: Array.isArray(l.sharedWith)
+        ? l.sharedWith
+        : l.fieldValues?.sharedWith || [],
+    };
+    const letterTitle = (l.title || "").trim().toUpperCase();
+    const fieldValues = JSON.stringify(fieldValuesObj);
+    const approvalHistory = JSON.stringify(l.approvalHistory || []);
+    const attachmentsJson = JSON.stringify(cleanAttachments);
 
     try {
       await pool.query(
@@ -1271,16 +1475,16 @@ app.post('/api/letters', async (req, res) => {
           l.userName,
           l.branchId,
           l.branchName,
-          l.status || 'draft',
+          l.status || "draft",
           l.currentStep || 1,
           l.totalSteps || 1,
           letterTitle,
           fieldValues,
-          l.content || '',
+          l.content || "",
           approvalHistory,
           attachmentsJson,
-        ]
-      )
+        ],
+      );
     } catch (insertErr) {
       // Fallback jika kolom attachments belum ada di tabel letters
       await pool.query(
@@ -1305,320 +1509,419 @@ app.post('/api/letters', async (req, res) => {
           l.userName,
           l.branchId,
           l.branchName,
-          l.status || 'draft',
+          l.status || "draft",
           l.currentStep || 1,
           l.totalSteps || 1,
           letterTitle,
           fieldValues,
-          l.content || '',
+          l.content || "",
           approvalHistory,
-        ]
-      )
+        ],
+      );
     }
 
-    res.json({ success: true, id, message: 'Surat berhasil disimpan' })
+    res.json({ success: true, id, message: "Surat berhasil disimpan" });
 
     // Kirim notifikasi WA asinkron jika surat diajukan (status === 'pending')
-    if (l.status === 'pending') {
+    if (l.status === "pending") {
       setTimeout(async () => {
         try {
-          const appUrl = process.env.APP_URL || 'https://surat.portalmp.com'
-          const approverStep = (l.approvalHistory && l.approvalHistory[0]) || {}
-          let targetPhone = await getUserPhone(approverStep.specificUserId, approverStep.approverName || approverStep.specificUserName)
+          const appUrl = process.env.APP_URL || "https://surat.portalmp.com";
+          const approverStep =
+            (l.approvalHistory && l.approvalHistory[0]) || {};
+          let targetPhone = await getUserPhone(
+            approverStep.specificUserId,
+            approverStep.approverName || approverStep.specificUserName,
+          );
 
           // Jika tidak ada nomor approver, kirim ke adminPhone di setting
           if (!targetPhone) {
-            const [stRows] = await pool.query(`SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`)
+            const [stRows] = await pool.query(
+              `SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`,
+            );
             if (stRows.length > 0 && stRows[0].value_data) {
-              const cfg = JSON.parse(stRows[0].value_data)
-              targetPhone = cfg.adminPhone
+              const cfg = JSON.parse(stRows[0].value_data);
+              targetPhone = cfg.adminPhone;
             }
           }
 
           if (targetPhone) {
-            const waMsg = `📢 *PENGAJUAN SURAT BARU PERLU PERSETUJUAN*\n\n` +
-              `• No. Surat: *${l.letterNumber || '-'}*\n` +
+            const waMsg =
+              `📢 *PENGAJUAN SURAT BARU PERLU PERSETUJUAN*\n\n` +
+              `• No. Surat: *${l.letterNumber || "-"}*\n` +
               `• Perihal: *${letterTitle}*\n` +
-              `• Pemohon: ${l.userName} (${l.branchName || '-'})\n` +
-              `• Jenis: ${l.templateName || 'Surat Ajuan'}\n` +
+              `• Pemohon: ${l.userName} (${l.branchName || "-"})\n` +
+              `• Jenis: ${l.templateName || "Surat Ajuan"}\n` +
               `• Status: *Menunggu Persetujuan*\n\n` +
-              `Silakan tinjau dan proses dokumen:\n${appUrl}/#letters?view=${id}`
-            await sendWhatsAppNotification({ phone: targetPhone, message: waMsg })
+              `Silakan tinjau dan proses dokumen:\n${appUrl}/#letters?view=${id}`;
+            await sendWhatsAppNotification({
+              phone: targetPhone,
+              message: waMsg,
+            });
           }
         } catch (e) {
-          console.warn('Async WA submit error:', e.message)
+          console.warn("Async WA submit error:", e.message);
         }
-      }, 500)
+      }, 500);
     }
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // Eksekusi Persetujuan (Approve / Revisi / Tolak)
-app.post('/api/letters/:id/decision', async (req, res) => {
+app.post("/api/letters/:id/decision", async (req, res) => {
   try {
-    const { id } = req.params
-    const { action, notes, userName, kodeJabatan, isKnownBy, signature } = req.body // action: 'approve' | 'revision' | 'reject'
+    const { id } = req.params;
+    const { action, notes, userName, kodeJabatan, isKnownBy, signature } =
+      req.body; // action: 'approve' | 'revision' | 'reject'
 
-    const [rows] = await pool.query(`SELECT * FROM letters WHERE id = ?`, [id])
-    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Surat tidak ditemukan' })
+    const [rows] = await pool.query(`SELECT * FROM letters WHERE id = ?`, [id]);
+    if (rows.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "Surat tidak ditemukan" });
 
-    const letter = rows[0]
-    const history = typeof letter.approval_history === 'string' ? JSON.parse(letter.approval_history) : letter.approval_history
-    const fieldValues = typeof letter.field_values === 'string' ? JSON.parse(letter.field_values) : (letter.field_values || {})
-    const now = new Date().toISOString()
+    const letter = rows[0];
+    const history =
+      typeof letter.approval_history === "string"
+        ? JSON.parse(letter.approval_history)
+        : letter.approval_history;
+    const fieldValues =
+      typeof letter.field_values === "string"
+        ? JSON.parse(letter.field_values)
+        : letter.field_values || {};
+    const now = new Date().toISOString();
 
     const isMengetahuiTurn = Boolean(
       isKnownBy ||
-      (fieldValues.includeKnownBy && !fieldValues.knownByApproved && (letter.status === 'pending' || action === 'revision' || action === 'reject'))
-    )
+      (fieldValues.includeKnownBy &&
+        !fieldValues.knownByApproved &&
+        (letter.status === "pending" ||
+          action === "revision" ||
+          action === "reject")),
+    );
 
     if (isMengetahuiTurn) {
       // AKSI DARI PIHAK MENGETAHUI: JANGAN RE-PLACE APPROVAL HISTORY (PAK JEMMY)!
       const updatedFieldValues = {
         ...fieldValues,
-        knownByStatus: action === 'approve' ? 'approved' : action === 'revision' ? 'revision' : 'rejected',
-        knownByApproved: action === 'approve',
-        knownByNotes: notes || (action === 'approve' ? 'Disetujui pihak mengetahui' : 'Perlu revisi pihak mengetahui'),
+        knownByStatus:
+          action === "approve"
+            ? "approved"
+            : action === "revision"
+              ? "revision"
+              : "rejected",
+        knownByApproved: action === "approve",
+        knownByNotes:
+          notes ||
+          (action === "approve"
+            ? "Disetujui pihak mengetahui"
+            : "Perlu revisi pihak mengetahui"),
         knownByApprovedAt: now,
         knownByApprovedBy: userName,
         ...(signature ? { knownBySignature: signature } : {}),
-      }
+      };
 
-      let nextStatus = letter.status
-      if (action === 'approve') {
-        nextStatus = 'pending' // Tetap pending karena lanjut ke Step 1 (Pak Jemmy)
-      } else if (action === 'revision') {
-        nextStatus = 'revision'
-      } else if (action === 'reject') {
-        nextStatus = 'rejected'
+      let nextStatus = letter.status;
+      if (action === "approve") {
+        nextStatus = "pending"; // Tetap pending karena lanjut ke Step 1 (Pak Jemmy)
+      } else if (action === "revision") {
+        nextStatus = "revision";
+      } else if (action === "reject") {
+        nextStatus = "rejected";
       }
 
       await pool.query(
         `UPDATE letters
          SET status = ?, field_values = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [nextStatus, JSON.stringify(updatedFieldValues), id]
-      )
+        [nextStatus, JSON.stringify(updatedFieldValues), id],
+      );
 
       // Notifikasi WA untuk Pihak Mengetahui
       setTimeout(async () => {
         try {
-          const appUrl = process.env.APP_URL || 'https://surat.portalmp.com'
-          const applicantPhone = await getUserPhone(letter.user_id, letter.user_name)
-          const letterNum = letter.letter_number || id
-          const letterSubject = letter.title || '-'
+          const appUrl = process.env.APP_URL || "https://surat.portalmp.com";
+          const applicantPhone = await getUserPhone(
+            letter.user_id,
+            letter.user_name,
+          );
+          const letterNum = letter.letter_number || id;
+          const letterSubject = letter.title || "-";
 
-          if (action === 'approve') {
-            const firstStep = history[0] || {}
-            const nextPhone = await getUserPhone(firstStep.specificUserId, firstStep.approverName || firstStep.specificUserName)
+          if (action === "approve") {
+            const firstStep = history[0] || {};
+            const nextPhone = await getUserPhone(
+              firstStep.specificUserId,
+              firstStep.approverName || firstStep.specificUserName,
+            );
             if (nextPhone) {
-              const waMsg = `📢 *SURAT AJUAN TELAH DIKETAHUI & MENUNGGU ACC ANDA*\n\n` +
+              const waMsg =
+                `📢 *SURAT AJUAN TELAH DIKETAHUI & MENUNGGU ACC ANDA*\n\n` +
                 `• No. Surat: *${letterNum}*\n` +
                 `• Perihal: *${letterSubject}*\n` +
-                `• Pemohon: ${letter.user_name} (${letter.branch_name || '-'})\n` +
+                `• Pemohon: ${letter.user_name} (${letter.branch_name || "-"})\n` +
                 `• Disetujui Pihak Mengetahui: ${userName}\n\n` +
-                `Silakan tinjau dan proses:\n${appUrl}/#letters?view=${id}`
-              await sendWhatsAppNotification({ phone: nextPhone, message: waMsg })
+                `Silakan tinjau dan proses:\n${appUrl}/#letters?view=${id}`;
+              await sendWhatsAppNotification({
+                phone: nextPhone,
+                message: waMsg,
+              });
             }
-          } else if (action === 'revision' && applicantPhone) {
-            const waMsg = `⚠️ *SURAT AJUAN PERLU REVISI (PIHAK MENGETAHUI)*\n\n` +
+          } else if (action === "revision" && applicantPhone) {
+            const waMsg =
+              `⚠️ *SURAT AJUAN PERLU REVISI (PIHAK MENGETAHUI)*\n\n` +
               `• No. Surat: *${letterNum}*\n` +
               `• Perihal: *${letterSubject}*\n` +
-              `• Catatan Revisi: *"${notes || 'Perlu perbaikan'}"*\n\n` +
-              `Buka portal untuk memperbaiki surat:\n${appUrl}/#letters?view=${id}`
-            await sendWhatsAppNotification({ phone: applicantPhone, message: waMsg })
-          } else if (action === 'reject' && applicantPhone) {
-            const waMsg = `❌ *SURAT AJUAN DITOLAK (PIHAK MENGETAHUI)*\n\n` +
+              `• Catatan Revisi: *"${notes || "Perlu perbaikan"}"*\n\n` +
+              `Buka portal untuk memperbaiki surat:\n${appUrl}/#letters?view=${id}`;
+            await sendWhatsAppNotification({
+              phone: applicantPhone,
+              message: waMsg,
+            });
+          } else if (action === "reject" && applicantPhone) {
+            const waMsg =
+              `❌ *SURAT AJUAN DITOLAK (PIHAK MENGETAHUI)*\n\n` +
               `• No. Surat: *${letterNum}*\n` +
               `• Perihal: *${letterSubject}*\n` +
-              `• Alasan: *"${notes || 'Tidak disetujui'}"*`
-            await sendWhatsAppNotification({ phone: applicantPhone, message: waMsg })
+              `• Alasan: *"${notes || "Tidak disetujui"}"*`;
+            await sendWhatsAppNotification({
+              phone: applicantPhone,
+              message: waMsg,
+            });
           }
         } catch (e) {
-          console.warn('Async WA Mengetahui error:', e.message)
+          console.warn("Async WA Mengetahui error:", e.message);
         }
-      }, 500)
+      }, 500);
 
-      return res.json({ success: true, message: 'Keputusan pihak mengetahui berhasil disimpan' })
+      return res.json({
+        success: true,
+        message: "Keputusan pihak mengetahui berhasil disimpan",
+      });
     }
 
     // KASUS BIASA: PEJABAT PENYETUJU (STEP APPROVAL)
-    const stepIdx = letter.current_step - 1
+    const stepIdx = letter.current_step - 1;
 
     if (history[stepIdx]) {
-      history[stepIdx].approverName = userName
-      history[stepIdx].status = action === 'approve' ? 'approved' : action === 'revision' ? 'revision' : 'rejected'
-      history[stepIdx].notes = notes || ''
-      history[stepIdx].date = now
+      history[stepIdx].approverName = userName;
+      history[stepIdx].status =
+        action === "approve"
+          ? "approved"
+          : action === "revision"
+            ? "revision"
+            : "rejected";
+      history[stepIdx].notes = notes || "";
+      history[stepIdx].date = now;
       if (signature) {
-        history[stepIdx].signature = signature
+        history[stepIdx].signature = signature;
       }
     }
 
-    let nextStep = letter.current_step
-    let nextStatus = letter.status
+    let nextStep = letter.current_step;
+    let nextStatus = letter.status;
 
-    if (action === 'approve') {
+    if (action === "approve") {
       if (letter.current_step >= letter.total_steps) {
-        nextStatus = 'approved'
+        nextStatus = "approved";
       } else {
-        nextStep = letter.current_step + 1
-        nextStatus = 'pending'
+        nextStep = letter.current_step + 1;
+        nextStatus = "pending";
       }
-    } else if (action === 'revision') {
-      nextStatus = 'revision'
-    } else if (action === 'reject') {
-      nextStatus = 'rejected'
+    } else if (action === "revision") {
+      nextStatus = "revision";
+    } else if (action === "reject") {
+      nextStatus = "rejected";
     }
 
     await pool.query(
       `UPDATE letters
        SET status = ?, current_step = ?, approval_history = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [nextStatus, nextStep, JSON.stringify(history), id]
-    )
+      [nextStatus, nextStep, JSON.stringify(history), id],
+    );
 
     // Audit Log
-    const auditId = `aud-${Date.now().toString(36)}`
+    const auditId = `aud-${Date.now().toString(36)}`;
     await pool.query(
       `INSERT INTO audit_logs (id, letter_id, user_name, action, notes)
        VALUES (?, ?, ?, ?, ?)`,
-      [auditId, id, userName, `Keputusan: ${action.toUpperCase()}`, notes || '']
-    )
+      [
+        auditId,
+        id,
+        userName,
+        `Keputusan: ${action.toUpperCase()}`,
+        notes || "",
+      ],
+    );
 
     // Notifikasi WA Asinkron untuk Keputusan Pejabat Penyetuju
     setTimeout(async () => {
       try {
-        const appUrl = process.env.APP_URL || 'https://surat.portalmp.com'
-        const applicantPhone = await getUserPhone(letter.user_id, letter.user_name)
-        const letterNum = letter.letter_number || id
-        const letterSubject = letter.title || '-'
+        const appUrl = process.env.APP_URL || "https://surat.portalmp.com";
+        const applicantPhone = await getUserPhone(
+          letter.user_id,
+          letter.user_name,
+        );
+        const letterNum = letter.letter_number || id;
+        const letterSubject = letter.title || "-";
 
-        if (action === 'approve') {
-          if (nextStatus === 'approved') {
+        if (action === "approve") {
+          if (nextStatus === "approved") {
             // Disetujui penuh!
             if (applicantPhone) {
-              const waMsg = `✅ *SURAT AJUAN TELAH DISETUJUI PENUH!*\n\n` +
+              const waMsg =
+                `✅ *SURAT AJUAN TELAH DISETUJUI PENUH!*\n\n` +
                 `• No. Surat: *${letterNum}*\n` +
                 `• Perihal: *${letterSubject}*\n` +
                 `• Disetujui oleh: ${userName}\n` +
                 `• Status: *SAH & TERVERIFIKASI*\n` +
-                (notes ? `• Catatan: "${notes}"\n\n` : '\n') +
-                `Unduh / cetak dokumen resmi:\n${appUrl}/#letters?view=${id}`
-              await sendWhatsAppNotification({ phone: applicantPhone, message: waMsg })
+                (notes ? `• Catatan: "${notes}"\n\n` : "\n") +
+                `Unduh / cetak dokumen resmi:\n${appUrl}/#letters?view=${id}`;
+              await sendWhatsAppNotification({
+                phone: applicantPhone,
+                message: waMsg,
+              });
             }
           } else {
             // Lanjut ke approver berikutnya
-            const nextStepIdx = nextStep - 1
-            const nextApproverStep = history[nextStepIdx] || {}
-            const nextPhone = await getUserPhone(nextApproverStep.specificUserId, nextApproverStep.approverName || nextApproverStep.specificUserName)
+            const nextStepIdx = nextStep - 1;
+            const nextApproverStep = history[nextStepIdx] || {};
+            const nextPhone = await getUserPhone(
+              nextApproverStep.specificUserId,
+              nextApproverStep.approverName ||
+                nextApproverStep.specificUserName,
+            );
             if (nextPhone) {
-              const waMsg = `📢 *SURAT AJUAN MENUNGGU PERSETUJUAN ANDA*\n\n` +
+              const waMsg =
+                `📢 *SURAT AJUAN MENUNGGU PERSETUJUAN ANDA*\n\n` +
                 `• No. Surat: *${letterNum}*\n` +
                 `• Perihal: *${letterSubject}*\n` +
-                `• Pemohon: ${letter.user_name} (${letter.branch_name || '-'})\n` +
+                `• Pemohon: ${letter.user_name} (${letter.branch_name || "-"})\n` +
                 `• Tahap: ${nextStep} dari ${letter.total_steps}\n\n` +
-                `Silakan tinjau dan proses:\n${appUrl}/#letters?view=${id}`
-              await sendWhatsAppNotification({ phone: nextPhone, message: waMsg })
+                `Silakan tinjau dan proses:\n${appUrl}/#letters?view=${id}`;
+              await sendWhatsAppNotification({
+                phone: nextPhone,
+                message: waMsg,
+              });
             }
           }
-        } else if (action === 'revision' && applicantPhone) {
-          const waMsg = `⚠️ *SURAT AJUAN PERLU REVISI*\n\n` +
+        } else if (action === "revision" && applicantPhone) {
+          const waMsg =
+            `⚠️ *SURAT AJUAN PERLU REVISI*\n\n` +
             `• No. Surat: *${letterNum}*\n` +
             `• Perihal: *${letterSubject}*\n` +
             `• Diminta oleh: ${userName}\n` +
-            `• Catatan Revisi: *"${notes || 'Perlu perbaikan'}"*\n\n` +
-            `Buka portal untuk memperbaiki surat:\n${appUrl}/#letters?view=${id}`
-          await sendWhatsAppNotification({ phone: applicantPhone, message: waMsg })
-        } else if (action === 'reject' && applicantPhone) {
-          const waMsg = `❌ *SURAT AJUAN DITOLAK*\n\n` +
+            `• Catatan Revisi: *"${notes || "Perlu perbaikan"}"*\n\n` +
+            `Buka portal untuk memperbaiki surat:\n${appUrl}/#letters?view=${id}`;
+          await sendWhatsAppNotification({
+            phone: applicantPhone,
+            message: waMsg,
+          });
+        } else if (action === "reject" && applicantPhone) {
+          const waMsg =
+            `❌ *SURAT AJUAN DITOLAK*\n\n` +
             `• No. Surat: *${letterNum}*\n` +
             `• Perihal: *${letterSubject}*\n` +
             `• Pejabat: ${userName}\n` +
-            `• Alasan: *"${notes || 'Tidak disetujui'}"*`
-          await sendWhatsAppNotification({ phone: applicantPhone, message: waMsg })
+            `• Alasan: *"${notes || "Tidak disetujui"}"*`;
+          await sendWhatsAppNotification({
+            phone: applicantPhone,
+            message: waMsg,
+          });
         }
       } catch (e) {
-        console.warn('Async WA step error:', e.message)
+        console.warn("Async WA step error:", e.message);
       }
-    }, 500)
+    }, 500);
 
-    res.json({ success: true, message: `Surat berhasil di-${action}` })
+    res.json({ success: true, message: `Surat berhasil di-${action}` });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // Hapus surat (Hanya jika masih berstatus draft)
-app.delete('/api/letters/:id', async (req, res) => {
+app.delete("/api/letters/:id", async (req, res) => {
   try {
-    const { id } = req.params
-    const [rows] = await pool.query(`SELECT id, status, letter_number FROM letters WHERE id = ?`, [id])
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `SELECT id, status, letter_number FROM letters WHERE id = ?`,
+      [id],
+    );
     if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Surat tidak ditemukan' })
+      return res
+        .status(404)
+        .json({ success: false, message: "Surat tidak ditemukan" });
     }
 
-    const letter = rows[0]
-    if (letter.status !== 'draft') {
+    const letter = rows[0];
+    if (letter.status !== "draft") {
       return res.status(400).json({
         success: false,
-        message: 'Hanya surat berstatus Draf yang dapat dihapus.',
-      })
+        message: "Hanya surat berstatus Draf yang dapat dihapus.",
+      });
     }
 
-    await pool.query(`DELETE FROM letters WHERE id = ?`, [id])
-    await pool.query(`DELETE FROM audit_logs WHERE letter_id = ?`, [id])
+    await pool.query(`DELETE FROM letters WHERE id = ?`, [id]);
+    await pool.query(`DELETE FROM audit_logs WHERE letter_id = ?`, [id]);
 
-    res.json({ success: true, message: `Draf surat ${letter.letter_number || id} berhasil dihapus` })
+    res.json({
+      success: true,
+      message: `Draf surat ${letter.letter_number || id} berhasil dihapus`,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // 6. NOTIFIKASI & AUDIT LOGS
 // -------------------------------------------------------------
-app.get('/api/notifications', async (req, res) => {
+app.get("/api/notifications", async (req, res) => {
   try {
-    const { user_id } = req.query
+    const { user_id } = req.query;
     const [rows] = await pool.query(
       `SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
-      [user_id]
-    )
-    res.json({ success: true, data: rows })
+      [user_id],
+    );
+    res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
-app.get('/api/audit_logs/:letter_id', async (req, res) => {
+app.get("/api/audit_logs/:letter_id", async (req, res) => {
   try {
-    const { letter_id } = req.params
+    const { letter_id } = req.params;
     const [rows] = await pool.query(
       `SELECT * FROM audit_logs WHERE letter_id = ? ORDER BY timestamp DESC`,
-      [letter_id]
-    )
-    res.json({ success: true, data: rows })
+      [letter_id],
+    );
+    res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message })
+    res.status(500).json({ success: false, message: err.message });
   }
-})
+});
 
 // Serve production static frontend if built
-const distPath = path.join(__dirname, 'dist')
+const distPath = path.join(__dirname, "dist");
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath))
+  app.use(express.static(distPath));
   app.use((req, res, next) => {
-    if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/lampiran')) {
-      return res.sendFile(path.join(distPath, 'index.html'))
+    if (
+      req.method === "GET" &&
+      !req.path.startsWith("/api") &&
+      !req.path.startsWith("/lampiran")
+    ) {
+      return res.sendFile(path.join(distPath, "index.html"));
     }
-    next()
-  })
+    next();
+  });
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 [API Server] Running on http://localhost:${PORT}`)
-})
-
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 [API Server] Running on http://localhost:${PORT}`);
+});

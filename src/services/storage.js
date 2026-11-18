@@ -879,12 +879,17 @@ export const compileTemplateContent = (template, fieldValues = {}, extra = {}) =
   content = content.replace(/{{tanggal_surat}}/g, extra.tanggal_surat || formatDateId(new Date()))
 
   // Pastikan variabel khusus ter-replace meskipun tidak ada di fieldValues
-  const perihalVal = (fieldValues.perihal || fieldValues.f_perihal || '').trim().toUpperCase()
+  const perihalVal = (
+    fieldValues.perihal ||
+    fieldValues.f_perihal ||
+    (!template?.isCustom && template?.id !== 'custom_blank' && template?.name ? template.name : '')
+  ).trim().toUpperCase()
   if (perihalVal) {
     content = content.replace(/{{perihal}}/g, perihalVal)
   }
   content = content.replace(/{{tujuan}}/g, fieldValues.tujuan || '[Tulis Pejabat / Pihak Yang Dituju]')
-  content = content.replace(/{{ringkasan}}/g, fieldValues.ringkasan || '[Tulis uraian dan rincian pengajuan Anda secara lengkap di sini...]')
+  content = content.replace(/{{ringkasan}}/g, fieldValues.ringkasan || '')
+  content = content.replace(/<p>\s*Mengajukan permohonan dengan uraian sebagai berikut:\s*<\/p>\s*<p>\s*<\/p>/gi, '')
 
   // Replace field variables
   Object.keys(fieldValues).forEach((key) => {

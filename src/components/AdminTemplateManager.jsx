@@ -146,7 +146,6 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
       fields: [
         { id: `f_${Date.now()}_1`, label: 'Nama Pemohon', name: 'nama_pemohon', type: 'text', required: true },
         { id: `f_${Date.now()}_2`, label: 'Keperluan / Perihal', name: 'perihal', type: 'text', required: true },
-        { id: `f_${Date.now()}_3`, label: 'Uraian Pengajuan', name: 'ringkasan', type: 'textarea', required: true },
       ],
       letterTemplate: `
 <p style="text-align: right;">{{nama_cabang}}, {{tanggal_surat}}</p>
@@ -155,9 +154,8 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
 <p>Dengan hormat,</p>
 <p>Saya yang bertanda tangan di bawah ini:</p>
 <p>Nama: {{nama_pemohon}}<br>Cabang: {{nama_cabang}}</p>
-<p>Mengajukan permohonan dengan uraian sebagai berikut:</p>
-<p>{{ringkasan}}</p>
-<p>Demikian surat permohonan ini kami sampaikan atas perhatian dan persetujuannya kami ucapkan terima kasih.</p>
+<p>Bersama surat ini mengajukan permohonan sebagaimana perihal di atas.</p>
+<p>Demikian surat permohonan ini kami sampaikan, atas perhatian dan persetujuannya kami ucapkan terima kasih.</p>
 `,
     })
     setActiveTab('form')

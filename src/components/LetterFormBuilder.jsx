@@ -76,9 +76,19 @@ export default function LetterFormBuilder({
     initialLetter ? "preview" : "form",
   );
   const [showAttachmentManager, setShowAttachmentManager] = useState(false);
-  const [fieldValues, setFieldValues] = useState(
-    () => initialLetter?.fieldValues || {},
-  );
+  const [fieldValues, setFieldValues] = useState(() => {
+    const base = initialLetter?.fieldValues ? { ...initialLetter.fieldValues } : {};
+    if (!isMandiri && template?.name) {
+      if (!base.perihal && !base.f_perihal) {
+        base.perihal = template.name.toUpperCase();
+        base.f_perihal = template.name.toUpperCase();
+      }
+      if (!base.keperluan) {
+        base.keperluan = template.name.toUpperCase();
+      }
+    }
+    return base;
+  });
   const [letterContent, setLetterContent] = useState(() => {
     if (initialLetter?.content) {
       if (
@@ -381,6 +391,13 @@ export default function LetterFormBuilder({
         nama_pemohon: currentUser?.name || "",
         jabatan: currentUser?.position || "",
         nama_cabang: currentUser?.branchName || "",
+        ...(!isMandiri && template?.name
+          ? {
+              perihal: template.name.toUpperCase(),
+              f_perihal: template.name.toUpperCase(),
+              keperluan: template.name.toUpperCase(),
+            }
+          : {}),
       };
       setFieldValues(defaults);
       const autoNum = generateLetterNumber(template, currentUser?.branchId);
@@ -454,7 +471,7 @@ export default function LetterFormBuilder({
   };
 
   const perihalFromFields =
-    fieldValues["perihal"] || fieldValues["f_perihal"] || "";
+    fieldValues["perihal"] || fieldValues["f_perihal"] || (!isMandiri && template?.name ? template.name : "");
   const rawTitle = decodeHtmlEntities(
     (perihalFromFields && perihalFromFields.trim()) ||
       extractPerihal(letterContent) ||
@@ -468,14 +485,12 @@ export default function LetterFormBuilder({
     const perihalVal = (
       fieldValues["perihal"] ||
       fieldValues["f_perihal"] ||
+      (!isMandiri && template?.name ? template.name : "") ||
       extractPerihal(letterContent) ||
       ""
     ).trim();
 
-    if (
-      isMandiri ||
-      template.fields?.some((f) => f.name === "perihal" || f.id === "f_perihal")
-    ) {
+    if (isMandiri) {
       if (!perihalVal) {
         notify.warning(
           "Perihal Surat Wajib Diisi",
@@ -504,8 +519,27 @@ export default function LetterFormBuilder({
       ) {
         return false;
       }
-      if (n === "keperluan" || l === "keperluan" || n === "nama_pemohon")
+
+      // Hilangkan dan abaikan validasi untuk Uraian Pengajuan / Ringkasan
+      if (
+        n === "ringkasan" ||
+        l.includes("ringkasan") ||
+        n === "uraian_pengajuan" ||
+        l.includes("uraian pengajuan") ||
+        (n === "uraian" && f.type !== "table_costs") ||
+        (l === "uraian" && f.type !== "table_costs")
+      ) {
         return false;
+      }
+
+      // Abaikan nama pemohon dan keperluan
+      if (n === "keperluan" || l === "keperluan" || l.includes("keperluan") || n === "nama_pemohon" || l.includes("nama pemohon"))
+        return false;
+
+      // Jika bukan mandiri, perihal otomatis terisi dari judul template
+      if (!isMandiri && (n === "perihal" || n === "f_perihal" || l.includes("perihal")))
+        return false;
+
       return f.required && !String(fieldValues[f.name] || "").trim();
     });
 
@@ -1065,6 +1099,39 @@ export default function LetterFormBuilder({
             </div>
           )}
 
+          {/* Info Keperluan / Perihal Otomatis (Jika Menggunakan Template) */}
+          {!isMandiri && (
+            <div className="bg-blue-50/80 border border-blue-200 rounded-lg p-2.5 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[11px] font-extrabold text-blue-900 shrink-0">
+                  Keperluan / Perihal:
+                </span>
+                <span className="font-bold text-blue-950 truncate uppercase">
+                  {effectiveTitle || template.name}
+                </span>
+              </div>
+              <span className="text-[10px] bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full font-semibold shrink-0">
+                Otomatis Sesuai Judul Template
+              </span>
+            </div>
+          )}
+
+          {/* Input Perihal Manual jika Surat Mandiri (Tanpa Template Kosong) */}
+          {isMandiri && (
+            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-300 space-y-1">
+              <label className="block text-xs font-extrabold text-slate-800">
+                Keperluan / Perihal Surat <span className="text-rose-600">*</span>:
+              </label>
+              <input
+                type="text"
+                value={fieldValues.perihal || fieldValues.f_perihal || ""}
+                onChange={(e) => handleFieldChange("perihal", e.target.value)}
+                placeholder="Contoh: Permohonan Pengadaan Alat Kerja Operasional..."
+                className="w-full text-xs font-bold text-slate-900 bg-white px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+              />
+            </div>
+          )}
+
           {/* Dynamic Form Fields */}
           {template.fields?.filter((f) => {
             const n = (f.name || "").toLowerCase();
@@ -1074,16 +1141,43 @@ export default function LetterFormBuilder({
               (n === "tujuan" ||
                 l.includes("tujuan") ||
                 n === "ringkasan" ||
-                l.includes("pokok isi"))
+                l.includes("pokok isi") ||
+                n === "perihal" ||
+                f.id === "f_perihal")
             ) {
               return false;
             }
-            return (
-              n !== "keperluan" &&
-              l !== "keperluan" &&
-              n !== "nama_pemohon" &&
-              !l.includes("nama pemohon")
-            );
+
+            // HILANGKAN Uraian Pengajuan / Ringkasan
+            if (
+              n === "ringkasan" ||
+              l.includes("ringkasan") ||
+              n === "uraian_pengajuan" ||
+              l.includes("uraian pengajuan") ||
+              (n === "uraian" && f.type !== "table_costs") ||
+              (l === "uraian" && f.type !== "table_costs")
+            ) {
+              return false;
+            }
+
+            // Keperluan / Perihal: jika template biasa, otomatis sesuai judul template
+            if (
+              n === "keperluan" ||
+              l === "keperluan" ||
+              l.includes("keperluan") ||
+              n === "perihal" ||
+              n === "f_perihal" ||
+              l.includes("perihal")
+            ) {
+              return false;
+            }
+
+            // Nama pemohon otomatis dari akun
+            if (n === "nama_pemohon" || l.includes("nama pemohon")) {
+              return false;
+            }
+
+            return true;
           }).length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {template.fields
@@ -1095,16 +1189,43 @@ export default function LetterFormBuilder({
                     (n === "tujuan" ||
                       l.includes("tujuan") ||
                       n === "ringkasan" ||
-                      l.includes("pokok isi"))
+                      l.includes("pokok isi") ||
+                      n === "perihal" ||
+                      f.id === "f_perihal")
                   ) {
                     return false;
                   }
-                  return (
-                    n !== "keperluan" &&
-                    l !== "keperluan" &&
-                    n !== "nama_pemohon" &&
-                    !l.includes("nama pemohon")
-                  );
+
+                  // HILANGKAN Uraian Pengajuan / Ringkasan
+                  if (
+                    n === "ringkasan" ||
+                    l.includes("ringkasan") ||
+                    n === "uraian_pengajuan" ||
+                    l.includes("uraian pengajuan") ||
+                    (n === "uraian" && f.type !== "table_costs") ||
+                    (l === "uraian" && f.type !== "table_costs")
+                  ) {
+                    return false;
+                  }
+
+                  // Keperluan / Perihal: jika template biasa, otomatis sesuai judul template
+                  if (
+                    n === "keperluan" ||
+                    l === "keperluan" ||
+                    l.includes("keperluan") ||
+                    n === "perihal" ||
+                    n === "f_perihal" ||
+                    l.includes("perihal")
+                  ) {
+                    return false;
+                  }
+
+                  // Nama pemohon otomatis dari akun
+                  if (n === "nama_pemohon" || l.includes("nama pemohon")) {
+                    return false;
+                  }
+
+                  return true;
                 })
                 .map((field) => {
                   const cleanLabel = (field.label || "")

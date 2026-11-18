@@ -139,19 +139,35 @@ pool
     console.error(" [MySQL] Connection failed:", err.message);
   });
 
+// In-memory cache helper for master data to speed up API responses and prevent remote DB bottleneck
+const cacheStore = new Map();
+const getCachedOrFetch = async (key, ttlMs, fetchFn) => {
+  const now = Date.now();
+  const cached = cacheStore.get(key);
+  if (cached && now - cached.timestamp < ttlMs) {
+    return cached.data;
+  }
+  const fresh = await fetchFn();
+  cacheStore.set(key, { data: fresh, timestamp: now });
+  return fresh;
+};
+
 // -------------------------------------------------------------
 // 1. MASTER CABANG
 // -------------------------------------------------------------
 app.get("/api/cabang", async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT kode_cabang AS id, kode_cabang AS code, nama_cabang AS name,
-              alamat_cabang AS address, telepon_cabang AS phone,
-              nama_pt AS pt, kode_pt, status_aktif_cabang, email
-       FROM cabang
-       WHERE status_aktif_cabang = '1'
-       ORDER BY urutan ASC`,
-    );
+    const rows = await getCachedOrFetch("cabang", 60000, async () => {
+      const [r] = await pool.query(
+        `SELECT kode_cabang AS id, kode_cabang AS code, nama_cabang AS name,
+                alamat_cabang AS address, telepon_cabang AS phone,
+                nama_pt AS pt, kode_pt, status_aktif_cabang, email
+         FROM cabang
+         WHERE status_aktif_cabang = '1'
+         ORDER BY urutan ASC`,
+      );
+      return r;
+    });
     res.json({ success: true, data: rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -163,11 +179,14 @@ app.get("/api/cabang", async (req, res) => {
 // -------------------------------------------------------------
 app.get("/api/jabatan", async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT kode_jabatan AS kode, nama_jabatan AS nama, alias, kategori
-       FROM hrd_jabatan
-       ORDER BY kode_jabatan ASC`,
-    );
+    const rows = await getCachedOrFetch("jabatan", 60000, async () => {
+      const [r] = await pool.query(
+        `SELECT kode_jabatan AS kode, nama_jabatan AS nama, alias, kategori
+         FROM hrd_jabatan
+         ORDER BY kode_jabatan ASC`,
+      );
+      return r;
+    });
     res.json({ success: true, data: rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -179,34 +198,36 @@ app.get("/api/jabatan", async (req, res) => {
 // -------------------------------------------------------------
 app.get("/api/produk", async (req, res) => {
   try {
-    const [products] = await pool.query(
-      `SELECT * FROM produk ORDER BY urutan ASC, kode_produk ASC`,
-    );
+    const data = await getCachedOrFetch("produk", 60000, async () => {
+      const [products] = await pool.query(
+        `SELECT * FROM produk ORDER BY urutan ASC, kode_produk ASC`,
+      );
 
-    const [prices] = await pool.query(
-      `SELECT 
-        ph.*,
-        c.nama_cabang
-      FROM produk_harga ph
-      LEFT JOIN cabang c ON ph.kode_cabang = c.kode_cabang
-      WHERE (ph.status_aktif_harga = 1 OR ph.status_aktif_harga = '1')
-        AND (ph.kode_pelanggan IS NULL OR ph.kode_pelanggan = '')
-      ORDER BY ph.kode_cabang ASC, ph.kode_kategori_salesman ASC`,
-    );
+      const [prices] = await pool.query(
+        `SELECT 
+          ph.*,
+          c.nama_cabang
+        FROM produk_harga ph
+        LEFT JOIN cabang c ON ph.kode_cabang = c.kode_cabang
+        WHERE (ph.status_aktif_harga = 1 OR ph.status_aktif_harga = '1')
+          AND (ph.kode_pelanggan IS NULL OR ph.kode_pelanggan = '')
+        ORDER BY ph.kode_cabang ASC, ph.kode_kategori_salesman ASC`,
+      );
 
-    // Petakan harga ke masing-masing produk
-    const priceMap = {};
-    prices.forEach((p) => {
-      if (!priceMap[p.kode_produk]) {
-        priceMap[p.kode_produk] = [];
-      }
-      priceMap[p.kode_produk].push(p);
+      // Petakan harga ke masing-masing produk
+      const priceMap = {};
+      prices.forEach((p) => {
+        if (!priceMap[p.kode_produk]) {
+          priceMap[p.kode_produk] = [];
+        }
+        priceMap[p.kode_produk].push(p);
+      });
+
+      return products.map((prod) => ({
+        ...prod,
+        daftar_harga: priceMap[prod.kode_produk] || [],
+      }));
     });
-
-    const data = products.map((prod) => ({
-      ...prod,
-      daftar_harga: priceMap[prod.kode_produk] || [],
-    }));
 
     res.json({ success: true, data });
   } catch (err) {
@@ -455,30 +476,33 @@ app.post("/api/login", async (req, res) => {
 
 app.get("/api/users", async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT u.id, u.name, u.username, u.email, u.kode_cabang AS branchId,
-              c.nama_cabang AS branchName, c.nama_pt AS pt,
-              u.kode_jabatan AS kodeJabatan, j.nama_jabatan AS position,
-              u.status,
-              CASE
-                WHEN u.kode_jabatan IN ('J01', 'J02', 'J03', 'J04', 'J05', 'J06', 'J07', 'J08') THEN 'approver'
-                WHEN u.kode_jabatan IN ('J26', 'J27') THEN 'admin_pusat'
-                ELSE 'pemohon'
-              END AS role,
-              CASE
-                WHEN u.kode_jabatan = 'J01' THEN 'Direktur Utama (Approver 3)'
-                WHEN u.kode_jabatan = 'J03' THEN 'Regional Sales Manager (Approver 2)'
-                WHEN u.kode_jabatan IN ('J07', 'J08') THEN 'Manager Cabang (Approver 1)'
-                WHEN u.kode_jabatan = 'J26' THEN 'Admin (CRM Pusat)'
-                WHEN u.kode_jabatan = 'J27' THEN 'Super Admin (IT Pusat)'
-                ELSE 'Pemohon Cabang'
-              END AS roleLabel
-       FROM users u
-       LEFT JOIN cabang c ON u.kode_cabang = c.kode_cabang
-       LEFT JOIN hrd_jabatan j ON u.kode_jabatan = j.kode_jabatan
-       WHERE u.status = '1'
-       ORDER BY u.id ASC`,
-    );
+    const rows = await getCachedOrFetch("users", 30000, async () => {
+      const [r] = await pool.query(
+        `SELECT u.id, u.name, u.username, u.email, u.kode_cabang AS branchId,
+                c.nama_cabang AS branchName, c.nama_pt AS pt,
+                u.kode_jabatan AS kodeJabatan, j.nama_jabatan AS position,
+                u.status,
+                CASE
+                  WHEN u.kode_jabatan IN ('J01', 'J02', 'J03', 'J04', 'J05', 'J06', 'J07', 'J08') THEN 'approver'
+                  WHEN u.kode_jabatan IN ('J26', 'J27') THEN 'admin_pusat'
+                  ELSE 'pemohon'
+                END AS role,
+                CASE
+                  WHEN u.kode_jabatan = 'J01' THEN 'Direktur Utama (Approver 3)'
+                  WHEN u.kode_jabatan = 'J03' THEN 'Regional Sales Manager (Approver 2)'
+                  WHEN u.kode_jabatan IN ('J07', 'J08') THEN 'Manager Cabang (Approver 1)'
+                  WHEN u.kode_jabatan = 'J26' THEN 'Admin (CRM Pusat)'
+                  WHEN u.kode_jabatan = 'J27' THEN 'Super Admin (IT Pusat)'
+                  ELSE 'Pemohon Cabang'
+                END AS roleLabel
+         FROM users u
+         LEFT JOIN cabang c ON u.kode_cabang = c.kode_cabang
+         LEFT JOIN hrd_jabatan j ON u.kode_jabatan = j.kode_jabatan
+         WHERE u.status = '1'
+         ORDER BY u.id ASC`,
+      );
+      return r;
+    });
     res.json({ success: true, data: rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -490,34 +514,36 @@ app.get("/api/users", async (req, res) => {
 // -------------------------------------------------------------
 app.get("/api/templates", async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT * FROM templates ORDER BY created_at DESC`,
-    );
-    const formatted = rows.map((r) => ({
-      id: r.id,
-      code: r.code,
-      name: r.name,
-      category: r.category,
-      description: r.description,
-      numberFormat: r.number_format,
-      allowedBranches:
-        typeof r.allowed_branches === "string"
-          ? JSON.parse(r.allowed_branches)
-          : r.allowed_branches,
-      isActive: Boolean(r.is_active),
-      approvalSteps:
-        typeof r.approval_steps === "string"
-          ? JSON.parse(r.approval_steps)
-          : r.approval_steps,
-      fields: typeof r.fields === "string" ? JSON.parse(r.fields) : r.fields,
-      letterTemplate: r.letter_template,
-      defaultViewers: r.default_viewers
-        ? typeof r.default_viewers === "string"
-          ? JSON.parse(r.default_viewers)
-          : r.default_viewers
-        : [],
-      createdAt: r.created_at,
-    }));
+    const formatted = await getCachedOrFetch("templates", 20000, async () => {
+      const [rows] = await pool.query(
+        `SELECT * FROM templates ORDER BY created_at DESC`,
+      );
+      return rows.map((r) => ({
+        id: r.id,
+        code: r.code,
+        name: r.name,
+        category: r.category,
+        description: r.description,
+        numberFormat: r.number_format,
+        allowedBranches:
+          typeof r.allowed_branches === "string"
+            ? JSON.parse(r.allowed_branches)
+            : r.allowed_branches,
+        isActive: Boolean(r.is_active),
+        approvalSteps:
+          typeof r.approval_steps === "string"
+            ? JSON.parse(r.approval_steps)
+            : r.approval_steps,
+        fields: typeof r.fields === "string" ? JSON.parse(r.fields) : r.fields,
+        letterTemplate: r.letter_template,
+        defaultViewers: r.default_viewers
+          ? typeof r.default_viewers === "string"
+            ? JSON.parse(r.default_viewers)
+            : r.default_viewers
+          : [],
+        createdAt: r.created_at,
+      }));
+    });
     res.json({ success: true, data: formatted });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -594,6 +620,7 @@ app.post("/api/templates", async (req, res) => {
       );
     }
 
+    cacheStore.delete("templates");
     res.json({ success: true, id, message: "Template berhasil disimpan" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -655,6 +682,7 @@ app.patch("/api/templates/:id/toggle", async (req, res) => {
       `UPDATE templates SET is_active = NOT is_active WHERE id = ?`,
       [id],
     );
+    cacheStore.delete("templates");
     res.json({ success: true, message: "Status template diperbarui" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -679,6 +707,7 @@ app.delete("/api/templates/:id", async (req, res) => {
     }
 
     await pool.query(`DELETE FROM templates WHERE id = ?`, [id]);
+    cacheStore.delete("templates");
     res.json({ success: true, message: "Template berhasil dihapus" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -690,10 +719,12 @@ app.delete("/api/templates/:id", async (req, res) => {
 // -------------------------------------------------------------
 app.get("/api/categories", async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT name FROM categories ORDER BY id ASC`,
-    );
-    const categories = rows.map((r) => r.name);
+    const categories = await getCachedOrFetch("categories", 30000, async () => {
+      const [rows] = await pool.query(
+        `SELECT name FROM categories ORDER BY id ASC`,
+      );
+      return rows.map((r) => r.name);
+    });
     res.json({ success: true, data: categories });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: [] });
@@ -712,6 +743,7 @@ app.post("/api/categories", async (req, res) => {
     await pool.query(`INSERT IGNORE INTO categories (name) VALUES (?)`, [
       trimmed,
     ]);
+    cacheStore.delete("categories");
     res.json({
       success: true,
       message: `Kategori "${trimmed}" berhasil disimpan ke database`,
@@ -745,6 +777,8 @@ app.put("/api/categories", async (req, res) => {
       trimmedOld,
     ]);
 
+    cacheStore.delete("categories");
+    cacheStore.delete("templates");
     res.json({
       success: true,
       message: `Kategori "${trimmedOld}" berhasil diubah menjadi "${trimmedNew}" dan template terkait diperbarui`,
@@ -772,6 +806,7 @@ app.delete("/api/categories/:name", async (req, res) => {
     }
 
     await pool.query(`DELETE FROM categories WHERE name = ?`, [decodedName]);
+    cacheStore.delete("categories");
     res.json({
       success: true,
       message: `Kategori "${decodedName}" berhasil dihapus dari database`,

@@ -211,13 +211,13 @@ export default function App() {
       window.location.hash = `#${activeMenu}`
     }
 
-    // Auto-sync berkala dari API database agar revisi/ACC realtime
+    // Auto-sync berkala dari API database agar revisi/ACC realtime (khusus data surat saja)
     const pollInterval = setInterval(() => {
-      syncWithDatabase().catch(() => {})
-    }, 4000)
+      syncWithDatabase({ lettersOnly: true }).catch(() => {})
+    }, 10000)
 
     const handleFocus = () => {
-      syncWithDatabase().catch(() => {})
+      syncWithDatabase({ lettersOnly: true }).catch(() => {})
     }
 
     window.addEventListener('focus', handleFocus)

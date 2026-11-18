@@ -246,9 +246,90 @@ if (typeof window !== 'undefined') {
     .catch(() => {})
 }
 
+let isSyncing = false
+let lastLettersHash = ''
+
+const processLettersSync = (lettersData) => {
+  const currentLetters = getStorageItem(STORAGE_KEYS.LETTERS, [])
+  const mergedLetters = lettersData.map((remote) => {
+    const local = currentLetters.find((l) => l.id === remote.id)
+    const remoteComments = Array.isArray(remote.comments) ? remote.comments : []
+    const localComments = Array.isArray(local?.comments) ? local.comments : []
+
+    const commentMap = new Map()
+    localComments.forEach((c) => { if (c && c.id) commentMap.set(c.id, c) })
+    remoteComments.forEach((c) => { if (c && c.id) commentMap.set(c.id, c) })
+
+    const rawRemoteAtts = (Array.isArray(remote.attachments) && remote.attachments.length > 0)
+      ? remote.attachments
+      : ((remote.fieldValues && Array.isArray(remote.fieldValues.attachments) && remote.fieldValues.attachments.length > 0)
+          ? remote.fieldValues.attachments
+          : [])
+
+    const localAtts = Array.isArray(local?.attachments)
+      ? local.attachments
+      : ((local?.fieldValues && Array.isArray(local.fieldValues.attachments)) ? local.fieldValues.attachments : [])
+
+    const mergedAtts = rawRemoteAtts.length > 0
+      ? rawRemoteAtts.map((ra) => {
+          const la = localAtts.find((item) => item.id === ra.id || item.name === ra.name) || {}
+          const resolvedUrl = ra.url || (typeof ra.dataUrl === 'string' && (ra.dataUrl.startsWith('/lampiran') || ra.dataUrl.startsWith('http')) ? ra.dataUrl : '') || la.url || (typeof la.dataUrl === 'string' && (la.dataUrl.startsWith('/lampiran') || la.dataUrl.startsWith('http')) ? la.dataUrl : '')
+          const resolvedDataUrl = (typeof ra.dataUrl === 'string' && ra.dataUrl.length > 50)
+            ? ra.dataUrl
+            : (la.dataUrl || resolvedUrl || la.url || '')
+          return {
+            ...la,
+            ...ra,
+            url: resolvedUrl,
+            dataUrl: resolvedDataUrl,
+          }
+        })
+      : localAtts
+
+    return {
+      ...remote,
+      attachments: mergedAtts,
+      fieldValues: {
+        ...(remote.fieldValues || {}),
+        attachments: mergedAtts,
+      },
+      comments: Array.from(commentMap.values()),
+    }
+  })
+
+  // Gunakan lettersData dari database MySQL sebagai sumber kebenaran
+  const fakeLetterIds = new Set(['ltr-001', 'ltr-002', 'ltr-003'])
+  const cleanCurrentLetters = currentLetters.filter((l) => l && l.id && !fakeLetterIds.has(l.id))
+  const remoteIds = new Set(lettersData.map((r) => r.id))
+  const currentUid = String(getCurrentUser()?.id || '')
+  const localDrafts = cleanCurrentLetters.filter(
+    (l) => l && l.id && !remoteIds.has(l.id) && !fakeLetterIds.has(l.id) && l.status === 'draft' && String(l.userId) === currentUid
+  )
+  const finalLetters = [...mergedLetters, ...localDrafts]
+
+  const newHash = finalLetters.map((l) => `${l.id}_${l.status}_${l.currentStep}_${l.updatedAt || ''}_${(l.comments || []).length}`).join('|')
+  if (newHash !== lastLettersHash) {
+    lastLettersHash = newHash
+    setStorageItem(STORAGE_KEYS.LETTERS, finalLetters)
+    window.dispatchEvent(new Event('letters_change'))
+  }
+}
+
 // Initialize seed data and sync from MySQL API
-export const syncWithDatabase = async () => {
+export const syncWithDatabase = async (options = {}) => {
+  if (isSyncing) return
+  isSyncing = true
+  const lettersOnly = Boolean(options.lettersOnly)
+
   try {
+    if (lettersOnly) {
+      const lettersData = await api.getLetters()
+      if (Array.isArray(lettersData)) {
+        processLettersSync(lettersData)
+      }
+      return
+    }
+
     const [branchesData, usersData, templatesData, lettersData, globalViewersData, jabatanData, categoriesData] = await Promise.all([
       api.getCabang(),
       api.getUsers(),
@@ -261,16 +342,13 @@ export const syncWithDatabase = async () => {
 
     if (Array.isArray(categoriesData) && categoriesData.length > 0) {
       setStorageItem(STORAGE_KEYS.CATEGORIES || 'suratajuan_categories_v2', categoriesData)
-      window.dispatchEvent(new Event('categories_change'))
     }
 
     if (Array.isArray(globalViewersData)) {
       setStorageItem(STORAGE_KEYS.GLOBAL_DEFAULT_VIEWERS, globalViewersData)
-      window.dispatchEvent(new Event('global_viewers_change'))
     }
 
     if (Array.isArray(branchesData) && branchesData.length > 0) {
-      // Simpan cabang resmi langsung dari database MySQL
       const currentSavedBranches = getStorageItem(STORAGE_KEYS.BRANCHES, [])
       const mergedBranches = branchesData.map((remote) => {
         const existing = currentSavedBranches.find(
@@ -285,88 +363,29 @@ export const syncWithDatabase = async () => {
         }
       })
       setStorageItem(STORAGE_KEYS.BRANCHES, mergedBranches)
-      window.dispatchEvent(new Event('branches_change'))
     }
 
     if (Array.isArray(usersData) && usersData.length > 0) {
       setStorageItem(STORAGE_KEYS.USERS, usersData)
-      window.dispatchEvent(new Event('users_change'))
     }
 
     if (Array.isArray(jabatanData) && jabatanData.length > 0) {
       setStorageItem(STORAGE_KEYS.JABATAN, jabatanData)
-      window.dispatchEvent(new Event('jabatan_change'))
     }
 
     if (Array.isArray(templatesData) && templatesData.length > 0) {
       setStorageItem(STORAGE_KEYS.TEMPLATES, templatesData)
-      window.dispatchEvent(new Event('templates_change'))
     }
 
-    // Single source of truth untuk surat: sinkronkan dengan database dan pertahankan lampiran fisik & komentar
     if (Array.isArray(lettersData)) {
-      const currentLetters = getStorageItem(STORAGE_KEYS.LETTERS, [])
-      const mergedLetters = lettersData.map((remote) => {
-        const local = currentLetters.find((l) => l.id === remote.id)
-        const remoteComments = Array.isArray(remote.comments) ? remote.comments : []
-        const localComments = Array.isArray(local?.comments) ? local.comments : []
-
-        const commentMap = new Map()
-        localComments.forEach((c) => { if (c && c.id) commentMap.set(c.id, c) })
-        remoteComments.forEach((c) => { if (c && c.id) commentMap.set(c.id, c) })
-
-        const rawRemoteAtts = (Array.isArray(remote.attachments) && remote.attachments.length > 0)
-          ? remote.attachments
-          : ((remote.fieldValues && Array.isArray(remote.fieldValues.attachments) && remote.fieldValues.attachments.length > 0)
-              ? remote.fieldValues.attachments
-              : [])
-
-        const localAtts = Array.isArray(local?.attachments)
-          ? local.attachments
-          : ((local?.fieldValues && Array.isArray(local.fieldValues.attachments)) ? local.fieldValues.attachments : [])
-
-        // Penggabungan lampiran pintar: Jangan biarkan url / dataUrl lokal terhapus jika remote kosong
-        const mergedAtts = rawRemoteAtts.length > 0
-          ? rawRemoteAtts.map((ra) => {
-              const la = localAtts.find((item) => item.id === ra.id || item.name === ra.name) || {}
-              const resolvedUrl = ra.url || (typeof ra.dataUrl === 'string' && (ra.dataUrl.startsWith('/lampiran') || ra.dataUrl.startsWith('http')) ? ra.dataUrl : '') || la.url || (typeof la.dataUrl === 'string' && (la.dataUrl.startsWith('/lampiran') || la.dataUrl.startsWith('http')) ? la.dataUrl : '')
-              const resolvedDataUrl = (typeof ra.dataUrl === 'string' && ra.dataUrl.length > 50)
-                ? ra.dataUrl
-                : (la.dataUrl || resolvedUrl || la.url || '')
-              return {
-                ...la,
-                ...ra,
-                url: resolvedUrl,
-                dataUrl: resolvedDataUrl,
-              }
-            })
-          : localAtts
-
-        return {
-          ...remote,
-          attachments: mergedAtts,
-          fieldValues: {
-            ...(remote.fieldValues || {}),
-            attachments: mergedAtts,
-          },
-          comments: Array.from(commentMap.values()),
-        }
-      })
-
-      // Gunakan lettersData dari database MySQL sebagai sumber kebenaran
-      const fakeLetterIds = new Set(['ltr-001', 'ltr-002', 'ltr-003'])
-      const cleanCurrentLetters = currentLetters.filter((l) => l && l.id && !fakeLetterIds.has(l.id))
-      const remoteIds = new Set(lettersData.map((r) => r.id))
-      // Hanya pertahankan draft lokal milik pengguna yang sedang aktif yang belum tersinkron
-      const currentUid = String(getCurrentUser()?.id || '')
-      const localDrafts = cleanCurrentLetters.filter(
-        (l) => l && l.id && !remoteIds.has(l.id) && !fakeLetterIds.has(l.id) && l.status === 'draft' && String(l.userId) === currentUid
-      )
-      const finalLetters = [...mergedLetters, ...localDrafts]
-
-      setStorageItem(STORAGE_KEYS.LETTERS, finalLetters)
-      window.dispatchEvent(new Event('letters_change'))
+      processLettersSync(lettersData)
     }
+  } catch (err) {
+    console.warn('Sync database error:', err.message)
+  } finally {
+    isSyncing = false
+  }
+}
 
     // Sync Master Produk
     try {

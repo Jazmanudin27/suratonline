@@ -106,8 +106,6 @@ pool.getConnection()
     } catch (e) {
       // Column may already exist
     }
-      console.warn(' [MySQL] Table system_settings warning:', e.message)
-    }
 
     try {
       await conn.query(`

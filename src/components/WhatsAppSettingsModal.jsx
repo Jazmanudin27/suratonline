@@ -76,8 +76,9 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }) {
   }
 
   const handleTestSend = async () => {
-    if (!testPhone) {
-      notify.warning('Nomor Kosong', 'Masukkan nomor WhatsApp tujuan uji coba terlebih dahulu.')
+    const cleanDigits = (testPhone || '').replace(/[^0-9]/g, '')
+    if (!testPhone || cleanDigits.length < 9) {
+      notify.warning('Nomor HP Belum Benar', 'Masukkan nomor WhatsApp tujuan (contoh: 089523888200), bukan tulisan teks.')
       return
     }
     setTesting(true)
@@ -85,11 +86,11 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }) {
       const res = await fetch('/api/whatsapp/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: testPhone }),
+        body: JSON.stringify({ phone: cleanDigits }),
       })
       const json = await res.json()
       if (json.success) {
-        notify.success('Pesan Tes Terkirim!', `Pesan notifikasi berhasil dikirim ke ${testPhone}. Silakan cek aplikasi WhatsApp Anda.`)
+        notify.success('Pesan Tes Berhasil!', `Notifikasi terkirim ke WhatsApp ${testPhone}. Silakan buka chat WA Anda.`)
       } else {
         throw new Error(json.message || 'Gagal mengirim pesan')
       }
@@ -225,14 +226,27 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }) {
 
             {/* Uji Coba Kirim Pesan */}
             <div className="pt-2 border-t border-slate-200">
-              <label className="block font-bold text-slate-700 mb-1">Uji Coba Pengiriman Notifikasi:</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-bold text-slate-700">
+                  Kirim Pesan Tes ke Nomor WhatsApp:
+                </label>
+                {settings.adminPhone && (
+                  <button
+                    type="button"
+                    onClick={() => setTestPhone(settings.adminPhone)}
+                    className="text-[10px] text-emerald-600 hover:text-emerald-700 font-semibold underline"
+                  >
+                    Salin No Admin ({settings.adminPhone})
+                  </button>
+                )}
+              </div>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={testPhone}
                   onChange={(e) => setTestPhone(e.target.value)}
-                  placeholder="Nomor HP tujuan tes (08...)"
-                  className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Masukkan Nomor HP Anda (contoh: 089523888200)"
+                  className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
                 />
                 <button
                   type="button"
@@ -244,6 +258,9 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }) {
                   <span>{testing ? 'Mengirim...' : 'Kirim Tes'}</span>
                 </button>
               </div>
+              <span className="text-[10px] text-slate-400 block mt-1">
+                Ketik nomor HP penerima (bukan kata "Tes") untuk uji kirim pesan WhatsApp
+              </span>
             </div>
 
             {/* Footer buttons */}

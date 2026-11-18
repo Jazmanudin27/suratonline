@@ -1011,6 +1011,10 @@ const sendWhatsAppNotification = async ({ phone, message }) => {
       cleanPhone = '62' + cleanPhone.slice(1)
     }
 
+    if (!cleanPhone || cleanPhone.length < 9) {
+      return { success: false, message: 'Nomor telepon tidak valid. Masukkan nomor HP penerima (contoh: 089523888200).' }
+    }
+
     const provider = config.provider || 'fonnte'
     const apiKey = config.apiKey || ''
 
@@ -1076,7 +1080,16 @@ const sendWhatsAppNotification = async ({ phone, message }) => {
       try {
         result = JSON.parse(resultText)
       } catch {}
-      console.log(` [WhatsApp Custom] Sent to ${cleanPhone}:`, result)
+      console.log(` [WhatsApp Custom] Response from gateway for ${cleanPhone}:`, result)
+
+      if (!response.ok) {
+        return { success: false, message: `Gateway HTTP Error ${response.status}: ${resultText}` }
+      }
+      if (typeof result === 'object' && result !== null) {
+        if (result.success === false || result.status === false || result.error) {
+          return { success: false, message: result.message || result.error || 'Ditolak gateway' }
+        }
+      }
       return { success: true, data: result }
     }
   } catch (err) {

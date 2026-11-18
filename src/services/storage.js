@@ -510,13 +510,18 @@ export const setCurrentUser = (user) => {
   }
   // Reset cache surat saat beralih akun agar tidak ada sisa data user sebelumnya
   lettersMemoryCache = null
-  localStorage.removeItem(STORAGE_KEYS.LETTERS)
+  lastLettersHash = ''
+  isSyncing = false
   window.dispatchEvent(new Event('auth_change'))
+  // Segera ambil data surat resmi milik akun baru dari server tanpa perlu refresh halaman
+  syncWithDatabase().catch(() => {})
 }
 
 export const clearCurrentUser = () => {
   localStorage.removeItem(STORAGE_KEYS.CURRENT_USER)
   lettersMemoryCache = null
+  lastLettersHash = ''
+  isSyncing = false
   localStorage.removeItem(STORAGE_KEYS.LETTERS)
   window.dispatchEvent(new Event('auth_change'))
 }

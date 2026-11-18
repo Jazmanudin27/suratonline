@@ -39,12 +39,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Bypass dynamic DB/API/Supabase requests
+  // Bypass requests to external origins and API
   const url = event.request.url;
   if (
+    !url.startsWith(self.location.origin) ||
     url.includes('/api/') ||
     url.includes('supabase.co') ||
-    url.includes('chrome-extension')
+    url.includes('chrome-extension') ||
+    url.includes('cloudflareinsights')
   ) {
     return;
   }
@@ -65,9 +67,10 @@ self.addEventListener('fetch', (event) => {
         const cachedResponse = await caches.match(event.request);
         if (cachedResponse) return cachedResponse;
         if (event.request.mode === 'navigate') {
-          return caches.match('/');
+          const rootFallback = await caches.match('/');
+          if (rootFallback) return rootFallback;
         }
-        return null;
+        return new Response('Network error', { status: 408, statusText: 'Request Timeout' });
       })
   );
 });

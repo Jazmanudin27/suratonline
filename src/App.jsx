@@ -154,6 +154,7 @@ export default function App() {
     const handleAuthChange = () => {
       setCurrentUser(getCurrentUser())
       refreshAll()
+      syncWithDatabase().catch(() => {})
     }
 
     const checkViewParam = () => {

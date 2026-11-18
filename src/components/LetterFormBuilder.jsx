@@ -490,21 +490,19 @@ export default function LetterFormBuilder({
       ""
     ).trim();
 
-    if (isMandiri) {
-      if (!perihalVal) {
-        notify.warning(
-          "Perihal Surat Wajib Diisi",
-          "Silakan isi Perihal Surat terlebih dahulu sebelum melanjutkan ke pratinjau atau mengirim surat.",
-        );
-        const el =
-          document.querySelector('input[name="perihal"]') ||
-          document.querySelector('input[placeholder*="Permohonan"]');
-        if (el) {
-          el.focus();
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-        return false;
+    if (!perihalVal) {
+      notify.warning(
+        "Perihal Surat Wajib Diisi",
+        "Silakan isi Keperluan / Perihal Surat terlebih dahulu sebelum melanjutkan ke pratinjau atau mengirim surat.",
+      );
+      const el =
+        document.querySelector('input[name="perihal"]') ||
+        document.querySelector('input[placeholder*="Permohonan"]');
+      if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
+      return false;
     }
 
     const missing = (template.fields || []).filter((f) => {
@@ -1099,38 +1097,33 @@ export default function LetterFormBuilder({
             </div>
           )}
 
-          {/* Info Keperluan / Perihal Otomatis (Jika Menggunakan Template) */}
-          {!isMandiri && (
-            <div className="bg-blue-50/80 border border-blue-200 rounded-lg p-2.5 flex items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[11px] font-extrabold text-blue-900 shrink-0">
-                  Keperluan / Perihal:
-                </span>
-                <span className="font-bold text-blue-950 truncate uppercase">
-                  {effectiveTitle || template.name}
-                </span>
-              </div>
-              <span className="text-[10px] bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full font-semibold shrink-0">
-                Otomatis Sesuai Judul Template
-              </span>
-            </div>
-          )}
-
-          {/* Input Perihal Manual jika Surat Mandiri (Tanpa Template Kosong) */}
-          {isMandiri && (
-            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-300 space-y-1">
+          {/* Input Keperluan / Perihal Surat (Otomatis terisi dari judul template, tetapi tetap dapat diedit) */}
+          <div className="bg-slate-50/90 p-2.5 rounded-lg border border-slate-300 space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
               <label className="block text-xs font-extrabold text-slate-800">
                 Keperluan / Perihal Surat <span className="text-rose-600">*</span>:
               </label>
-              <input
-                type="text"
-                value={fieldValues.perihal || fieldValues.f_perihal || ""}
-                onChange={(e) => handleFieldChange("perihal", e.target.value)}
-                placeholder="Contoh: Permohonan Pengadaan Alat Kerja Operasional..."
-                className="w-full text-xs font-bold text-slate-900 bg-white px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
-              />
+              {!isMandiri && (
+                <span className="text-[10px] bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full font-semibold">
+                  Otomatis terisi (dapat diedit)
+                </span>
+              )}
             </div>
-          )}
+            <input
+              type="text"
+              name="perihal"
+              value={
+                fieldValues.perihal !== undefined
+                  ? fieldValues.perihal
+                  : fieldValues.f_perihal !== undefined
+                    ? fieldValues.f_perihal
+                    : (!isMandiri && template?.name ? template.name.toUpperCase() : "")
+              }
+              onChange={(e) => handleFieldChange("perihal", e.target.value)}
+              placeholder="Tulis Keperluan / Perihal Surat..."
+              className="w-full text-xs font-bold text-slate-900 uppercase bg-white px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+            />
+          </div>
 
           {/* Dynamic Form Fields */}
           {template.fields?.filter((f) => {

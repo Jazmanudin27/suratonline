@@ -9,10 +9,10 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }) {
   const [testPhone, setTestPhone] = useState('')
 
   const [settings, setSettings] = useState({
-    enabled: false,
-    provider: 'fonnte',
-    apiKey: '',
-    endpoint: 'https://api.fonnte.com/send',
+    enabled: true,
+    provider: 'custom',
+    apiKey: 'V8q2Zp7Lm4Xr9Nc6Tj3Ks5Wd1Hy7Fa8Qv2Bn6Rx4Pc9Mz1',
+    endpoint: 'https://wa.aspartech.com/api/send-message',
     adminPhone: '',
   })
 

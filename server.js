@@ -108,6 +108,25 @@ pool.getConnection()
     }
 
     try {
+      const waDefaultConfig = {
+        enabled: true,
+        provider: 'custom',
+        apiKey: 'V8q2Zp7Lm4Xr9Nc6Tj3Ks5Wd1Hy7Fa8Qv2Bn6Rx4Pc9Mz1',
+        endpoint: 'https://wa.aspartech.com/api/send-message',
+        adminPhone: '',
+      }
+      await conn.query(
+        `INSERT INTO system_settings (key_name, value_data)
+         VALUES ('whatsapp_settings', ?)
+         ON DUPLICATE KEY UPDATE value_data = VALUES(value_data)`,
+        [JSON.stringify(waDefaultConfig)]
+      )
+      console.log(' [MySQL] WhatsApp Gateway Aspartech berhasil diterapkan & diaktifkan')
+    } catch (e) {
+      console.warn(' [MySQL] Init WhatsApp settings warning:', e.message)
+    }
+
+    try {
       await conn.query(`
         CREATE TABLE IF NOT EXISTS categories (
           id INT AUTO_INCREMENT PRIMARY KEY,
@@ -971,15 +990,16 @@ const sendWhatsAppNotification = async ({ phone, message }) => {
 
   try {
     const [rows] = await pool.query(`SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`)
-    if (rows.length === 0 || !rows[0].value_data) {
-      return { success: false, message: 'WhatsApp integration belum dikonfigurasi' }
+    let config = {
+      enabled: true,
+      provider: 'custom',
+      apiKey: 'V8q2Zp7Lm4Xr9Nc6Tj3Ks5Wd1Hy7Fa8Qv2Bn6Rx4Pc9Mz1',
+      endpoint: 'https://wa.aspartech.com/api/send-message',
     }
-
-    let config = {}
-    try {
-      config = JSON.parse(rows[0].value_data)
-    } catch {
-      return { success: false, message: 'Format konfigurasi WhatsApp tidak valid' }
+    if (rows.length > 0 && rows[0].value_data) {
+      try {
+        config = { ...config, ...JSON.parse(rows[0].value_data) }
+      } catch {}
     }
 
     if (!config.enabled) {
@@ -1032,21 +1052,31 @@ const sendWhatsAppNotification = async ({ phone, message }) => {
       console.log(` [WhatsApp Wablas] Sent to ${cleanPhone}:`, result)
       return { success: true, data: result }
     } else {
-      // Generic Webhook
+      // Generic Webhook / WA Gateway (Aspartech, Baileys, dll)
       const endpoint = config.endpoint
       if (!endpoint) return { success: false, message: 'Endpoint kustom belum diatur' }
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
+          'x-api-key': apiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          session: 'wasurat',
           phone: cleanPhone,
+          to: cleanPhone,
+          target: cleanPhone,
           message: message,
+          text: message,
         }),
       })
-      const result = await response.text()
+      const resultText = await response.text()
+      let result = resultText
+      try {
+        result = JSON.parse(resultText)
+      } catch {}
+      console.log(` [WhatsApp Custom] Sent to ${cleanPhone}:`, result)
       return { success: true, data: result }
     }
   } catch (err) {
@@ -1059,10 +1089,10 @@ app.get('/api/settings/whatsapp', async (req, res) => {
   try {
     const [rows] = await pool.query(`SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`)
     let data = {
-      enabled: false,
-      provider: 'fonnte',
-      apiKey: '',
-      endpoint: 'https://api.fonnte.com/send',
+      enabled: true,
+      provider: 'custom',
+      apiKey: 'V8q2Zp7Lm4Xr9Nc6Tj3Ks5Wd1Hy7Fa8Qv2Bn6Rx4Pc9Mz1',
+      endpoint: 'https://wa.aspartech.com/api/send-message',
       adminPhone: '',
     }
     if (rows.length > 0 && rows[0].value_data) {

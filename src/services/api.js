@@ -226,9 +226,24 @@ export const api = {
   },
 
   // 5. Letters (Surat Ajuan)
-  async getLetters() {
+  async getLetters(user = null) {
     try {
-      const res = await fetch(`${API_BASE}/letters`)
+      let u = user
+      if (!u && typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('suratajuan_current_user')
+          if (raw) u = JSON.parse(raw)
+        } catch {}
+      }
+      const params = new URLSearchParams()
+      if (u) {
+        if (u.id) params.set('userId', String(u.id))
+        if (u.name) params.set('userName', String(u.name))
+        if (u.username) params.set('username', String(u.username))
+        if (u.kodeJabatan) params.set('kodeJabatan', String(u.kodeJabatan))
+      }
+      const qs = params.toString() ? `?${params.toString()}` : ''
+      const res = await fetch(`${API_BASE}/letters${qs}`)
       const json = await res.json()
       return json.success ? json.data : []
     } catch (e) {

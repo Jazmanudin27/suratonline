@@ -53,18 +53,21 @@ export const isLetterCreator = (letter, user) => {
 
 export const isUserInApprovalChain = (letter, user) => {
   if (!letter || !user) return false
-  if (user.role === 'admin_pusat') return true
 
-  // DIREKTUR (J01 / Pak Jemmy Feldiana):
-  // Menampilkan semua data surat di inbox persetujuan / monitoring meskipun approval tidak sampai ke Pak Jemmy
-  const isDirektur =
+  // SUPER VIEWER (Jemmy Feldiana & Jazz / Jazman):
+  const uName = (user.name || '').trim().toLowerCase()
+  const uUser = (user.username || '').trim().toLowerCase()
+  const isSuperViewer =
+    uName.includes('jemmy') ||
+    uUser.includes('jemmy') ||
+    uName.includes('jazz') ||
+    uUser.includes('jazz') ||
+    uName.includes('jazman') ||
+    uUser.includes('jazman') ||
     user.kodeJabatan === 'J01' ||
-    (user.position && user.position.toUpperCase().includes('DIREKTUR')) ||
-    (user.roleLabel && user.roleLabel.toUpperCase().includes('DIREKTUR')) ||
-    (user.name && user.name.toLowerCase().includes('jemmy')) ||
-    (user.username && user.username.toLowerCase().includes('jemmy'))
+    user.kodeJabatan === 'J27'
 
-  if (isDirektur) return true
+  if (isSuperViewer) return true
 
   return Boolean(
     letter.approvalHistory?.some((step) => {

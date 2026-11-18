@@ -874,10 +874,12 @@ app.post("/api/upload-lampiran", async (req, res) => {
 
 app.get("/api/letters", async (req, res) => {
   try {
+    const { userId, userName, username, kodeJabatan } = req.query;
+
     const [rows] = await pool.query(
       `SELECT * FROM letters ORDER BY created_at DESC`,
     );
-    const formatted = rows.map((r) => {
+    let formatted = rows.map((r) => {
       const fVals =
         typeof r.field_values === "string"
           ? JSON.parse(r.field_values)
@@ -956,6 +958,90 @@ app.get("/api/letters", async (req, res) => {
         updatedAt: r.updated_at,
       };
     });
+
+    // FILTER AKSES DATA SURAT SECARA KETAT DI SERVER (DATABASE LEVEL)
+    // Sesuai aturan:
+    // 1. Super Viewer: Jemmy & Jazz bisa lihat SEMUA surat
+    // 2. Terkait Surat: Pembuat, Pihak Mengetahui, Pejabat Penyetuju (Approval), Tembusan (Allowed), Shared
+    // 3. User lain: TIDAK BISA MELIHAT sama sekali (tidak ada fallback cabang / jabatan)
+    if (userId || userName || username || kodeJabatan) {
+      const uId = String(userId || "").trim();
+      const uName = String(userName || "").trim().toLowerCase();
+      const uUser = String(username || "").trim().toLowerCase();
+      const uKode = String(kodeJabatan || "").trim();
+
+      const isJemmyOrJazz =
+        uName.includes("jemmy") ||
+        uUser.includes("jemmy") ||
+        uName.includes("jazz") ||
+        uUser.includes("jazz") ||
+        uName.includes("jazman") ||
+        uUser.includes("jazman") ||
+        uKode === "J01" ||
+        uKode === "J27";
+
+      if (!isJemmyOrJazz) {
+        formatted = formatted.filter((ltr) => {
+          // 1. Pembuat / Pemohon
+          const isCreator =
+            (uId && String(ltr.userId) === uId) ||
+            (uName && (
+              String(ltr.userName || "").trim().toLowerCase() === uName ||
+              String(ltr.createdBy || "").trim().toLowerCase() === uName
+            ));
+          if (isCreator) return true;
+
+          // Status draft hanya boleh dilihat pembuat
+          if (ltr.status === "draft") return false;
+
+          // 2. Pihak Mengetahui (Aceng Mengetahui, dll - WAJIB COCOK NAMA / ID)
+          const kName = String(ltr.knownByName || ltr.fieldValues?.knownByName || "").trim().toLowerCase();
+          const kId = String(ltr.fieldValues?.knownById || "");
+          if (kName && uName && (kName === uName || kName.includes(uName) || uName.includes(kName))) return true;
+          if (kId && uId && kId === uId) return true;
+
+          // 3. Pejabat Penyetuju (Approval Herdy, Approval Jemmy, dll)
+          const isInApproval = (ltr.approvalHistory || []).some((st) => {
+            if (st.specificUserId && String(st.specificUserId) === uId) return true;
+            if (st.specificUserName && String(st.specificUserName).trim().toLowerCase() === uName) return true;
+            if (st.approverName && String(st.approverName).trim().toLowerCase() === uName) return true;
+            return false;
+          });
+          if (isInApproval) return true;
+
+          // 4. Tembusan / Allowed Viewers (Eksplisit)
+          const allowed = Array.isArray(ltr.allowedViewers) ? ltr.allowedViewers : [];
+          const isDirectViewer = allowed.some((v) => {
+            if (typeof v === "string" || typeof v === "number") {
+              return String(v) === uId || String(v).toLowerCase() === uName;
+            }
+            if (typeof v === "object" && v !== null) {
+              if (v.userId && String(v.userId) === uId) return true;
+              if (v.userName && String(v.userName).trim().toLowerCase() === uName) return true;
+            }
+            return false;
+          });
+          if (isDirectViewer) return true;
+
+          // 5. Dibagikan manual (sharedWith)
+          const isSharedWith = Array.isArray(ltr.sharedWith) && ltr.sharedWith.some((s) => {
+            if (typeof s === "string" || typeof s === "number") {
+              return String(s) === uId || String(s).toLowerCase() === uName;
+            }
+            if (typeof s === "object" && s !== null) {
+              if (s.id && String(s.id) === uId) return true;
+              if (s.userId && String(s.userId) === uId) return true;
+              if (s.userName && String(s.userName).trim().toLowerCase() === uName) return true;
+            }
+            return false;
+          });
+          if (isSharedWith) return true;
+
+          return false;
+        });
+      }
+    }
+
     res.json({ success: true, data: formatted });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

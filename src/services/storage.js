@@ -353,12 +353,16 @@ export const syncWithDatabase = async () => {
         }
       })
 
-      // Gunakan lettersData dari database MySQL sebagai satu-satunya kebenaran
+      // Gunakan lettersData dari database MySQL sebagai sumber kebenaran
       const fakeLetterIds = new Set(['ltr-001', 'ltr-002', 'ltr-003'])
       const cleanCurrentLetters = currentLetters.filter((l) => l && l.id && !fakeLetterIds.has(l.id))
       const remoteIds = new Set(lettersData.map((r) => r.id))
-      const localOnlyLetters = cleanCurrentLetters.filter((l) => l && l.id && !remoteIds.has(l.id) && !fakeLetterIds.has(l.id))
-      const finalLetters = [...mergedLetters, ...localOnlyLetters]
+      // Hanya pertahankan draft lokal milik pengguna yang sedang aktif yang belum tersinkron
+      const currentUid = String(getCurrentUser()?.id || '')
+      const localDrafts = cleanCurrentLetters.filter(
+        (l) => l && l.id && !remoteIds.has(l.id) && !fakeLetterIds.has(l.id) && l.status === 'draft' && String(l.userId) === currentUid
+      )
+      const finalLetters = [...mergedLetters, ...localDrafts]
 
       setStorageItem(STORAGE_KEYS.LETTERS, finalLetters)
       window.dispatchEvent(new Event('letters_change'))
@@ -490,11 +494,16 @@ export const setCurrentUser = (user) => {
   } else {
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER)
   }
+  // Reset cache surat saat beralih akun agar tidak ada sisa data user sebelumnya
+  lettersMemoryCache = null
+  localStorage.removeItem(STORAGE_KEYS.LETTERS)
   window.dispatchEvent(new Event('auth_change'))
 }
 
 export const clearCurrentUser = () => {
   localStorage.removeItem(STORAGE_KEYS.CURRENT_USER)
+  lettersMemoryCache = null
+  localStorage.removeItem(STORAGE_KEYS.LETTERS)
   window.dispatchEvent(new Event('auth_change'))
 }
 
@@ -1243,22 +1252,22 @@ export const isLetterAwaitingKnownBy = (letter) => {
 export const isUserLetterKnownBy = (letter, user) => {
   if (!letter || !user) return false
   const uName = (user.name || '').trim().toLowerCase()
+  const uid = String(user.id || '')
   const creator = (letter.userName || letter.createdBy || '').trim().toLowerCase()
   // Pembuat surat tidak boleh menyetujui suratnya sendiri sebagai Mengetahui
   if (uName && creator && uName === creator) return false
 
-  const { name: effectiveName, position: effectivePos } = getEffectiveKnownBy(letter)
-  const kName = effectiveName.trim().toLowerCase()
-  if (kName && (kName === uName || uName.includes(kName) || kName.includes(uName))) {
+  const { name: effectiveName } = getEffectiveKnownBy(letter)
+  const kName = (effectiveName || letter.knownByName || letter.fieldValues?.knownByName || '').trim().toLowerCase()
+  if (kName && uName && (kName === uName || kName.includes(uName) || uName.includes(kName))) {
     return true
   }
 
-  const kPos = effectivePos.trim().toLowerCase()
-  const uPos = (user.position || user.roleLabel || '').trim().toLowerCase()
-  const matchBranch = !user.branchId || !letter.branchId || user.branchId === letter.branchId
-  if (kPos && uPos && matchBranch && (uPos.includes(kPos) || kPos.includes(uPos))) {
+  const kUid = String(letter.knownById || letter.fieldValues?.knownById || '')
+  if (kUid && uid && kUid === uid) {
     return true
   }
+
   return false
 }
 
@@ -1723,6 +1732,24 @@ export const isLetterVisibleToUser = (letter, currentUser) => {
 
   const uid = String(currentUser.id || '')
   const uName = (currentUser.name || '').trim().toLowerCase()
+  const uUsername = (currentUser.username || '').trim().toLowerCase()
+
+  // 1. SUPER VIEWER: Hanya Jemmy (Direktur Utama / J01) & Jazz (Super Admin IT / J27) yang bisa melihat SEMUANYA
+  const isJemmyOrJazz =
+    uName.includes('jemmy') ||
+    uUsername.includes('jemmy') ||
+    uName.includes('jazz') ||
+    uUsername.includes('jazz') ||
+    uName.includes('jazman') ||
+    uUsername.includes('jazman') ||
+    currentUser.kodeJabatan === 'J01' ||
+    currentUser.kodeJabatan === 'J27'
+
+  if (isJemmyOrJazz) {
+    return true
+  }
+
+  // 2. Pembuat / Pemohon surat
   const isCreator =
     (uid && String(letter.userId) === uid) ||
     (uName && (
@@ -1730,77 +1757,34 @@ export const isLetterVisibleToUser = (letter, currentUser) => {
       letter.createdBy?.trim().toLowerCase() === uName
     ))
 
-  // 1. DRAF BELUM DIKIRIM: HANYA pembuat surat yang boleh melihat
+  // Draf belum dikirim: HANYA pembuat yang boleh lihat
   if (letter.status === 'draft') {
     return Boolean(isCreator)
   }
 
-  // 2. Pembuat surat selalu bisa melihat surat yang telah diajukan
   if (isCreator) return true
 
-  // 2b. JIKA SURAT BELUM DISETUJUI OLEH PIHAK MENGETAHUI:
-  // Surat HANYA tampil untuk Pembuat, Pihak Mengetahui (untuk diverifikasi/ACC), dan IT Pusat (J27).
-  // Jangan dulu tampil di Pejabat Penyetuju (Pak Jemmy / Direktur / Approver) sebelum disetujui Mengetahui.
-  if (isLetterAwaitingKnownBy(letter)) {
-    if (isUserLetterKnownBy(letter, currentUser)) return true
-    if (currentUser.role === 'admin_pusat' && currentUser.kodeJabatan === 'J27') return true
-    return false
-  }
-
-  // 3b. DIREKTUR / DIREKTUR UTAMA (J01 / Pak Jemmy Feldiana):
-  // Menampilkan SEMUA data surat meskipun approval tidak sampai ke Pak Jemmy
-  const isDirektur =
-    currentUser.kodeJabatan === 'J01' ||
-    (currentUser.position && currentUser.position.toUpperCase().includes('DIREKTUR')) ||
-    (currentUser.roleLabel && currentUser.roleLabel.toUpperCase().includes('DIREKTUR')) ||
-    (currentUser.name && currentUser.name.toLowerCase().includes('jemmy')) ||
-    (currentUser.username && currentUser.username.toLowerCase().includes('jemmy'))
-
-  if (isDirektur) {
-    return true
-  }
-
-  // 4. Pejabat Mengetahui (Dapat memantau surat dalam semua status setelah diajukan)
+  // 3. Pihak Mengetahui (Orang yang ditunjuk mengetahui di surat ini)
   if (isUserLetterKnownBy(letter, currentUser)) {
     return true
   }
 
-  // 5. Penyetuju yang Terlibat dalam Alur Persetujuan (Approval History)
+  // Jika surat belum di-ACC oleh pihak mengetahui, pejabat penyetuju belum boleh lihat
+  if (isLetterAwaitingKnownBy(letter)) {
+    return false
+  }
+
+  // 4. Pejabat Penyetuju (HANYA user yang tercantum di approval history surat ini)
   const isInApproval = (letter.approvalHistory || []).some((st) => {
-    // 5a. Spesifik user (ID atau Nama cocok persis)
     if (st.specificUserId && String(st.specificUserId) === uid) return true
     if (st.specificUserName && st.specificUserName.trim().toLowerCase() === uName) return true
     if (st.approverName && st.approverName.trim().toLowerCase() === uName) return true
-
-    // Jika step ini sudah ditentukan user spesifik, JANGAN izinkan user lain mencocokkan step ini!
-    if (st.assignmentType === 'user' || Boolean(st.specificUserId || st.specificUserName)) {
-      return false
-    }
-
-    // 5b. Jabatan match (Hanya jika tahap bersifat role umum tanpa specific user)
-    // Untuk jabatan tingkat cabang (J04-J08, Kepala Cabang, OM, SMM), WAJIB dari cabang yang sama
-    const isBranchRole =
-      ['J04', 'J05', 'J06', 'J07', 'J08'].includes(st.kodeJabatan) ||
-      (st.approverRole && /cabang|om|smm|kepala|operation manager/i.test(st.approverRole))
-
-    if (isBranchRole) {
-      if (!currentUser.branchId || !letter.branchId) return false
-      const isSameBranch = String(currentUser.branchId).toLowerCase() === String(letter.branchId).toLowerCase()
-      if (!isSameBranch) return false
-
-      if (st.kodeJabatan && currentUser.kodeJabatan && st.kodeJabatan === currentUser.kodeJabatan) {
-        return true
-      }
-      return false
-    }
-
-    // Untuk RSM (J03) atau jabatan lain tanpa specific user
     return false
   })
 
   if (isInApproval) return true
 
-  // 6. User yang diset di allowedViewers (Tembusan)
+  // 5. Tembusan / Allowed Viewers (Tercantum eksplisit)
   const allowed = Array.isArray(letter.allowedViewers) ? letter.allowedViewers : []
   const isDirectViewer = allowed.some((v) => {
     if (typeof v === 'string' || typeof v === 'number') {
@@ -1809,13 +1793,12 @@ export const isLetterVisibleToUser = (letter, currentUser) => {
     if (typeof v === 'object' && v !== null) {
       if (v.userId && String(v.userId) === uid) return true
       if (v.userName && v.userName.trim().toLowerCase() === uName) return true
-      if (v.kodeJabatan && currentUser.kodeJabatan && v.kodeJabatan === currentUser.kodeJabatan) return true
     }
     return false
   })
   if (isDirectViewer) return true
 
-  // 6b. Pengguna yang dibagikan akses secara manual (Fitur Bagikan Surat)
+  // 6. Dibagikan secara manual (Fitur Bagikan Surat)
   const isSharedWith = Array.isArray(letter.sharedWith) && letter.sharedWith.some((s) => {
     if (typeof s === 'string' || typeof s === 'number') {
       return String(s) === uid || String(s).toLowerCase() === uName
@@ -1829,12 +1812,7 @@ export const isLetterVisibleToUser = (letter, currentUser) => {
   })
   if (isSharedWith) return true
 
-  // 7. Pengguna Cabang (Hanya melihat surat yang sudah sah/approved dari cabangnya sendiri)
-  if (currentUser.branchId && currentUser.branchId !== 'PST' && letter.branchId) {
-    const isSameBranch = String(letter.branchId).toLowerCase() === String(currentUser.branchId).toLowerCase()
-    if (isSameBranch && letter.status === 'approved') return true
-  }
-
+  // Selain orang-orang di atas, TIDAK BOLEH MELIHAT
   return false
 }
 

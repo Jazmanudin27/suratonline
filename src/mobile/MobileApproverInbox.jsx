@@ -74,17 +74,18 @@ export default function MobileApproverInbox({
   // Filter letters yang butuh approval user ini
   const pendingLetters = letters.filter((l) => canUserApproveLetter(l, currentUser))
 
-  const isDirektur =
+  const isSuperViewer =
     currentUser?.kodeJabatan === 'J01' ||
+    currentUser?.kodeJabatan === 'J27' ||
     (currentUser?.position && currentUser.position.toUpperCase().includes('DIREKTUR')) ||
     (currentUser?.roleLabel && currentUser.roleLabel.toUpperCase().includes('DIREKTUR')) ||
-    (currentUser?.name && currentUser.name.toLowerCase().includes('jemmy')) ||
-    (currentUser?.username && currentUser.username.toLowerCase().includes('jemmy'))
+    (currentUser?.name && (currentUser.name.toLowerCase().includes('jemmy') || currentUser.name.toLowerCase().includes('jazz') || currentUser.name.toLowerCase().includes('jazman'))) ||
+    (currentUser?.username && (currentUser.username.toLowerCase().includes('jemmy') || currentUser.username.toLowerCase().includes('jazz') || currentUser.username.toLowerCase().includes('jazman')))
 
   // Filter riwayat surat yang pernah disetujui / ditinjau oleh user ini
   const historyLetters = letters.filter((l) => {
     if (canUserApproveLetter(l, currentUser)) return false
-    if (isDirektur) {
+    if (isSuperViewer) {
       return l.status !== 'draft'
     }
     const history = l.approvalHistory || []

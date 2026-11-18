@@ -380,25 +380,20 @@ export const syncWithDatabase = async (options = {}) => {
     if (Array.isArray(lettersData)) {
       processLettersSync(lettersData)
     }
-  } catch (err) {
-    console.warn('Sync database error:', err.message)
-  } finally {
-    isSyncing = false
-  }
-}
 
-    // Sync Master Produk
+    // Sync Master Produk saat sync lengkap
     try {
       const remoteProduk = await api.getProduk()
       if (Array.isArray(remoteProduk) && remoteProduk.length > 0) {
         setStorageItem(STORAGE_KEYS.PRODUCTS, remoteProduk)
-        window.dispatchEvent(new Event('products_change'))
       }
     } catch (prodErr) {
       console.warn('Sync produk warning:', prodErr.message)
     }
   } catch (err) {
-    console.warn('API sync in background skipped or offline:', err.message)
+    console.warn('Sync database error:', err.message)
+  } finally {
+    isSyncing = false
   }
 }
 

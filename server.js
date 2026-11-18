@@ -1240,6 +1240,66 @@ const getUserPhone = async (userId, userName) => {
   return null;
 };
 
+const formatWaDate = () => {
+  return (
+    new Date().toLocaleString("id-ID", {
+      timeZone: "Asia/Jakarta",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }) + " WIB"
+  );
+};
+
+const buildWaNotification = ({
+  statusBadge,
+  letterNumber,
+  perihal,
+  pemohon,
+  cabang,
+  penyetuju,
+  catatan,
+  actionText,
+  actionUrl,
+}) => {
+  const lines = [
+    `🏢 *CV MAKMUR PERMATA*`,
+    `_Sistem Surat Ajuan Resmi_`,
+    `━━━━━━━━━━━━━━━━━━━━━━━`,
+    `${statusBadge}`,
+    `━━━━━━━━━━━━━━━━━━━━━━━`,
+    ``,
+    `📌 *Detail Pengajuan:*`,
+    `▫️ *No. Surat* : *${letterNumber || "-"}*`,
+    `▫️ *Perihal*   : ${perihal || "-"}`,
+  ];
+
+  if (pemohon) {
+    lines.push(`▫️ *Pemohon*   : ${pemohon}${cabang ? ` (${cabang})` : ""}`);
+  }
+  if (penyetuju) {
+    lines.push(`▫️ *Diproses*   : ${penyetuju}`);
+  }
+  if (catatan) {
+    lines.push(`▫️ *Catatan*   : _"${catatan}"_`);
+  }
+  lines.push(`▫️ *Waktu*     : ${formatWaDate()}`);
+
+  if (actionUrl) {
+    lines.push(``);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`🔗 *${actionText || "Tinjau Dokumen"}:*`);
+    lines.push(`👉 ${actionUrl}`);
+  }
+
+  lines.push(``);
+  lines.push(`_Pesan otomatis • Portal E-Letter MP_`);
+
+  return lines.join("\n");
+};
+
 const sendWhatsAppNotification = async ({ phone, message }) => {
   if (!phone || !message)
     return { success: false, message: "Nomor telepon atau pesan kosong" };
@@ -1431,7 +1491,18 @@ app.post("/api/whatsapp/test", async (req, res) => {
       return res
         .status(400)
         .json({ success: false, message: "Nomor WhatsApp tujuan wajib diisi" });
-    const msg = `🔔 *TES NOTIFIKASI SISTEM E-LETTER MP*\n\nKoneksi WhatsApp Gateway berhasil aktif!\nTanggal: ${new Date().toLocaleString("id-ID")}`;
+    const msg =
+      `🏢 *CV MAKMUR PERMATA*\n` +
+      `_Sistem Surat Ajuan Resmi_\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `🔔 *UJI COBA NOTIFIKASI WHATSAPP*\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `📌 *Status Integrasi:*\n` +
+      `▫️ *Status*    : ✅ *ONLINE & AKTIF*\n` +
+      `▫️ *Gateway*   : Multi-Session Server\n` +
+      `▫️ *Waktu*     : ${formatWaDate()}\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `_Pesan uji coba koneksi gateway WhatsApp berhasil terkirim._`;
     const result = await sendWhatsAppNotification({ phone, message: msg });
     res.json(result);
   } catch (err) {
@@ -1667,14 +1738,15 @@ app.post("/api/letters", async (req, res) => {
           }
 
           if (targetPhone) {
-            const waMsg =
-              `📢 *PENGAJUAN SURAT BARU PERLU PERSETUJUAN*\n\n` +
-              `• No. Surat: *${l.letterNumber || "-"}*\n` +
-              `• Perihal: *${letterTitle}*\n` +
-              `• Pemohon: ${l.userName} (${l.branchName || "-"})\n` +
-              `• Jenis: ${l.templateName || "Surat Ajuan"}\n` +
-              `• Status: *Menunggu Persetujuan*\n\n` +
-              `Silakan tinjau dan proses dokumen:\n${appUrl}/#letters?view=${id}`;
+            const waMsg = buildWaNotification({
+              statusBadge: "📋 *PENGAJUAN SURAT MENUNGGU PERSETUJUAN*",
+              letterNumber: l.letterNumber || id,
+              perihal: letterTitle,
+              pemohon: l.userName,
+              cabang: l.branchName,
+              actionText: "Tinjau & Berikan Persetujuan",
+              actionUrl: `${appUrl}/#letters?view=${id}`,
+            });
             await sendWhatsAppNotification({
               phone: targetPhone,
               message: waMsg,
@@ -1778,35 +1850,48 @@ app.post("/api/letters/:id/decision", async (req, res) => {
               firstStep.approverName || firstStep.specificUserName,
             );
             if (nextPhone) {
-              const waMsg =
-                `📢 *SURAT AJUAN TELAH DIKETAHUI & MENUNGGU ACC ANDA*\n\n` +
-                `• No. Surat: *${letterNum}*\n` +
-                `• Perihal: *${letterSubject}*\n` +
-                `• Pemohon: ${letter.user_name} (${letter.branch_name || "-"})\n` +
-                `• Disetujui Pihak Mengetahui: ${userName}\n\n` +
-                `Silakan tinjau dan proses:\n${appUrl}/#letters?view=${id}`;
+              const waMsg = buildWaNotification({
+                statusBadge: "📋 *SURAT TELAH DIKETAHUI & MENUNGGU ACC ANDA*",
+                letterNumber: letterNum,
+                perihal: letterSubject,
+                pemohon: letter.user_name,
+                cabang: letter.branch_name,
+                penyetuju: `Disetujui Pihak Mengetahui (${userName})`,
+                catatan: notes,
+                actionText: "Tinjau & Otorisasi Surat",
+                actionUrl: `${appUrl}/#letters?view=${id}`,
+              });
               await sendWhatsAppNotification({
                 phone: nextPhone,
                 message: waMsg,
               });
             }
           } else if (action === "revision" && applicantPhone) {
-            const waMsg =
-              `⚠️ *SURAT AJUAN PERLU REVISI (PIHAK MENGETAHUI)*\n\n` +
-              `• No. Surat: *${letterNum}*\n` +
-              `• Perihal: *${letterSubject}*\n` +
-              `• Catatan Revisi: *"${notes || "Perlu perbaikan"}"*\n\n` +
-              `Buka portal untuk memperbaiki surat:\n${appUrl}/#letters?view=${id}`;
+            const waMsg = buildWaNotification({
+              statusBadge: "⚠️ *PERMINTAAN REVISI (PIHAK MENGETAHUI)*",
+              letterNumber: letterNum,
+              perihal: letterSubject,
+              pemohon: letter.user_name,
+              cabang: letter.branch_name,
+              penyetuju: `Diminta oleh ${userName}`,
+              catatan: notes || "Perlu perbaikan data pengajuan",
+              actionText: "Buka Portal Untuk Memperbaiki Surat",
+              actionUrl: `${appUrl}/#letters?view=${id}`,
+            });
             await sendWhatsAppNotification({
               phone: applicantPhone,
               message: waMsg,
             });
           } else if (action === "reject" && applicantPhone) {
-            const waMsg =
-              `❌ *SURAT AJUAN DITOLAK (PIHAK MENGETAHUI)*\n\n` +
-              `• No. Surat: *${letterNum}*\n` +
-              `• Perihal: *${letterSubject}*\n` +
-              `• Alasan: *"${notes || "Tidak disetujui"}"*`;
+            const waMsg = buildWaNotification({
+              statusBadge: "❌ *PENGAJUAN DITOLAK (PIHAK MENGETAHUI)*",
+              letterNumber: letterNum,
+              perihal: letterSubject,
+              pemohon: letter.user_name,
+              cabang: letter.branch_name,
+              penyetuju: `Ditolak oleh ${userName}`,
+              catatan: notes || "Tidak disetujui",
+            });
             await sendWhatsAppNotification({
               phone: applicantPhone,
               message: waMsg,
@@ -1893,14 +1978,17 @@ app.post("/api/letters/:id/decision", async (req, res) => {
           if (nextStatus === "approved") {
             // Disetujui penuh!
             if (applicantPhone) {
-              const waMsg =
-                `✅ *SURAT AJUAN TELAH DISETUJUI PENUH!*\n\n` +
-                `• No. Surat: *${letterNum}*\n` +
-                `• Perihal: *${letterSubject}*\n` +
-                `• Disetujui oleh: ${userName}\n` +
-                `• Status: *SAH & TERVERIFIKASI*\n` +
-                (notes ? `• Catatan: "${notes}"\n\n` : "\n") +
-                `Unduh / cetak dokumen resmi:\n${appUrl}/#letters?view=${id}`;
+              const waMsg = buildWaNotification({
+                statusBadge: "✅ *SURAT AJUAN TELAH DISETUJUI PENUH!*",
+                letterNumber: letterNum,
+                perihal: letterSubject,
+                pemohon: letter.user_name,
+                cabang: letter.branch_name,
+                penyetuju: `${userName} (SAH & TERVERIFIKASI)`,
+                catatan: notes,
+                actionText: "Unduh & Cetak Dokumen PDF Resmi",
+                actionUrl: `${appUrl}/#letters?view=${id}`,
+              });
               await sendWhatsAppNotification({
                 phone: applicantPhone,
                 message: waMsg,
@@ -1916,13 +2004,17 @@ app.post("/api/letters/:id/decision", async (req, res) => {
                 nextApproverStep.specificUserName,
             );
             if (nextPhone) {
-              const waMsg =
-                `📢 *SURAT AJUAN MENUNGGU PERSETUJUAN ANDA*\n\n` +
-                `• No. Surat: *${letterNum}*\n` +
-                `• Perihal: *${letterSubject}*\n` +
-                `• Pemohon: ${letter.user_name} (${letter.branch_name || "-"})\n` +
-                `• Tahap: ${nextStep} dari ${letter.total_steps}\n\n` +
-                `Silakan tinjau dan proses:\n${appUrl}/#letters?view=${id}`;
+              const waMsg = buildWaNotification({
+                statusBadge: `📢 *SURAT AJUAN MENUNGGU ACC ANDA (TAHAP ${nextStep}/${letter.total_steps})*`,
+                letterNumber: letterNum,
+                perihal: letterSubject,
+                pemohon: letter.user_name,
+                cabang: letter.branch_name,
+                penyetuju: `Disetujui tahap sebelumnya oleh ${userName}`,
+                catatan: notes,
+                actionText: "Tinjau & Otorisasi Dokumen",
+                actionUrl: `${appUrl}/#letters?view=${id}`,
+              });
               await sendWhatsAppNotification({
                 phone: nextPhone,
                 message: waMsg,
@@ -1930,24 +2022,31 @@ app.post("/api/letters/:id/decision", async (req, res) => {
             }
           }
         } else if (action === "revision" && applicantPhone) {
-          const waMsg =
-            `⚠️ *SURAT AJUAN PERLU REVISI*\n\n` +
-            `• No. Surat: *${letterNum}*\n` +
-            `• Perihal: *${letterSubject}*\n` +
-            `• Diminta oleh: ${userName}\n` +
-            `• Catatan Revisi: *"${notes || "Perlu perbaikan"}"*\n\n` +
-            `Buka portal untuk memperbaiki surat:\n${appUrl}/#letters?view=${id}`;
+          const waMsg = buildWaNotification({
+            statusBadge: "⚠️ *PERMINTAAN REVISI SURAT AJUAN*",
+            letterNumber: letterNum,
+            perihal: letterSubject,
+            pemohon: letter.user_name,
+            cabang: letter.branch_name,
+            penyetuju: `Diminta oleh ${userName}`,
+            catatan: notes || "Perlu perbaikan data pengajuan",
+            actionText: "Buka Portal Untuk Memperbaiki Surat",
+            actionUrl: `${appUrl}/#letters?view=${id}`,
+          });
           await sendWhatsAppNotification({
             phone: applicantPhone,
             message: waMsg,
           });
         } else if (action === "reject" && applicantPhone) {
-          const waMsg =
-            `❌ *SURAT AJUAN DITOLAK*\n\n` +
-            `• No. Surat: *${letterNum}*\n` +
-            `• Perihal: *${letterSubject}*\n` +
-            `• Pejabat: ${userName}\n` +
-            `• Alasan: *"${notes || "Tidak disetujui"}"*`;
+          const waMsg = buildWaNotification({
+            statusBadge: "❌ *PEMBERITAHUAN: PENGAJUAN DITOLAK*",
+            letterNumber: letterNum,
+            perihal: letterSubject,
+            pemohon: letter.user_name,
+            cabang: letter.branch_name,
+            penyetuju: `Ditolak oleh ${userName}`,
+            catatan: notes || "Tidak disetujui",
+          });
           await sendWhatsAppNotification({
             phone: applicantPhone,
             message: waMsg,

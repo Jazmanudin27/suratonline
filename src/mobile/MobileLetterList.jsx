@@ -16,11 +16,13 @@ import {
   Layers,
   Check,
   Share2,
+  Download,
 } from 'lucide-react'
 import { canUserApproveLetter } from '../components/ApproverInbox'
 import MobileApprovalModal from './MobileApprovalModal'
 import ShareLetterModal from '../components/ShareLetterModal'
 import { formatDateId } from '../services/storage'
+import { exportLettersToExcel } from '../utils/excelExport'
 
 export default function MobileLetterList({
   currentUser,
@@ -164,6 +166,15 @@ export default function MobileLetterList({
             Total {filteredLetters.length} dokumen
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => exportLettersToExcel(filteredLetters, { status: statusFilter, branch: branchFilter })}
+          className="px-2.5 py-1.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-[11px] rounded-xl flex items-center gap-1 shadow-xs"
+          title="Ekspor ke Excel"
+        >
+          <Download size={13} />
+          <span>Ekspor Excel</span>
+        </button>
       </div>
 
       {/* Search Input Box */}

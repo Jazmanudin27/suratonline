@@ -120,6 +120,7 @@ export default function MobileDashboard({
       shadow: 'shadow-cyan-500/30',
       action: () => onNavigateTab('products'),
     },
+    /*
     {
       id: 'gps_act',
       label: 'GPS Fleet',
@@ -128,6 +129,7 @@ export default function MobileDashboard({
       shadow: 'shadow-amber-500/30',
       action: () => onNavigateTab('gps'),
     },
+    */
     {
       id: 'profile_act',
       label: 'Profile',

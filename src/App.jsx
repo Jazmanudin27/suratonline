@@ -14,6 +14,7 @@ import LoginForm from './components/LoginForm'
 import MobileLayout from './mobile/MobileLayout'
 import PwaInstallPrompt from './components/PwaInstallPrompt'
 import GpsTracker from './components/GpsTracker'
+import PublicLetterVerifier from './components/PublicLetterVerifier'
 import {
   initializeStorage,
   syncWithDatabase,
@@ -39,6 +40,10 @@ export default function App() {
     const user = getCurrentUser()
     const path = window.location.pathname.replace(/^\//, '').toLowerCase().split('/')[0]
     const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().split('?')[0]
+    const searchParams = new URLSearchParams(window.location.search)
+    if (path === 'verify' || hash === 'verify' || searchParams.has('verify') || (searchParams.has('id') && !searchParams.has('view'))) {
+      return 'verify'
+    }
     if (path === 'gps' || hash === 'gps') {
       return 'gps'
     }
@@ -174,7 +179,10 @@ export default function App() {
       const path = window.location.pathname.replace(/^\//, '').toLowerCase().split('/')[0]
       const rawHash = window.location.hash.replace(/^#\/?/, '')
       const cleanHash = rawHash.split('?')[0]
-      if (path === 'gps' || cleanHash === 'gps') {
+      const searchParams = new URLSearchParams(window.location.search)
+      if (path === 'verify' || cleanHash === 'verify' || searchParams.has('verify')) {
+        setActiveMenuState('verify')
+      } else if (path === 'gps' || cleanHash === 'gps') {
         setActiveMenuState('gps')
       } else if (cleanHash && cleanHash !== activeMenu) {
         setActiveMenuState(cleanHash)
@@ -324,6 +332,18 @@ export default function App() {
     }
   }
 
+  if (activeMenu === 'verify') {
+    return (
+      <PublicLetterVerifier
+        onGoToApp={() => {
+          setActiveMenu('letters')
+          window.location.hash = '#letters'
+          window.location.search = ''
+        }}
+      />
+    )
+  }
+
   if (!currentUser) {
     if (activeMenu === 'gps') {
       return (
@@ -366,8 +386,8 @@ export default function App() {
             setCurrentUser(user)
             refreshAll()
           }}
-          onApproveLetter={(id, note) => {
-            const updated = approveLetter(id, note)
+          onApproveLetter={(id, note, sig) => {
+            const updated = approveLetter(id, note, sig)
             if (updated) {
               refreshAll()
               notify.success('Surat Disetujui!', 'Surat berhasil disetujui & diverifikasi sah.')

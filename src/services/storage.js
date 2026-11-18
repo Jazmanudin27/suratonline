@@ -1258,7 +1258,7 @@ export const isUserLetterKnownBy = (letter, user) => {
 }
 
 // Approval Actions
-export const approveLetter = (letterId, notes = '') => {
+export const approveLetter = (letterId, notes = '', signature = null) => {
   const letters = getLetters()
   const currentUser = getCurrentUser()
   const idx = letters.findIndex((l) => l.id === letterId)
@@ -1276,6 +1276,7 @@ export const approveLetter = (letterId, notes = '') => {
       knownByApprovedAt: now,
       knownByApprovedBy: currentUser.name,
       knownByNotes: notes || 'Disetujui pihak mengetahui.',
+      ...(signature ? { knownBySignature: signature } : {}),
       fieldValues: {
         ...(letter.fieldValues || {}),
         knownByApproved: true,
@@ -1283,6 +1284,7 @@ export const approveLetter = (letterId, notes = '') => {
         knownByApprovedAt: now,
         knownByApprovedBy: currentUser.name,
         knownByNotes: notes || 'Disetujui pihak mengetahui.',
+        ...(signature ? { knownBySignature: signature } : {}),
       },
       updatedAt: now,
     }
@@ -1291,7 +1293,7 @@ export const approveLetter = (letterId, notes = '') => {
     setStorageItem(STORAGE_KEYS.LETTERS, letters)
     window.dispatchEvent(new Event('letters_change'))
 
-    api.submitDecision(letter.id, 'approve', notes, currentUser.name, currentUser.kodeJabatan, true)
+    api.submitDecision(letter.id, 'approve', notes, currentUser.name, currentUser.kodeJabatan, true, signature)
       .catch((e) => console.warn('Sync approve decision failed:', e.message))
 
     addAuditLog(letter.id, currentUser.name, 'Tanda Tangan Pihak Mengetahui', notes || 'Disetujui oleh Pihak Mengetahui')
@@ -1329,6 +1331,7 @@ export const approveLetter = (letterId, notes = '') => {
       status: 'approved',
       notes: notes || 'Disetujui tanpa catatan khusus.',
       date: now,
+      ...(signature ? { signature } : {}),
     }
   }
 
@@ -1351,7 +1354,7 @@ export const approveLetter = (letterId, notes = '') => {
   window.dispatchEvent(new Event('letters_change'))
 
   // Sync decision to MySQL API
-  api.submitDecision(letter.id, 'approve', notes, currentUser.name, currentUser.kodeJabatan)
+  api.submitDecision(letter.id, 'approve', notes, currentUser.name, currentUser.kodeJabatan, false, signature)
     .catch((e) => console.warn('Sync approve decision failed:', e.message))
 
   addAuditLog(letter.id, currentUser.name, `Persetujuan Tahap ${letter.currentStep}`, notes || 'Disetujui')

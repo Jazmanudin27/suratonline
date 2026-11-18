@@ -100,6 +100,14 @@ pool.getConnection()
     } catch (e) {
       console.warn(' [MySQL] Table system_settings warning:', e.message)
     }
+    try {
+      await conn.query(`ALTER TABLE users ADD COLUMN phone VARCHAR(30) NULL`)
+      console.log(' [MySQL] Checked/added phone column to users table')
+    } catch (e) {
+      // Column may already exist
+    }
+      console.warn(' [MySQL] Table system_settings warning:', e.message)
+    }
 
     try {
       await conn.query(`
@@ -941,6 +949,215 @@ app.post('/api/letters/:id/comments', async (req, res) => {
   }
 })
 
+// -------------------------------------------------------------
+// WHATSAPP NOTIFICATION HELPER & SETTINGS
+// -------------------------------------------------------------
+const getUserPhone = async (userId, userName) => {
+  try {
+    if (userId) {
+      const [uRows] = await pool.query(`SELECT phone FROM users WHERE id = ? LIMIT 1`, [userId])
+      if (uRows.length > 0 && uRows[0].phone) return uRows[0].phone
+    }
+    if (userName) {
+      const [uRows] = await pool.query(`SELECT phone FROM users WHERE name = ? LIMIT 1`, [userName])
+      if (uRows.length > 0 && uRows[0].phone) return uRows[0].phone
+    }
+  } catch (e) {
+    // Column might not exist or error
+  }
+  return null
+}
+
+const sendWhatsAppNotification = async ({ phone, message }) => {
+  if (!phone || !message) return { success: false, message: 'Nomor telepon atau pesan kosong' }
+
+  try {
+    const [rows] = await pool.query(`SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`)
+    if (rows.length === 0 || !rows[0].value_data) {
+      return { success: false, message: 'WhatsApp integration belum dikonfigurasi' }
+    }
+
+    let config = {}
+    try {
+      config = JSON.parse(rows[0].value_data)
+    } catch {
+      return { success: false, message: 'Format konfigurasi WhatsApp tidak valid' }
+    }
+
+    if (!config.enabled) {
+      return { success: false, message: 'Notifikasi WhatsApp sedang non-aktif' }
+    }
+
+    let cleanPhone = String(phone).replace(/[^0-9]/g, '')
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '62' + cleanPhone.slice(1)
+    }
+
+    const provider = config.provider || 'fonnte'
+    const apiKey = config.apiKey || ''
+
+    if (!apiKey) {
+      return { success: false, message: 'API Key WhatsApp belum diisi' }
+    }
+
+    if (provider === 'fonnte') {
+      const endpoint = config.endpoint || 'https://api.fonnte.com/send'
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          target: cleanPhone,
+          message: message,
+          countryCode: '62',
+        }),
+      })
+      const result = await response.json()
+      console.log(` [WhatsApp Fonnte] Sent to ${cleanPhone}:`, result?.status || result?.message || result)
+      return { success: true, data: result }
+    } else if (provider === 'wablas') {
+      const endpoint = config.endpoint || 'https://tegal.wablas.com/api/send-message'
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          message: message,
+        }),
+      })
+      const result = await response.json()
+      console.log(` [WhatsApp Wablas] Sent to ${cleanPhone}:`, result)
+      return { success: true, data: result }
+    } else {
+      // Generic Webhook
+      const endpoint = config.endpoint
+      if (!endpoint) return { success: false, message: 'Endpoint kustom belum diatur' }
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          message: message,
+        }),
+      })
+      const result = await response.text()
+      return { success: true, data: result }
+    }
+  } catch (err) {
+    console.warn(' [WhatsApp] Send notification error:', err.message)
+    return { success: false, message: err.message }
+  }
+}
+
+app.get('/api/settings/whatsapp', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`)
+    let data = {
+      enabled: false,
+      provider: 'fonnte',
+      apiKey: '',
+      endpoint: 'https://api.fonnte.com/send',
+      adminPhone: '',
+    }
+    if (rows.length > 0 && rows[0].value_data) {
+      try {
+        data = { ...data, ...JSON.parse(rows[0].value_data) }
+      } catch {}
+    }
+    res.json({ success: true, data })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+app.post('/api/settings/whatsapp', async (req, res) => {
+  try {
+    const settings = req.body || {}
+    await pool.query(
+      `INSERT INTO system_settings (key_name, value_data)
+       VALUES ('whatsapp_settings', ?)
+       ON DUPLICATE KEY UPDATE value_data = VALUES(value_data), updated_at = CURRENT_TIMESTAMP`,
+      [JSON.stringify(settings)]
+    )
+    res.json({ success: true, message: 'Pengaturan WhatsApp berhasil disimpan' })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+app.post('/api/whatsapp/test', async (req, res) => {
+  try {
+    const { phone } = req.body
+    if (!phone) return res.status(400).json({ success: false, message: 'Nomor WhatsApp tujuan wajib diisi' })
+    const msg = `🔔 *TES NOTIFIKASI SISTEM E-LETTER MP*\n\nKoneksi WhatsApp Gateway berhasil aktif!\nTanggal: ${new Date().toLocaleString('id-ID')}`
+    const result = await sendWhatsAppNotification({ phone, message: msg })
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+// -------------------------------------------------------------
+// PUBLIC VERIFICATION (QR CODE SCAN TANPA LOGIN)
+// -------------------------------------------------------------
+app.get('/api/public/verify/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const [rows] = await pool.query(
+      `SELECT * FROM letters WHERE id = ? OR letter_number = ? LIMIT 1`,
+      [id, id]
+    )
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        valid: false,
+        message: 'Dokumen surat dengan nomor/ID tersebut tidak ditemukan dalam sistem resmi.',
+      })
+    }
+
+    const r = rows[0]
+    const fVals = typeof r.field_values === 'string' ? JSON.parse(r.field_values) : (r.field_values || {})
+    const history = typeof r.approval_history === 'string' ? JSON.parse(r.approval_history) : (r.approval_history || [])
+
+    res.json({
+      success: true,
+      valid: true,
+      letter: {
+        id: r.id,
+        letterNumber: r.letter_number,
+        title: r.title ? r.title.toUpperCase() : r.title,
+        templateName: r.template_name,
+        branchId: r.branch_id,
+        branchName: r.branch_name,
+        userName: r.user_name,
+        status: r.status,
+        currentStep: r.current_step,
+        totalSteps: r.total_steps,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+        approvalHistory: history,
+        knownByName: fVals.knownByName || null,
+        knownByPosition: fVals.knownByPosition || null,
+        knownByApproved: Boolean(fVals.knownByApproved || fVals.knownByStatus === 'approved'),
+        knownByStatus: fVals.knownByStatus || null,
+        knownByApprovedAt: fVals.knownByApprovedAt || null,
+        knownByApprovedBy: fVals.knownByApprovedBy || null,
+      },
+    })
+  } catch (err) {
+    res.status(500).json({ success: false, valid: false, message: err.message })
+  }
+})
+
 // Simpan surat (Draf atau Submit)
 app.post('/api/letters', async (req, res) => {
   try {
@@ -1059,6 +1276,39 @@ app.post('/api/letters', async (req, res) => {
     }
 
     res.json({ success: true, id, message: 'Surat berhasil disimpan' })
+
+    // Kirim notifikasi WA asinkron jika surat diajukan (status === 'pending')
+    if (l.status === 'pending') {
+      setTimeout(async () => {
+        try {
+          const appUrl = process.env.APP_URL || 'https://surat.portalmp.com'
+          const approverStep = (l.approvalHistory && l.approvalHistory[0]) || {}
+          let targetPhone = await getUserPhone(approverStep.specificUserId, approverStep.approverName || approverStep.specificUserName)
+
+          // Jika tidak ada nomor approver, kirim ke adminPhone di setting
+          if (!targetPhone) {
+            const [stRows] = await pool.query(`SELECT value_data FROM system_settings WHERE key_name = 'whatsapp_settings'`)
+            if (stRows.length > 0 && stRows[0].value_data) {
+              const cfg = JSON.parse(stRows[0].value_data)
+              targetPhone = cfg.adminPhone
+            }
+          }
+
+          if (targetPhone) {
+            const waMsg = `📢 *PENGAJUAN SURAT BARU PERLU PERSETUJUAN*\n\n` +
+              `• No. Surat: *${l.letterNumber || '-'}*\n` +
+              `• Perihal: *${letterTitle}*\n` +
+              `• Pemohon: ${l.userName} (${l.branchName || '-'})\n` +
+              `• Jenis: ${l.templateName || 'Surat Ajuan'}\n` +
+              `• Status: *Menunggu Persetujuan*\n\n` +
+              `Silakan tinjau dan proses dokumen:\n${appUrl}/#letters?view=${id}`
+            await sendWhatsAppNotification({ phone: targetPhone, message: waMsg })
+          }
+        } catch (e) {
+          console.warn('Async WA submit error:', e.message)
+        }
+      }, 500)
+    }
   } catch (err) {
     res.status(500).json({ success: false, message: err.message })
   }
@@ -1068,7 +1318,7 @@ app.post('/api/letters', async (req, res) => {
 app.post('/api/letters/:id/decision', async (req, res) => {
   try {
     const { id } = req.params
-    const { action, notes, userName, kodeJabatan, isKnownBy } = req.body // action: 'approve' | 'revision' | 'reject'
+    const { action, notes, userName, kodeJabatan, isKnownBy, signature } = req.body // action: 'approve' | 'revision' | 'reject'
 
     const [rows] = await pool.query(`SELECT * FROM letters WHERE id = ?`, [id])
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Surat tidak ditemukan' })
@@ -1092,6 +1342,7 @@ app.post('/api/letters/:id/decision', async (req, res) => {
         knownByNotes: notes || (action === 'approve' ? 'Disetujui pihak mengetahui' : 'Perlu revisi pihak mengetahui'),
         knownByApprovedAt: now,
         knownByApprovedBy: userName,
+        ...(signature ? { knownBySignature: signature } : {}),
       }
 
       let nextStatus = letter.status
@@ -1110,6 +1361,45 @@ app.post('/api/letters/:id/decision', async (req, res) => {
         [nextStatus, JSON.stringify(updatedFieldValues), id]
       )
 
+      // Notifikasi WA untuk Pihak Mengetahui
+      setTimeout(async () => {
+        try {
+          const appUrl = process.env.APP_URL || 'https://surat.portalmp.com'
+          const applicantPhone = await getUserPhone(letter.user_id, letter.user_name)
+          const letterNum = letter.letter_number || id
+          const letterSubject = letter.title || '-'
+
+          if (action === 'approve') {
+            const firstStep = history[0] || {}
+            const nextPhone = await getUserPhone(firstStep.specificUserId, firstStep.approverName || firstStep.specificUserName)
+            if (nextPhone) {
+              const waMsg = `📢 *SURAT AJUAN TELAH DIKETAHUI & MENUNGGU ACC ANDA*\n\n` +
+                `• No. Surat: *${letterNum}*\n` +
+                `• Perihal: *${letterSubject}*\n` +
+                `• Pemohon: ${letter.user_name} (${letter.branch_name || '-'})\n` +
+                `• Disetujui Pihak Mengetahui: ${userName}\n\n` +
+                `Silakan tinjau dan proses:\n${appUrl}/#letters?view=${id}`
+              await sendWhatsAppNotification({ phone: nextPhone, message: waMsg })
+            }
+          } else if (action === 'revision' && applicantPhone) {
+            const waMsg = `⚠️ *SURAT AJUAN PERLU REVISI (PIHAK MENGETAHUI)*\n\n` +
+              `• No. Surat: *${letterNum}*\n` +
+              `• Perihal: *${letterSubject}*\n` +
+              `• Catatan Revisi: *"${notes || 'Perlu perbaikan'}"*\n\n` +
+              `Buka portal untuk memperbaiki surat:\n${appUrl}/#letters?view=${id}`
+            await sendWhatsAppNotification({ phone: applicantPhone, message: waMsg })
+          } else if (action === 'reject' && applicantPhone) {
+            const waMsg = `❌ *SURAT AJUAN DITOLAK (PIHAK MENGETAHUI)*\n\n` +
+              `• No. Surat: *${letterNum}*\n` +
+              `• Perihal: *${letterSubject}*\n` +
+              `• Alasan: *"${notes || 'Tidak disetujui'}"*`
+            await sendWhatsAppNotification({ phone: applicantPhone, message: waMsg })
+          }
+        } catch (e) {
+          console.warn('Async WA Mengetahui error:', e.message)
+        }
+      }, 500)
+
       return res.json({ success: true, message: 'Keputusan pihak mengetahui berhasil disimpan' })
     }
 
@@ -1121,6 +1411,9 @@ app.post('/api/letters/:id/decision', async (req, res) => {
       history[stepIdx].status = action === 'approve' ? 'approved' : action === 'revision' ? 'revision' : 'rejected'
       history[stepIdx].notes = notes || ''
       history[stepIdx].date = now
+      if (signature) {
+        history[stepIdx].signature = signature
+      }
     }
 
     let nextStep = letter.current_step
@@ -1153,6 +1446,63 @@ app.post('/api/letters/:id/decision', async (req, res) => {
        VALUES (?, ?, ?, ?, ?)`,
       [auditId, id, userName, `Keputusan: ${action.toUpperCase()}`, notes || '']
     )
+
+    // Notifikasi WA Asinkron untuk Keputusan Pejabat Penyetuju
+    setTimeout(async () => {
+      try {
+        const appUrl = process.env.APP_URL || 'https://surat.portalmp.com'
+        const applicantPhone = await getUserPhone(letter.user_id, letter.user_name)
+        const letterNum = letter.letter_number || id
+        const letterSubject = letter.title || '-'
+
+        if (action === 'approve') {
+          if (nextStatus === 'approved') {
+            // Disetujui penuh!
+            if (applicantPhone) {
+              const waMsg = `✅ *SURAT AJUAN TELAH DISETUJUI PENUH!*\n\n` +
+                `• No. Surat: *${letterNum}*\n` +
+                `• Perihal: *${letterSubject}*\n` +
+                `• Disetujui oleh: ${userName}\n` +
+                `• Status: *SAH & TERVERIFIKASI*\n` +
+                (notes ? `• Catatan: "${notes}"\n\n` : '\n') +
+                `Unduh / cetak dokumen resmi:\n${appUrl}/#letters?view=${id}`
+              await sendWhatsAppNotification({ phone: applicantPhone, message: waMsg })
+            }
+          } else {
+            // Lanjut ke approver berikutnya
+            const nextStepIdx = nextStep - 1
+            const nextApproverStep = history[nextStepIdx] || {}
+            const nextPhone = await getUserPhone(nextApproverStep.specificUserId, nextApproverStep.approverName || nextApproverStep.specificUserName)
+            if (nextPhone) {
+              const waMsg = `📢 *SURAT AJUAN MENUNGGU PERSETUJUAN ANDA*\n\n` +
+                `• No. Surat: *${letterNum}*\n` +
+                `• Perihal: *${letterSubject}*\n` +
+                `• Pemohon: ${letter.user_name} (${letter.branch_name || '-'})\n` +
+                `• Tahap: ${nextStep} dari ${letter.total_steps}\n\n` +
+                `Silakan tinjau dan proses:\n${appUrl}/#letters?view=${id}`
+              await sendWhatsAppNotification({ phone: nextPhone, message: waMsg })
+            }
+          }
+        } else if (action === 'revision' && applicantPhone) {
+          const waMsg = `⚠️ *SURAT AJUAN PERLU REVISI*\n\n` +
+            `• No. Surat: *${letterNum}*\n` +
+            `• Perihal: *${letterSubject}*\n` +
+            `• Diminta oleh: ${userName}\n` +
+            `• Catatan Revisi: *"${notes || 'Perlu perbaikan'}"*\n\n` +
+            `Buka portal untuk memperbaiki surat:\n${appUrl}/#letters?view=${id}`
+          await sendWhatsAppNotification({ phone: applicantPhone, message: waMsg })
+        } else if (action === 'reject' && applicantPhone) {
+          const waMsg = `❌ *SURAT AJUAN DITOLAK*\n\n` +
+            `• No. Surat: *${letterNum}*\n` +
+            `• Perihal: *${letterSubject}*\n` +
+            `• Pejabat: ${userName}\n` +
+            `• Alasan: *"${notes || 'Tidak disetujui'}"*`
+          await sendWhatsAppNotification({ phone: applicantPhone, message: waMsg })
+        }
+      } catch (e) {
+        console.warn('Async WA step error:', e.message)
+      }
+    }, 500)
 
     res.json({ success: true, message: `Surat berhasil di-${action}` })
   } catch (err) {

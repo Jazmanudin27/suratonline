@@ -25,7 +25,9 @@ import {
   HelpCircle,
   Download,
   Navigation,
+  MessageSquare,
 } from 'lucide-react'
+import WhatsAppSettingsModal from './WhatsAppSettingsModal'
 import {
   getUsers,
   getLetters,
@@ -60,6 +62,7 @@ export default function AdminLayout({
   const [sharedFilter, setSharedFilter] = useState('all') // 'all' | 'unread' | 'read'
   const [readVersion, setReadVersion] = useState(0)
   const [userSearchTerm, setUserSearchTerm] = useState('')
+  const [showWaSettings, setShowWaSettings] = useState(false)
 
   const sharedDropdownRef = useRef(null)
   const notifDropdownRef = useRef(null)
@@ -193,6 +196,7 @@ export default function AdminLayout({
       badge: pendingCount > 0 ? pendingCount : null,
       badgeClass: 'bg-amber-500 text-slate-950 font-black',
     },
+    /*
     {
       id: 'gps',
       label: 'Pelacak GPS Armada',
@@ -201,6 +205,7 @@ export default function AdminLayout({
       badge: 'LIVE',
       badgeClass: 'bg-sky-500/20 text-sky-300 border border-sky-500/30',
     },
+    */
     ...(isCrmOrIt(currentUser)
       ? [
           {
@@ -288,6 +293,19 @@ export default function AdminLayout({
                 >
                   <Download className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="hidden sm:inline">Install App</span>
+                </button>
+              )}
+
+              {/* Tombol Setting WhatsApp Gateway (Khusus Admin / CRM / IT) */}
+              {isCrmOrIt(currentUser) && (
+                <button
+                  type="button"
+                  onClick={() => setShowWaSettings(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-500/30 transition text-xs font-semibold shadow-xs"
+                  title="Konfigurasi WhatsApp Gateway (Notifikasi Otomatis Approver)"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-teal-400" />
+                  <span className="hidden sm:inline">Setting WA</span>
                 </button>
               )}
 
@@ -810,6 +828,14 @@ export default function AdminLayout({
       <main className="flex-1 w-full px-3 sm:px-4 lg:px-5 py-2.5 sm:py-3">
         {children}
       </main>
+
+      {/* Modal Pengaturan WhatsApp Gateway */}
+      {showWaSettings && (
+        <WhatsAppSettingsModal
+          isOpen={showWaSettings}
+          onClose={() => setShowWaSettings(false)}
+        />
+      )}
     </div>
   )
 }

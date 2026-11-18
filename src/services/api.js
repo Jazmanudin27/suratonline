@@ -251,12 +251,12 @@ export const api = {
     }
   },
 
-  async submitDecision(letterId, action, notes, userName, kodeJabatan, isKnownBy = false) {
+  async submitDecision(letterId, action, notes, userName, kodeJabatan, isKnownBy = false, signature = null) {
     try {
       const res = await fetch(`${API_BASE}/letters/${letterId}/decision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, notes, userName, kodeJabatan, isKnownBy }),
+        body: JSON.stringify({ action, notes, userName, kodeJabatan, isKnownBy, signature }),
       })
       return await res.json()
     } catch (e) {

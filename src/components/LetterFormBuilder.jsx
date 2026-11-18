@@ -27,11 +27,13 @@ import {
   ChevronUp,
   Search,
   Check,
+  PenTool,
 } from "lucide-react";
 import RichEditor from "./RichEditor";
 import LetterDocumentView from "./LetterDocumentView";
 import AttachmentUploader from "./AttachmentUploader";
 import SearchableSelect from "./SearchableSelect";
+import SignaturePadModal from "./SignaturePadModal";
 import {
   getCurrentUser,
   getUsers,
@@ -121,6 +123,12 @@ export default function LetterFormBuilder({
       }
     );
   });
+
+  // State Goresan Paraf / Tanda Tangan Pemohon
+  const [submitterSignature, setSubmitterSignature] = useState(
+    () => initialLetter?.submitterSignature || initialLetter?.fieldValues?.submitterSignature || null
+  );
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
 
   // State Layar Penuh (Word Fullscreen Mode)
   const [isWordFullscreen, setIsWordFullscreen] = useState(false);
@@ -685,9 +693,11 @@ export default function LetterFormBuilder({
       knownByPosition: includeKnownBy ? knownByPosition : "",
       allowedViewers,
       imageLayout,
+      submitterSignature: submitterSignature || null,
       approvalHistory: customApprovalSteps,
       fieldValues: {
         ...fieldValues,
+        submitterSignature: submitterSignature || null,
         rincian_biaya: costItems,
         total_biaya: totalCost,
         attachments: persistentAttachments,
@@ -771,9 +781,11 @@ export default function LetterFormBuilder({
       knownByPosition: includeKnownBy ? knownByPosition : "",
       allowedViewers,
       imageLayout,
+      submitterSignature: submitterSignature || null,
       approvalHistory: customApprovalSteps,
       fieldValues: {
         ...fieldValues,
+        submitterSignature: submitterSignature || null,
         rincian_biaya: costItems,
         total_biaya: totalCost,
         attachments: persistentAttachments,
@@ -836,6 +848,11 @@ export default function LetterFormBuilder({
     knownByName: includeKnownBy ? knownByName : "",
     knownByPosition: includeKnownBy ? knownByPosition : "",
     allowedViewers,
+    submitterSignature: submitterSignature || null,
+    fieldValues: {
+      ...fieldValues,
+      submitterSignature: submitterSignature || null,
+    },
     content: isMandiri
       ? letterContent &&
         !letterContent.includes("Sehubungan dengan kebutuhan operasional")
@@ -999,6 +1016,22 @@ export default function LetterFormBuilder({
               >
                 <Paperclip className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Kelola Lampiran &amp; Foto ({attachments.length})</span>
+              </button>
+
+              {/* Tombol Paraf / Tanda Tangan Pemohon */}
+              <button
+                type="button"
+                id="btn-signature-pad"
+                onClick={() => setShowSignaturePad(true)}
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition border shadow-2xs ${
+                  submitterSignature
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                    : "bg-white border-slate-300 hover:bg-slate-50 text-slate-800 hover:border-indigo-400"
+                }`}
+                title="Bubuhi goresan paraf atau tanda tangan pemohon"
+              >
+                <PenTool className={`w-3.5 h-3.5 ${submitterSignature ? "text-emerald-600" : "text-indigo-600"}`} />
+                <span>{submitterSignature ? "Paraf Pemohon ✓" : "Bubuhi Paraf"}</span>
               </button>
             </div>
           </div>
@@ -2117,6 +2150,23 @@ export default function LetterFormBuilder({
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODAL GORESAN TANDA TANGAN / PARAF PEMOHON */}
+      {showSignaturePad && (
+        <SignaturePadModal
+          isOpen={showSignaturePad}
+          onClose={() => setShowSignaturePad(false)}
+          userName={currentUser?.name || fieldValues.nama_pemohon || "Pemohon"}
+          userPosition={currentUser?.position || fieldValues.jabatan || "Pemohon"}
+          userId={currentUser?.id}
+          title="Paraf Pemohon Dokumen"
+          subtitle="Goreskan tanda tangan atau paraf Anda sebagai pemohon surat ini"
+          onSave={(sigDataUrl) => {
+            setSubmitterSignature(sigDataUrl);
+            notify.success("Paraf Pemohon Tersimpan", "Goresan paraf berhasil dibubuhkan pada surat.");
+          }}
+        />
       )}
     </div>
   );

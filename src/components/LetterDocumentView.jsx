@@ -717,18 +717,14 @@ export default function LetterDocumentView({
 
     const generateQrs = async () => {
       const qrs = {}
+      const verifyUrl = `${window.location.origin}/verify?id=${encodeURIComponent(letter.id || letter.letterNumber || '')}`
+
       if (letter.approvalHistory) {
         for (let i = 0; i < letter.approvalHistory.length; i++) {
           const step = letter.approvalHistory[i]
           if (step.status === 'approved') {
-            const verificationPayload = [
-              `Nomor Surat: ${letter.letterNumber || '-'}`,
-              `Waktu Persetujuan: ${formatDateTimeId(step.date || new Date())}`,
-              `Orang: ${step.approverName || 'Pejabat Berwenang'}`,
-            ].join('\n')
-
             try {
-              const url = await generateQrWithLogo(verificationPayload)
+              const url = await generateQrWithLogo(verifyUrl)
               qrs[`step_${i}`] = url
             } catch (err) {
               console.warn('QR Code generation error:', err)
@@ -739,13 +735,7 @@ export default function LetterDocumentView({
 
       // Generate submitter verification QR (Dibuat Oleh)
       try {
-        const submitterPayload = [
-          `Nomor Surat: ${letter.letterNumber || '-'}`,
-          `Waktu Persetujuan: ${formatDateTimeId(letter.createdAt || new Date())}`,
-          `Orang: ${submitterName}`,
-        ].join('\n')
-
-        const submitterUrl = await generateQrWithLogo(submitterPayload)
+        const submitterUrl = await generateQrWithLogo(verifyUrl)
         qrs['submitter'] = submitterUrl
       } catch (err) {
         console.warn('Submitter QR error:', err)
@@ -754,13 +744,7 @@ export default function LetterDocumentView({
       // Mengetahui QR (Kanan) HANYA dibuat dan tampil jika hasKnownBy aktif dan setelah surat disetujui
       if (hasKnownBy && isKnownByApproved) {
         try {
-          const knownByPayload = [
-            `Nomor Surat: ${letter.letterNumber || '-'}`,
-            `Waktu Persetujuan: ${formatDateTimeId(knownByTime)}`,
-            `Orang: ${effectiveKnownByName}`,
-          ].join('\n')
-
-          const knownByUrl = await generateQrWithLogo(knownByPayload)
+          const knownByUrl = await generateQrWithLogo(verifyUrl)
           qrs['knownBy'] = knownByUrl
         } catch (err) {
           console.warn('KnownBy QR error:', err)
@@ -974,15 +958,51 @@ export default function LetterDocumentView({
       })()}
 
       {/* Official Indonesian Letter Document Container (Standard A4 Format) */}
-      <div className="bg-slate-200/80 p-2 sm:p-6 rounded-xl flex justify-center overflow-x-auto print:p-0 print:m-0 print:bg-white print:overflow-visible print:rounded-none print:border-none print:shadow-none">
-        <div ref={documentRef} className="w-full max-w-[794px] space-y-8 flex flex-col items-center print:max-w-none print:space-y-0 print:w-full">
-          {/* ==================== HALAMAN 1: SURAT PERMOHONAN ==================== */}
-          <div
-            className="page-sheet a4-page bg-white w-full max-w-[794px] p-8 sm:p-12 shadow-lg rounded-sm border border-slate-300 text-slate-900 leading-normal min-h-[1123px] flex flex-col justify-between relative overflow-hidden"
-            style={{ fontFamily: "Tahoma, Arial, sans-serif", fontSize: "11pt" }}
-          >
-            {/* Watermark Logo Perusahaan */}
-            <div className="page-watermark" aria-hidden="true" />
+      {(() => {
+        const submitterSig = letter?.submitterSignature || letter?.fieldValues?.submitterSignature || null
+        const knownBySig = letter?.knownBySignature || letter?.fieldValues?.knownBySignature || null
+
+        const renderSecurityWatermark = () => {
+          if (!letter || letter.status === 'approved') return null
+          return (
+            <div
+              className="pointer-events-none absolute inset-0 flex items-center justify-center select-none z-30 overflow-hidden"
+              aria-hidden="true"
+            >
+              <div
+                className={`transform -rotate-35 border-8 rounded-3xl py-6 px-10 text-center select-none opacity-20 print:opacity-30 ${
+                  letter.status === 'rejected'
+                    ? 'border-rose-600 text-rose-600'
+                    : letter.status === 'revision'
+                    ? 'border-amber-600 text-amber-600'
+                    : 'border-slate-500 text-slate-500'
+                }`}
+              >
+                <div className="font-black text-2xl sm:text-4xl uppercase tracking-widest leading-tight">
+                  {letter.status === 'draft' && 'DRAFT / BELUM DIAJUKAN'}
+                  {letter.status === 'pending' && 'BELUM SAH - MENUNGGU PERSETUJUAN'}
+                  {letter.status === 'revision' && 'PERLU REVISI / DITUNDA'}
+                  {letter.status === 'rejected' && 'DITOLAK / TIDAK BERLAKU'}
+                </div>
+                <div className="text-[11px] sm:text-xs font-bold tracking-normal mt-2 opacity-90">
+                  Dokumen ini belum memiliki kekuatan hukum resmi
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+        return (
+          <div className="bg-slate-200/80 p-2 sm:p-6 rounded-xl flex justify-center overflow-x-auto print:p-0 print:m-0 print:bg-white print:overflow-visible print:rounded-none print:border-none print:shadow-none">
+            <div ref={documentRef} className="w-full max-w-[794px] space-y-8 flex flex-col items-center print:max-w-none print:space-y-0 print:w-full">
+              {/* ==================== HALAMAN 1: SURAT PERMOHONAN ==================== */}
+              <div
+                className="page-sheet a4-page bg-white w-full max-w-[794px] p-8 sm:p-12 shadow-lg rounded-sm border border-slate-300 text-slate-900 leading-normal min-h-[1123px] flex flex-col justify-between relative overflow-hidden"
+                style={{ fontFamily: "Tahoma, Arial, sans-serif", fontSize: "11pt" }}
+              >
+                {/* Watermark Logo Perusahaan */}
+                <div className="page-watermark" aria-hidden="true" />
+                {renderSecurityWatermark()}
 
             <div className="relative z-10">
               {/* KOP SURAT RESMI PERUSAHAAN (SESUAI CABANG & PT) */}
@@ -1061,18 +1081,25 @@ export default function LetterDocumentView({
                     </p>
                   </div>
 
-                  <div className="w-22 h-22 sm:w-24 sm:h-24 p-1 bg-white border border-slate-300 rounded-md shadow-xs flex items-center justify-center my-1 print:border-none print:p-0">
-                    {qrCodes['submitter'] ? (
-                      <img
-                        src={qrCodes['submitter']}
-                        alt="QR Dibuat"
-                        className="w-full h-full object-contain [image-rendering:crisp-edges]"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                        <QrIcon className="w-6 h-6 text-slate-400" />
+                  <div className="flex items-center justify-center gap-1.5 my-1">
+                    {submitterSig && (
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center p-0.5">
+                        <img src={submitterSig} alt="Paraf Pemohon" className="max-h-full max-w-full object-contain" />
                       </div>
                     )}
+                    <div className="w-20 h-20 sm:w-22 sm:h-22 p-1 bg-white border border-slate-300 rounded-md shadow-xs flex items-center justify-center print:border-none print:p-0">
+                      {qrCodes['submitter'] ? (
+                        <img
+                          src={qrCodes['submitter']}
+                          alt="QR Dibuat"
+                          className="w-full h-full object-contain [image-rendering:crisp-edges]"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                          <QrIcon className="w-6 h-6 text-slate-400" />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-1.5 text-center text-[11px] leading-snug text-slate-900">
@@ -1093,9 +1120,14 @@ export default function LetterDocumentView({
                       <p className="text-xs font-bold text-slate-900 leading-none">Mengetahui,</p>
                     </div>
 
-                    <div className="relative w-22 h-22 sm:w-24 sm:h-24 p-1 flex items-center justify-center my-1 print:p-0">
+                    <div className="relative flex items-center justify-center gap-1.5 my-1 print:p-0">
+                      {knownBySig && isKnownByApproved && (
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center p-0.5">
+                          <img src={knownBySig} alt="Paraf Mengetahui" className="max-h-full max-w-full object-contain" />
+                        </div>
+                      )}
                       {qrCodes['knownBy'] ? (
-                        <div className="w-full h-full p-0.5 bg-white border border-slate-300 rounded-md shadow-xs flex items-center justify-center print:border-none print:p-0">
+                        <div className="w-20 h-20 sm:w-22 sm:h-22 p-0.5 bg-white border border-slate-300 rounded-md shadow-xs flex items-center justify-center print:border-none print:p-0">
                           <img
                             src={qrCodes['knownBy']}
                             alt="QR Mengetahui"
@@ -1103,7 +1135,7 @@ export default function LetterDocumentView({
                           />
                         </div>
                       ) : (
-                        <div className="w-full h-full border border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 p-2">
+                        <div className="w-22 h-22 sm:w-24 sm:h-24 border border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 p-2">
                           <span className={`text-[11px] text-center italic leading-tight font-medium ${
                             (letter?.knownByStatus === 'revision' || letter?.fieldValues?.knownByStatus === 'revision')
                               ? 'text-orange-600 font-bold'
@@ -1160,6 +1192,7 @@ export default function LetterDocumentView({
           >
             {/* Watermark Logo Perusahaan */}
             <div className="page-watermark" aria-hidden="true" />
+            {renderSecurityWatermark()}
 
             <div className="relative z-10">
               {/* JUDUL HALAMAN 2 */}
@@ -1200,20 +1233,27 @@ export default function LetterDocumentView({
                             {/* KOLOM 1: KOTAK TANDA TANGAN PEJABAT */}
                             <td className="w-[34%] border-r border-slate-900 p-3 text-center align-bottom min-h-[125px]">
                               <div className="flex flex-col items-center justify-between min-h-[115px]">
-                                {/* QR Code Tanda Tangan */}
-                                <div className="flex-1 flex items-center justify-center my-1">
+                                {/* QR Code & Goresan Tanda Tangan */}
+                                <div className="flex-1 flex items-center justify-center gap-1.5 my-1">
                                   {isApproved ? (
-                                    <div className="w-22 h-22 sm:w-24 sm:h-24 p-1 bg-white border border-slate-300 rounded shadow-xs flex items-center justify-center print:border-none print:p-0">
-                                      {qrCodes[`step_${originalIndex >= 0 ? originalIndex : idx}`] ? (
-                                        <img
-                                          src={qrCodes[`step_${originalIndex >= 0 ? originalIndex : idx}`]}
-                                          alt="QR Persetujuan"
-                                          className="w-full h-full object-contain [image-rendering:crisp-edges]"
-                                        />
-                                      ) : (
-                                        <QrIcon className="w-6 h-6 text-slate-400" />
+                                    <>
+                                      {step.signature && (
+                                        <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center p-0.5">
+                                          <img src={step.signature} alt="Paraf Pejabat" className="max-h-full max-w-full object-contain" />
+                                        </div>
                                       )}
-                                    </div>
+                                      <div className="w-20 h-20 sm:w-22 sm:h-22 p-1 bg-white border border-slate-300 rounded shadow-xs flex items-center justify-center print:border-none print:p-0">
+                                        {qrCodes[`step_${originalIndex >= 0 ? originalIndex : idx}`] ? (
+                                          <img
+                                            src={qrCodes[`step_${originalIndex >= 0 ? originalIndex : idx}`]}
+                                            alt="QR Persetujuan"
+                                            className="w-full h-full object-contain [image-rendering:crisp-edges]"
+                                          />
+                                        ) : (
+                                          <QrIcon className="w-6 h-6 text-slate-400" />
+                                        )}
+                                      </div>
+                                    </>
                                   ) : (
                                     <div className="text-[11px] text-slate-400 italic">
                                       {isPending
@@ -1330,9 +1370,10 @@ export default function LetterDocumentView({
               </div>
 
               <div
-                className="page-sheet a4-page bg-white w-full max-w-[794px] p-8 sm:p-12 shadow-lg rounded-sm border border-slate-300 text-slate-900 leading-normal min-h-[1123px] flex flex-col justify-between"
+                className="page-sheet a4-page bg-white w-full max-w-[794px] p-8 sm:p-12 shadow-lg rounded-sm border border-slate-300 text-slate-900 leading-normal min-h-[1123px] flex flex-col justify-between relative overflow-hidden"
                 style={{ fontFamily: "Tahoma, Arial, sans-serif", fontSize: "11pt" }}
               >
+                {renderSecurityWatermark()}
                 <div>
                   {/* JUDUL HALAMAN 3 */}
                   <div className="text-center mb-6">
@@ -1601,6 +1642,8 @@ export default function LetterDocumentView({
           })}
         </div>
       </div>
+        )
+      })()}
 
       {/* Berkas Lampiran Pendukung (Excel, Gambar, Dokumen) */}
       {attachments.length > 0 && (

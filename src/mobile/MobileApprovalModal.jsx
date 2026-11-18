@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { ShieldCheck, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
+import { ShieldCheck, CheckCircle2, AlertTriangle, XCircle, PenTool } from 'lucide-react'
 import { notify } from '../utils/alert'
+import SignaturePadModal from '../components/SignaturePadModal'
 
 export default function MobileApprovalModal({
   letter,
@@ -12,6 +13,8 @@ export default function MobileApprovalModal({
 }) {
   const [actionType, setActionType] = useState('approve') // 'approve' | 'revision' | 'reject'
   const [notes, setNotes] = useState('')
+  const [drawnSignature, setDrawnSignature] = useState(null)
+  const [showSignaturePad, setShowSignaturePad] = useState(false)
 
   if (!letter) return null
 
@@ -23,7 +26,7 @@ export default function MobileApprovalModal({
 
   const handleSubmit = () => {
     if (actionType === 'approve') {
-      onApprove(letter.id, notes.trim())
+      onApprove(letter.id, notes.trim(), drawnSignature)
       onClose()
     } else if (actionType === 'revision') {
       if (!notes.trim()) {
@@ -130,6 +133,26 @@ export default function MobileApprovalModal({
             </div>
           </div>
 
+          {/* Pilihan Goresan Paraf Digital Saat Setujui */}
+          {actionType === 'approve' && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="font-bold text-emerald-950 block text-xs">Goresan Paraf Digital</span>
+                <span className="text-[11px] text-emerald-700 truncate block">
+                  {drawnSignature ? 'Paraf sudah dibubuhkan ✓' : 'Opsional: goreskan paraf dengan jari'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSignaturePad(true)}
+                className="px-3 py-1.5 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1"
+              >
+                <PenTool size={13} />
+                <span>{drawnSignature ? 'Ubah' : 'Bubuhi Paraf'}</span>
+              </button>
+            </div>
+          )}
+
           {/* Input Catatan */}
           <div>
             <label className="block text-slate-700 font-bold mb-1 text-xs">
@@ -180,6 +203,23 @@ export default function MobileApprovalModal({
           </button>
         </div>
       </div>
+
+      {/* Modal Signature Pad */}
+      {showSignaturePad && (
+        <SignaturePadModal
+          isOpen={showSignaturePad}
+          onClose={() => setShowSignaturePad(false)}
+          userName={currentUser?.name || "Pejabat Penyetuju"}
+          userPosition={currentUser?.position || currentUser?.roleLabel || "Pejabat"}
+          userId={currentUser?.id}
+          title="Paraf Persetujuan Mobile"
+          subtitle={`Goreskan tanda tangan / paraf untuk surat ${letter.letterNumber || ''}`}
+          onSave={(sigDataUrl) => {
+            setDrawnSignature(sigDataUrl)
+            notify.success('Paraf Tersimpan', 'Goresan paraf berhasil dibubuhkan.')
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -15,8 +15,10 @@ import {
   Edit,
   History,
   MessageSquare,
+  PenTool,
 } from 'lucide-react'
 import LetterDocumentView from './LetterDocumentView'
+import SignaturePadModal from './SignaturePadModal'
 import {
   getLetters,
   getCurrentUser,
@@ -190,6 +192,8 @@ export default function ApproverInbox({ onLetterUpdated, onEditLetter }) {
   const [noteModalOpen, setNoteModalOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
   const [targetNoteStepIndex, setTargetNoteStepIndex] = useState(0)
+  const [showSignatureModal, setShowSignatureModal] = useState(false)
+  const [pendingApprovalNote, setPendingApprovalNote] = useState('')
 
   const findUserStepIndex = (letter, user) => {
     if (!letter || !user) return -1
@@ -660,6 +664,29 @@ export default function ApproverInbox({ onLetterUpdated, onEditLetter }) {
                       onClick={() => {
                         const stepIdx = (selectedLetter.currentStep || 1) - 1
                         const existingNote = selectedLetter.approvalHistory?.[stepIdx]?.notes || ''
+                        const isMengetahui =
+                          selectedLetter.currentStep === 1 ||
+                          currentUser?.kodeJabatan === 'J08' ||
+                          /operation\s*manager|\bOM\b/i.test(currentUser?.position || '')
+
+                        let note = existingNote
+                        if (!note && !isMengetahui) {
+                          note = window.prompt('Catatan persetujuan (opsional):', 'Disetujui.') || ''
+                        }
+                        setPendingApprovalNote(note)
+                        setShowSignatureModal(true)
+                      }}
+                      className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-lg flex items-center gap-1.5 transition shadow-xs"
+                      title="Setujui dan bubuhkan tanda tangan / paraf digital"
+                    >
+                      <PenTool className="w-3.5 h-3.5" />
+                      <span>Setujui &amp; Paraf</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const stepIdx = (selectedLetter.currentStep || 1) - 1
+                        const existingNote = selectedLetter.approvalHistory?.[stepIdx]?.notes || ''
 
                         const isMengetahui =
                           selectedLetter.currentStep === 1 ||
@@ -679,11 +706,11 @@ export default function ApproverInbox({ onLetterUpdated, onEditLetter }) {
                           if (onLetterUpdated) onLetterUpdated()
                         }
                       }}
-                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg flex items-center gap-1.5 transition shadow-xs"
-                      title="Setujui Surat & Tanda Tangani Sah"
+                      className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg flex items-center gap-1.5 transition shadow-xs text-xs"
+                      title="Setujui langsung (QR Code otomatis tanpa goresan manual)"
                     >
-                      <Check className="w-4 h-4 stroke-[3]" />
-                      <span>Setujui</span>
+                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Setujui Cepat</span>
                     </button>
 
                   </>
@@ -1068,6 +1095,28 @@ export default function ApproverInbox({ onLetterUpdated, onEditLetter }) {
           onClose={() => {
             setChatLetter(null)
             refreshLetters()
+          }}
+        />
+      )}
+
+      {/* MODAL GORESAN TANDA TANGAN / PARAF APPROVER */}
+      {showSignatureModal && selectedLetter && (
+        <SignaturePadModal
+          isOpen={showSignatureModal}
+          onClose={() => setShowSignatureModal(false)}
+          userName={currentUser?.name || "Pejabat Penyetuju"}
+          userPosition={currentUser?.position || currentUser?.roleLabel || "Pejabat"}
+          userId={currentUser?.id}
+          title="Tanda Tangan / Paraf Persetujuan"
+          subtitle={`Goreskan tanda tangan persetujuan resmi untuk surat ${selectedLetter.letterNumber}`}
+          onSave={(sigDataUrl) => {
+            const updated = approveLetter(selectedLetter.id, pendingApprovalNote, sigDataUrl)
+            if (updated) {
+              setSelectedLetter({ ...updated })
+              notify.success('Surat Disetujui!', `Surat ${selectedLetter.letterNumber} berhasil disetujui & paraf digital tersimpan.`)
+              refreshLetters()
+              if (onLetterUpdated) onLetterUpdated()
+            }
           }}
         />
       )}

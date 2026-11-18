@@ -22,8 +22,10 @@ import {
   Mail,
   CheckCheck,
   Check,
+  Download,
 } from 'lucide-react'
 import ShareLetterModal from './ShareLetterModal'
+import { exportLettersToExcel } from '../utils/excelExport'
 import {
   formatDateId,
   formatDateTimeId,
@@ -440,9 +442,20 @@ export default function LetterList({
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 bg-white/15 text-white border border-white/20 backdrop-blur-xs rounded-lg">
-            Total: {filteredLetters.length} Dokumen
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => exportLettersToExcel(filteredLetters, { status: statusFilter, branch: branchFilter, category: categoryFilter })}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 shadow-sm border border-emerald-400/40"
+              title="Ekspor seluruh data surat terfilter ke file Excel (.xlsx)"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Ekspor Excel (.xlsx)</span>
+            </button>
+            <span className="text-xs font-semibold px-2.5 py-1 bg-white/15 text-white border border-white/20 backdrop-blur-xs rounded-lg">
+              Total: {filteredLetters.length} Dokumen
+            </span>
+          </div>
         </div>
       </div>
 

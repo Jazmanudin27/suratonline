@@ -1767,48 +1767,34 @@ export const isLetterVisibleToUser = (letter, currentUser) => {
 
   // 5. Penyetuju yang Terlibat dalam Alur Persetujuan (Approval History)
   const isInApproval = (letter.approvalHistory || []).some((st) => {
-    // 5a. Spesifik user
+    // 5a. Spesifik user (ID atau Nama cocok persis)
     if (st.specificUserId && String(st.specificUserId) === uid) return true
     if (st.specificUserName && st.specificUserName.trim().toLowerCase() === uName) return true
     if (st.approverName && st.approverName.trim().toLowerCase() === uName) return true
 
+    // Jika step ini sudah ditentukan user spesifik, JANGAN izinkan user lain mencocokkan step ini!
     if (st.assignmentType === 'user' || Boolean(st.specificUserId || st.specificUserName)) {
       return false
     }
 
-    // 5b. Kode jabatan match
-    if (st.kodeJabatan && currentUser.kodeJabatan && st.kodeJabatan === currentUser.kodeJabatan) {
-      if (st.kodeJabatan === 'J08' && currentUser.branchId) {
-        return letter.branchId === currentUser.branchId || !letter.branchId
-      }
-      if (st.kodeJabatan === 'J03') {
-        if (st.specificUserId && String(st.specificUserId) !== uid) return false
-        if (st.specificUserName && st.specificUserName.trim().toLowerCase() !== uName) return false
+    // 5b. Jabatan match (Hanya jika tahap bersifat role umum tanpa specific user)
+    // Untuk jabatan tingkat cabang (J04-J08, Kepala Cabang, OM, SMM), WAJIB dari cabang yang sama
+    const isBranchRole =
+      ['J04', 'J05', 'J06', 'J07', 'J08'].includes(st.kodeJabatan) ||
+      (st.approverRole && /cabang|om|smm|kepala|operation manager/i.test(st.approverRole))
+
+    if (isBranchRole) {
+      if (!currentUser.branchId || !letter.branchId) return false
+      const isSameBranch = String(currentUser.branchId).toLowerCase() === String(letter.branchId).toLowerCase()
+      if (!isSameBranch) return false
+
+      if (st.kodeJabatan && currentUser.kodeJabatan && st.kodeJabatan === currentUser.kodeJabatan) {
         return true
       }
-      return true
+      return false
     }
 
-    // 5c. Approver role match
-    const roleReq = (st.approverRole || '').toLowerCase()
-    const userPos = (currentUser.position || currentUser.roleLabel || '').toLowerCase()
-    if (roleReq && userPos && (userPos.includes(roleReq) || roleReq.includes(userPos))) {
-      if (roleReq.includes('operation manager') || roleReq.includes('om')) {
-        return letter.branchId === currentUser.branchId || !letter.branchId
-      }
-      if (roleReq.includes('rsm') || roleReq.includes('regional sales manager')) {
-        if (st.specificUserId && String(st.specificUserId) !== uid) return false
-        if (st.specificUserName && st.specificUserName.trim().toLowerCase() !== uName) return false
-        return true
-      }
-      return true
-    }
-
-    // 5d. Fallback approvalLevel
-    if (currentUser.role === 'approver' && st.step === currentUser.approvalLevel) {
-      return true
-    }
-
+    // Untuk RSM (J03) atau jabatan lain tanpa specific user
     return false
   })
 
@@ -1843,19 +1829,10 @@ export const isLetterVisibleToUser = (letter, currentUser) => {
   })
   if (isSharedWith) return true
 
-  // 7. Pengguna Cabang (Melihat surat resmi dari cabangnya sendiri)
-  const isPusatExecutive =
-    currentUser.kodeJabatan === 'J01' || // Direktur
-    currentUser.kodeJabatan === 'J02' || // GM
-    currentUser.kodeJabatan === 'J03'    // RSM
-
-  if (!isPusatExecutive && currentUser.branchId) {
-    const userBranch = currentUser.branchId
-    const userBranchName = currentUser.branchName?.toLowerCase()?.replace('cabang ', '')?.trim()
-    const isSameBranch =
-      (userBranch && (letter.branchId === userBranch || String(letter.branchId).toLowerCase() === String(userBranch).toLowerCase())) ||
-      (userBranchName && letter.branchName && letter.branchName.toLowerCase().includes(userBranchName))
-    if (isSameBranch) return true
+  // 7. Pengguna Cabang (Hanya melihat surat yang sudah sah/approved dari cabangnya sendiri)
+  if (currentUser.branchId && currentUser.branchId !== 'PST' && letter.branchId) {
+    const isSameBranch = String(letter.branchId).toLowerCase() === String(currentUser.branchId).toLowerCase()
+    if (isSameBranch && letter.status === 'approved') return true
   }
 
   return false

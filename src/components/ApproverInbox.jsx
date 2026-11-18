@@ -78,38 +78,19 @@ export const isUserInApprovalChain = (letter, user) => {
         return false
       }
 
-      // 2. Kode jabatan match
-      if (step.kodeJabatan && user.kodeJabatan && step.kodeJabatan === user.kodeJabatan) {
-        if (step.kodeJabatan === 'J08' && user.branchId) {
-          return letter.branchId === user.branchId || !letter.branchId
-        }
-        // Regional Sales Manager (RSM / J03) - pastikan hanya surat cabang di regional miliknya
-        if (step.kodeJabatan === 'J03') {
-          if (step.specificUserId && String(step.specificUserId) !== String(user.id)) return false
-          if (step.specificUserName && step.specificUserName.toLowerCase() !== user.name?.toLowerCase()) return false
+      // 2. Kode jabatan & role match (Hanya jika tahap bersifat role umum tanpa specific user)
+      const isBranchRole =
+        ['J04', 'J05', 'J06', 'J07', 'J08'].includes(step.kodeJabatan) ||
+        (step.approverRole && /cabang|om|smm|kepala|operation manager/i.test(step.approverRole))
+
+      if (isBranchRole) {
+        if (!user.branchId || !letter.branchId) return false
+        const isSameBranch = String(user.branchId).toLowerCase() === String(letter.branchId).toLowerCase()
+        if (!isSameBranch) return false
+        if (step.kodeJabatan && user.kodeJabatan && step.kodeJabatan === user.kodeJabatan) {
           return true
         }
-        return true
-      }
-
-      // 3. Approver role match
-      const roleReq = (step.approverRole || '').toLowerCase()
-      const userPos = (user.position || user.roleLabel || '').toLowerCase()
-      if (roleReq && userPos && (userPos.includes(roleReq) || roleReq.includes(userPos))) {
-        if (roleReq.includes('operation manager') || roleReq.includes('om')) {
-          return letter.branchId === user.branchId || !letter.branchId
-        }
-        if (roleReq.includes('rsm') || roleReq.includes('regional sales manager')) {
-          if (step.specificUserId && String(step.specificUserId) !== String(user.id)) return false
-          if (step.specificUserName && step.specificUserName.toLowerCase() !== user.name?.toLowerCase()) return false
-          return true
-        }
-        return true
-      }
-
-      // 4. Fallback approvalLevel
-      if (user.role === 'approver' && step.step === user.approvalLevel) {
-        return true
+        return false
       }
 
       return false
@@ -143,37 +124,18 @@ export const canUserApproveLetter = (letter, user) => {
   }
 
   // JIKA TAHAP ROLE UMUM (bukan user spesifik):
-  const expectedKode = currentStepInfo.kodeJabatan
-  if (expectedKode && user.kodeJabatan === expectedKode) {
-    if (expectedKode === 'J08' && user.branchId) {
-      return letter.branchId === user.branchId || !letter.branchId
-    }
-    if (expectedKode === 'J03') {
-      if (currentStepInfo.specificUserId && String(currentStepInfo.specificUserId) !== String(user.id)) return false
-      if (currentStepInfo.specificUserName && currentStepInfo.specificUserName.toLowerCase() !== user.name?.toLowerCase()) return false
+  const isBranchRole =
+    ['J04', 'J05', 'J06', 'J07', 'J08'].includes(currentStepInfo.kodeJabatan) ||
+    (currentStepInfo.approverRole && /cabang|om|smm|kepala|operation manager/i.test(currentStepInfo.approverRole))
+
+  if (isBranchRole) {
+    if (!user.branchId || !letter.branchId) return false
+    const isSameBranch = String(user.branchId).toLowerCase() === String(letter.branchId).toLowerCase()
+    if (!isSameBranch) return false
+    if (currentStepInfo.kodeJabatan && user.kodeJabatan && currentStepInfo.kodeJabatan === user.kodeJabatan) {
       return true
     }
-    return true
-  }
-
-  const expectedRole = currentStepInfo.approverRole
-  if (expectedRole && (
-    user.position?.toLowerCase().includes(expectedRole.toLowerCase()) || 
-    user.roleLabel?.toLowerCase().includes(expectedRole.toLowerCase())
-  )) {
-    if (expectedRole.toLowerCase().includes('operation manager') || expectedRole.toLowerCase().includes('om')) {
-      return letter.branchId === user.branchId || !letter.branchId
-    }
-    if (expectedRole.toLowerCase().includes('rsm') || expectedRole.toLowerCase().includes('regional sales manager')) {
-      if (currentStepInfo.specificUserId && String(currentStepInfo.specificUserId) !== String(user.id)) return false
-      if (currentStepInfo.specificUserName && currentStepInfo.specificUserName.toLowerCase() !== user.name?.toLowerCase()) return false
-      return true
-    }
-    return true
-  }
-
-  if (user.role === 'approver' && letter.currentStep === user.approvalLevel) {
-    return true
+    return false
   }
 
   return false

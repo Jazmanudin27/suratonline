@@ -96,7 +96,7 @@ export default function MobileApproverInbox({
         ((s.specificUserId && String(s.specificUserId) === uid) ||
           (s.specificUserName && s.specificUserName.trim().toLowerCase() === uName) ||
           (s.approverName && s.approverName.trim().toLowerCase() === uName) ||
-          (s.kodeJabatan && currentUser?.kodeJabatan && s.kodeJabatan === currentUser.kodeJabatan))
+          (s.kodeJabatan && currentUser?.kodeJabatan && s.kodeJabatan === currentUser.kodeJabatan && (!['J04', 'J05', 'J06', 'J07', 'J08'].includes(s.kodeJabatan) || String(currentUser?.branchId).toLowerCase() === String(l.branchId).toLowerCase())))
     )
   })
 

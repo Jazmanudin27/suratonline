@@ -192,27 +192,23 @@ export default function LetterList({
     }
 
     // 2. Cocokkan kodeJabatan (jika tahap berbasis jabatan umum)
-    if (currentStepInfo.kodeJabatan && currentUser.kodeJabatan && currentStepInfo.kodeJabatan === currentUser.kodeJabatan) {
-      // Jika level cabang (seperti OM J08), pastikan cabangnya sesuai
-      if (currentStepInfo.kodeJabatan === 'J08' && currentUser.branchId) {
-        return letter.branchId === currentUser.branchId || !letter.branchId
+    const isBranchRole =
+      ['J04', 'J05', 'J06', 'J07', 'J08'].includes(currentStepInfo.kodeJabatan) ||
+      (currentStepInfo.approverRole && /cabang|om|smm|kepala|operation manager/i.test(currentStepInfo.approverRole))
+
+    if (isBranchRole) {
+      if (!currentUser.branchId || !letter.branchId) return false
+      const isSameBranch = String(currentUser.branchId).toLowerCase() === String(letter.branchId).toLowerCase()
+      if (!isSameBranch) return false
+      if (currentStepInfo.kodeJabatan && currentUser.kodeJabatan && currentStepInfo.kodeJabatan === currentUser.kodeJabatan) {
+        return true
       }
-      return true
+      return false
     }
 
     // 3. Cocokkan nama approver teresolusi
     const resolvedName = getApproverName(currentStepInfo, letter)
     if (resolvedName && currentUser.name && resolvedName.toLowerCase() === currentUser.name.toLowerCase()) {
-      return true
-    }
-
-    // 4. Cocokkan approverRole dengan position user
-    const roleReq = (currentStepInfo.approverRole || '').toLowerCase()
-    const userPos = (currentUser.position || currentUser.roleLabel || '').toLowerCase()
-    if (roleReq && userPos && (userPos.includes(roleReq) || roleReq.includes(userPos))) {
-      if (roleReq.includes('operation manager') || roleReq.includes('om')) {
-        return letter.branchId === currentUser.branchId || !letter.branchId
-      }
       return true
     }
 

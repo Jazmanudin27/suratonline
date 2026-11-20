@@ -35,6 +35,8 @@ import {
   setCurrentUser,
   getNotifications,
   markNotificationRead,
+  markAllNotificationsRead,
+  clearAllNotifications,
   getSharedLetterInfo,
   isSharedLetterRead,
   markSharedLetterRead,
@@ -61,6 +63,7 @@ export default function AdminLayout({
   const [showSharedDropdown, setShowSharedDropdown] = useState(false)
   const [sharedFilter, setSharedFilter] = useState('all') // 'all' | 'unread' | 'read'
   const [readVersion, setReadVersion] = useState(0)
+  const [notifVersion, setNotifVersion] = useState(0)
   const [userSearchTerm, setUserSearchTerm] = useState('')
   const [showWaSettings, setShowWaSettings] = useState(false)
 
@@ -70,8 +73,11 @@ export default function AdminLayout({
 
   useEffect(() => {
     const handleReadChange = () => setReadVersion((v) => v + 1)
+    const handleNotifChange = () => setNotifVersion((v) => v + 1)
     window.addEventListener('shared_read_change', handleReadChange)
     window.addEventListener('letters_change', handleReadChange)
+    window.addEventListener('notifications_change', handleNotifChange)
+    window.addEventListener('letters_change', handleNotifChange)
 
     const handleClickOutside = (e) => {
       if (sharedDropdownRef.current && !sharedDropdownRef.current.contains(e.target)) {
@@ -89,6 +95,8 @@ export default function AdminLayout({
     return () => {
       window.removeEventListener('shared_read_change', handleReadChange)
       window.removeEventListener('letters_change', handleReadChange)
+      window.removeEventListener('notifications_change', handleNotifChange)
+      window.removeEventListener('letters_change', handleNotifChange)
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
@@ -104,8 +112,10 @@ export default function AdminLayout({
 
   const users = getUsers()
   const currentUser = getCurrentUser()
-  const notifications = getNotifications(currentUser?.id)
-  const unreadNotifs = notifications.filter((n) => !n.isRead)
+  const notifications = useMemo(() => {
+    return getNotifications(currentUser?.id)
+  }, [currentUser, letters, notifVersion])
+  const unreadNotifs = useMemo(() => notifications.filter((n) => !n.isRead), [notifications])
 
   // Realtime Clock
   useEffect(() => {
@@ -595,8 +605,31 @@ export default function AdminLayout({
                 {showNotifDropdown && (
                   <div className="absolute right-0 mt-2 w-80 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-fadeIn">
                     <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-800">Notifikasi Persetujuan</span>
-                      <span className="text-[10px] text-slate-500 font-semibold">{notifications.length} Pesan</span>
+                      <div>
+                        <span className="font-bold text-slate-800 block">Notifikasi Persetujuan</span>
+                        <span className="text-[10px] text-slate-500 font-semibold">{notifications.length} Pesan</span>
+                      </div>
+                      {notifications.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => markAllNotificationsRead(currentUser?.id)}
+                            className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold cursor-pointer"
+                            title="Tandai semua pesan telah dibaca"
+                          >
+                            Tandai Dibaca
+                          </button>
+                          <span className="text-slate-300">&bull;</span>
+                          <button
+                            type="button"
+                            onClick={() => clearAllNotifications(currentUser?.id)}
+                            className="text-[10px] text-rose-600 hover:text-rose-800 font-bold cursor-pointer"
+                            title="Bersihkan seluruh notifikasi"
+                          >
+                            Hapus Semua
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs">
                       {notifications.length === 0 ? (
@@ -759,9 +792,9 @@ export default function AdminLayout({
           </div>
         </div>
 
-        {/* BARIS 2: Khusus Seluruh Menu Navigasi (Kompak & Berdekatan) */}
-        <div className="hidden md:block bg-slate-950 border-b border-slate-800/90 w-full px-3 sm:px-4 lg:px-5">
-          <nav className="flex items-center gap-0.5 py-1 overflow-x-auto scrollbar-none">
+        {/* BARIS 2: Khusus Seluruh Menu Navigasi (Tegas, Ber-Border & Menarik) */}
+        <div className="hidden md:block bg-slate-950 border-b border-slate-800/90 w-full px-3 sm:px-4 lg:px-5 py-2">
+          <nav className="flex items-center gap-2 overflow-x-auto scrollbar-none">
             {menuItems.map((item) => {
               const Icon = item.icon
               return (
@@ -769,16 +802,28 @@ export default function AdminLayout({
                   key={item.id}
                   id={`nav-item-${item.id}`}
                   onClick={() => onMenuChange(item.id)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-semibold text-xs transition duration-150 shrink-0 ${
+                  className={`group relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all duration-200 shrink-0 cursor-pointer border ${
                     item.isActive
-                      ? 'bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow-md shadow-indigo-500/25 ring-1 ring-white/10'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white border-blue-400/60 shadow-md shadow-blue-500/25 ring-2 ring-blue-500/30'
+                      : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800/90 border-slate-700/80 hover:border-slate-500 shadow-xs hover:shadow-sm'
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 shrink-0 ${item.isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span className="whitespace-nowrap">{item.label}</span>
+                  <Icon
+                    className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                      item.isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'
+                    }`}
+                  />
+                  <span className="whitespace-nowrap tracking-wide">{item.label}</span>
                   {item.badge && (
-                    <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${item.badgeClass}`}>
+                    <span
+                      className={`text-[9px] px-2 py-0.5 rounded-full font-black tracking-wider transition-all ${
+                        item.isActive
+                          ? 'bg-white/20 text-white border border-white/30'
+                          : item.badge === 'BARU'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-2xs'
+                          : 'bg-amber-500 text-slate-950 shadow-2xs'
+                      }`}
+                    >
                       {item.badge}
                     </span>
                   )}
@@ -790,7 +835,7 @@ export default function AdminLayout({
 
         {/* Mobile Dropdown Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-slate-950 border-b border-slate-800 px-4 py-3 space-y-1 animate-fadeIn">
+          <div className="md:hidden bg-slate-950 border-b border-slate-800 px-4 py-3 space-y-2 animate-fadeIn">
             {menuItems.map((item) => {
               const Icon = item.icon
               return (
@@ -800,18 +845,26 @@ export default function AdminLayout({
                     onMenuChange(item.id)
                     setMobileMenuOpen(false)
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-semibold text-xs transition ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs transition duration-200 border ${
                     item.isActive
-                      ? 'bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white border-blue-400/60 shadow-md shadow-blue-500/25 ring-1 ring-blue-400/30'
+                      : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800 border-slate-700/80'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4 shrink-0" />
+                    <Icon className={`w-4 h-4 shrink-0 ${item.isActive ? 'text-white' : 'text-slate-400'}`} />
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${item.badgeClass}`}>
+                    <span
+                      className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${
+                        item.isActive
+                          ? 'bg-white/20 text-white border border-white/30'
+                          : item.badge === 'BARU'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
+                          : 'bg-amber-500 text-slate-950'
+                      }`}
+                    >
                       {item.badge}
                     </span>
                   )}

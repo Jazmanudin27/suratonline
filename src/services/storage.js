@@ -1,135 +1,155 @@
-import { api } from './api'
+import { api } from "./api";
 
 const STORAGE_KEYS = {
-  USERS: 'suratajuan_users_v2',
-  CURRENT_USER: 'suratajuan_current_user_v2',
-  BRANCHES: 'suratajuan_branches_v2',
-  TEMPLATES: 'suratajuan_templates_v2',
-  LETTERS: 'suratajuan_letters_v2',
-  NOTIFICATIONS: 'suratajuan_notifications_v2',
-  AUDIT_LOGS: 'suratajuan_audit_logs_v2',
-  CATEGORIES: 'suratajuan_categories_v2',
-  GLOBAL_DEFAULT_VIEWERS: 'suratajuan_global_default_viewers_v2',
-  JABATAN: 'suratajuan_jabatan_v2',
-  PRODUCTS: 'suratajuan_products_v2',
-}
+  USERS: "suratajuan_users_v2",
+  CURRENT_USER: "suratajuan_current_user_v2",
+  BRANCHES: "suratajuan_branches_v2",
+  TEMPLATES: "suratajuan_templates_v2",
+  LETTERS: "suratajuan_letters_v2",
+  NOTIFICATIONS: "suratajuan_notifications_v2",
+  AUDIT_LOGS: "suratajuan_audit_logs_v2",
+  CATEGORIES: "suratajuan_categories_v2",
+  GLOBAL_DEFAULT_VIEWERS: "suratajuan_global_default_viewers_v2",
+  JABATAN: "suratajuan_jabatan_v2",
+  PRODUCTS: "suratajuan_products_v2",
+};
 
-export const DEFAULT_PRODUCTS = []
+export const DEFAULT_PRODUCTS = [];
 
-export const DEFAULT_HRD_JABATAN = []
-export const HRD_JABATAN = DEFAULT_HRD_JABATAN
+export const DEFAULT_HRD_JABATAN = [];
+export const HRD_JABATAN = DEFAULT_HRD_JABATAN;
 
 // Convert month number to Roman numerals
 export const getRomanMonth = (date = new Date()) => {
-  const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
-  return romanMonths[date.getMonth()]
-}
+  const romanMonths = [
+    "I",
+    "II",
+    "III",
+    "IV",
+    "V",
+    "VI",
+    "VII",
+    "VIII",
+    "IX",
+    "X",
+    "XI",
+    "XII",
+  ];
+  return romanMonths[date.getMonth()];
+};
 
 export const formatRupiah = (val) => {
-  if (val === null || val === undefined || isNaN(val)) return '0'
-  return new Intl.NumberFormat('id-ID').format(Number(val))
-}
+  if (val === null || val === undefined || isNaN(val)) return "0";
+  return new Intl.NumberFormat("id-ID").format(Number(val));
+};
 
 export const formatDateId = (dateString) => {
-  if (!dateString) return '-'
+  if (!dateString) return "-";
   try {
-    const d = new Date(dateString)
-    return d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
+    const d = new Date(dateString);
+    return d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   } catch {
-    return dateString
+    return dateString;
   }
-}
+};
 
 export const formatDateTimeId = (dateString) => {
-  if (!dateString) return '-'
+  if (!dateString) return "-";
   try {
-    const d = new Date(dateString)
-    if (isNaN(d.getTime())) return dateString
-    const datePart = d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-    const timePart = d.toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    }).replace(/\./g, ':')
-    return `${datePart} • ${timePart} WIB`
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString;
+    const datePart = d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+    const timePart = d
+      .toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+      .replace(/\./g, ":");
+    return `${datePart} • ${timePart} WIB`;
   } catch {
-    return dateString
+    return dateString;
   }
-}
+};
 
 // ==========================================
 // IndexedDB Engine & Resilient Storage
 // ==========================================
-const IDB_NAME = 'suratajuan_db_v2'
-const IDB_STORE = 'app_data'
+const IDB_NAME = "suratajuan_db_v2";
+const IDB_STORE = "app_data";
 
-let idbPromise = null
+let idbPromise = null;
 const getIDB = () => {
-  if (idbPromise) return idbPromise
-  if (typeof indexedDB === 'undefined') return Promise.resolve(null)
+  if (idbPromise) return idbPromise;
+  if (typeof indexedDB === "undefined") return Promise.resolve(null);
   idbPromise = new Promise((resolve) => {
     try {
-      const req = indexedDB.open(IDB_NAME, 1)
+      const req = indexedDB.open(IDB_NAME, 1);
       req.onupgradeneeded = (e) => {
-        const db = e.target.result
+        const db = e.target.result;
         if (!db.objectStoreNames.contains(IDB_STORE)) {
-          db.createObjectStore(IDB_STORE)
+          db.createObjectStore(IDB_STORE);
         }
-      }
-      req.onsuccess = (e) => resolve(e.target.result)
-      req.onerror = () => resolve(null)
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = () => resolve(null);
     } catch {
-      resolve(null)
+      resolve(null);
     }
-  })
-  return idbPromise
-}
+  });
+  return idbPromise;
+};
 
 export const idbSet = async (key, val) => {
   try {
-    const db = await getIDB()
-    if (!db) return
-    const tx = db.transaction(IDB_STORE, 'readwrite')
-    tx.objectStore(IDB_STORE).put(val, key)
+    const db = await getIDB();
+    if (!db) return;
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).put(val, key);
   } catch (err) {
-    console.warn('IDB write failed:', err)
+    console.warn("IDB write failed:", err);
   }
-}
+};
 
 export const idbGet = async (key) => {
   try {
-    const db = await getIDB()
-    if (!db) return null
+    const db = await getIDB();
+    if (!db) return null;
     return new Promise((resolve) => {
-      const tx = db.transaction(IDB_STORE, 'readonly')
-      const req = tx.objectStore(IDB_STORE).get(key)
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => resolve(null)
-    })
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
   } catch {
-    return null
+    return null;
   }
-}
+};
 
 // In-memory cache for synchronous operations (e.g. getLetters)
-let lettersMemoryCache = null
+let lettersMemoryCache = null;
 
 // Helper to sanitize duplicate base64 inside fieldValues & formData
 // Helper to sanitize duplicate base64 inside fieldValues & formData while preserving URLs
 const deduplicateLetterAttachments = (letter) => {
-  if (!letter || typeof letter !== 'object') return letter
+  if (!letter || typeof letter !== "object") return letter;
   const metaOnly = Array.isArray(letter.attachments)
     ? letter.attachments.map((a) => {
-        const resolvedUrl = a.url || (typeof a.dataUrl === 'string' && (a.dataUrl.startsWith('/lampiran') || a.dataUrl.startsWith('http')) ? a.dataUrl : '')
+        const resolvedUrl =
+          a.url ||
+          (typeof a.dataUrl === "string" &&
+          (a.dataUrl.startsWith("/lampiran") || a.dataUrl.startsWith("http"))
+            ? a.dataUrl
+            : "");
         return {
           id: a.id,
           name: a.name,
@@ -139,152 +159,190 @@ const deduplicateLetterAttachments = (letter) => {
           url: resolvedUrl,
           dataUrl: resolvedUrl,
           uploadedAt: a.uploadedAt,
-        }
+        };
       })
-    : []
+    : [];
 
-  const clean = { ...letter }
+  const clean = { ...letter };
   if (clean.fieldValues && clean.fieldValues.attachments) {
     clean.fieldValues = {
       ...clean.fieldValues,
       attachments: metaOnly,
-    }
+    };
   }
   if (clean.formData && clean.formData.attachments) {
     clean.formData = {
       ...clean.formData,
       attachments: metaOnly,
-    }
+    };
   }
-  return clean
-}
+  return clean;
+};
 
 // Storage Helpers
 const getStorageItem = (key, fallback) => {
   if (key === STORAGE_KEYS.LETTERS && lettersMemoryCache) {
-    return lettersMemoryCache
+    return lettersMemoryCache;
   }
   try {
-    const item = localStorage.getItem(key)
-    const parsed = item ? JSON.parse(item) : fallback
+    const item = localStorage.getItem(key);
+    const parsed = item ? JSON.parse(item) : fallback;
     if (key === STORAGE_KEYS.LETTERS && Array.isArray(parsed)) {
-      lettersMemoryCache = parsed
+      lettersMemoryCache = parsed;
     }
-    return parsed
+    return parsed;
   } catch (e) {
-    console.error('Storage read error:', e)
-    return fallback
+    console.error("Storage read error:", e);
+    return fallback;
   }
-}
+};
 
 const setStorageItem = (key, value) => {
   if (key === STORAGE_KEYS.LETTERS) {
-    lettersMemoryCache = value
+    lettersMemoryCache = value;
   }
 
   // Backup data ke IndexedDB (kapasitas ratusan MB tanpa limit 5MB localStorage)
-  idbSet(key, value)
+  idbSet(key, value);
 
   try {
     // Bersihkan duplikasi lampiran sebelum ke localStorage
     const cleanValue =
       key === STORAGE_KEYS.LETTERS && Array.isArray(value)
         ? value.map(deduplicateLetterAttachments)
-        : value
+        : value;
 
-    localStorage.setItem(key, JSON.stringify(cleanValue))
+    localStorage.setItem(key, JSON.stringify(cleanValue));
   } catch (e) {
-    console.warn(`LocalStorage quota reached for key "${key}". Menggunakan IndexedDB persistent store & cache optimizer...`)
+    console.warn(
+      `LocalStorage quota reached for key "${key}". Menggunakan IndexedDB persistent store & cache optimizer...`,
+    );
 
     if (key === STORAGE_KEYS.LETTERS && Array.isArray(value)) {
       try {
         // Optimasi untuk localStorage: simpan lampiran penuh hanya untuk surat terbaru,
         // surat lama disimpan metadata & URL-nya (data penuh tetap aman di IndexedDB & memory cache)
         const optimized = value.map((ltr, idx) => {
-          const isRecent = idx < 3
-          const base = deduplicateLetterAttachments(ltr)
+          const isRecent = idx < 3;
+          const base = deduplicateLetterAttachments(ltr);
           if (!isRecent && Array.isArray(base.attachments)) {
             return {
               ...base,
               attachments: base.attachments.map((a) => {
-                const url = a.url || (typeof a.dataUrl === 'string' && (a.dataUrl.startsWith('/lampiran') || a.dataUrl.startsWith('http')) ? a.dataUrl : '')
+                const url =
+                  a.url ||
+                  (typeof a.dataUrl === "string" &&
+                  (a.dataUrl.startsWith("/lampiran") ||
+                    a.dataUrl.startsWith("http"))
+                    ? a.dataUrl
+                    : "");
                 return {
                   ...a,
                   url,
-                  dataUrl: url || (a.dataUrl && a.dataUrl.length > 150000 ? '' : a.dataUrl),
-                }
+                  dataUrl:
+                    url ||
+                    (a.dataUrl && a.dataUrl.length > 150000 ? "" : a.dataUrl),
+                };
               }),
-            }
+            };
           }
-          return base
-        })
+          return base;
+        });
 
-        localStorage.setItem(key, JSON.stringify(optimized))
-        console.info('Penyimpanan lokal berhasil dioptimasi.')
+        localStorage.setItem(key, JSON.stringify(optimized));
+        console.info("Penyimpanan lokal berhasil dioptimasi.");
       } catch (retryErr) {
         // Fallback terakhir: simpan 5 surat paling baru ke localStorage
         try {
-          const minimal = value.slice(0, 5).map(deduplicateLetterAttachments)
-          localStorage.setItem(key, JSON.stringify(minimal))
+          const minimal = value.slice(0, 5).map(deduplicateLetterAttachments);
+          localStorage.setItem(key, JSON.stringify(minimal));
         } catch {
           // Tidak crash; data tetap ada di lettersMemoryCache dan IndexedDB
         }
       }
     }
   }
-}
+};
 
 // Hydrate letters dari IndexedDB saat aplikasi pertama kali dimuat
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   idbGet(STORAGE_KEYS.LETTERS)
     .then((idbLetters) => {
       if (Array.isArray(idbLetters) && idbLetters.length > 0) {
-        lettersMemoryCache = idbLetters
-        window.dispatchEvent(new Event('letters_change'))
+        lettersMemoryCache = idbLetters;
+        window.dispatchEvent(new Event("letters_change"));
       }
     })
-    .catch(() => {})
+    .catch(() => {});
 }
 
-let isSyncing = false
-let lastLettersHash = ''
+let isSyncing = false;
+let lastLettersHash = "";
 
 const processLettersSync = (lettersData) => {
-  const currentLetters = getStorageItem(STORAGE_KEYS.LETTERS, [])
+  const currentLetters = getStorageItem(STORAGE_KEYS.LETTERS, []);
   const mergedLetters = lettersData.map((remote) => {
-    const local = currentLetters.find((l) => l.id === remote.id)
-    const remoteComments = Array.isArray(remote.comments) ? remote.comments : []
-    const localComments = Array.isArray(local?.comments) ? local.comments : []
+    const local = currentLetters.find((l) => l.id === remote.id);
+    const remoteComments = Array.isArray(remote.comments)
+      ? remote.comments
+      : [];
+    const localComments = Array.isArray(local?.comments) ? local.comments : [];
 
-    const commentMap = new Map()
-    localComments.forEach((c) => { if (c && c.id) commentMap.set(c.id, c) })
-    remoteComments.forEach((c) => { if (c && c.id) commentMap.set(c.id, c) })
+    const commentMap = new Map();
+    localComments.forEach((c) => {
+      if (c && c.id) commentMap.set(c.id, c);
+    });
+    remoteComments.forEach((c) => {
+      if (c && c.id) commentMap.set(c.id, c);
+    });
 
-    const rawRemoteAtts = (Array.isArray(remote.attachments) && remote.attachments.length > 0)
-      ? remote.attachments
-      : ((remote.fieldValues && Array.isArray(remote.fieldValues.attachments) && remote.fieldValues.attachments.length > 0)
+    const rawRemoteAtts =
+      Array.isArray(remote.attachments) && remote.attachments.length > 0
+        ? remote.attachments
+        : remote.fieldValues &&
+            Array.isArray(remote.fieldValues.attachments) &&
+            remote.fieldValues.attachments.length > 0
           ? remote.fieldValues.attachments
-          : [])
+          : [];
 
     const localAtts = Array.isArray(local?.attachments)
       ? local.attachments
-      : ((local?.fieldValues && Array.isArray(local.fieldValues.attachments)) ? local.fieldValues.attachments : [])
+      : local?.fieldValues && Array.isArray(local.fieldValues.attachments)
+        ? local.fieldValues.attachments
+        : [];
 
-    const mergedAtts = rawRemoteAtts.length > 0
-      ? rawRemoteAtts.map((ra) => {
-          const la = localAtts.find((item) => item.id === ra.id || item.name === ra.name) || {}
-          const resolvedUrl = ra.url || (typeof ra.dataUrl === 'string' && (ra.dataUrl.startsWith('/lampiran') || ra.dataUrl.startsWith('http')) ? ra.dataUrl : '') || la.url || (typeof la.dataUrl === 'string' && (la.dataUrl.startsWith('/lampiran') || la.dataUrl.startsWith('http')) ? la.dataUrl : '')
-          const resolvedDataUrl = (typeof ra.dataUrl === 'string' && ra.dataUrl.length > 50)
-            ? ra.dataUrl
-            : (la.dataUrl || resolvedUrl || la.url || '')
-          return {
-            ...la,
-            ...ra,
-            url: resolvedUrl,
-            dataUrl: resolvedDataUrl,
-          }
-        })
-      : localAtts
+    const mergedAtts =
+      rawRemoteAtts.length > 0
+        ? rawRemoteAtts.map((ra) => {
+            const la =
+              localAtts.find(
+                (item) => item.id === ra.id || item.name === ra.name,
+              ) || {};
+            const resolvedUrl =
+              ra.url ||
+              (typeof ra.dataUrl === "string" &&
+              (ra.dataUrl.startsWith("/lampiran") ||
+                ra.dataUrl.startsWith("http"))
+                ? ra.dataUrl
+                : "") ||
+              la.url ||
+              (typeof la.dataUrl === "string" &&
+              (la.dataUrl.startsWith("/lampiran") ||
+                la.dataUrl.startsWith("http"))
+                ? la.dataUrl
+                : "");
+            const resolvedDataUrl =
+              typeof ra.dataUrl === "string" && ra.dataUrl.length > 50
+                ? ra.dataUrl
+                : la.dataUrl || resolvedUrl || la.url || "";
+            return {
+              ...la,
+              ...ra,
+              url: resolvedUrl,
+              dataUrl: resolvedDataUrl,
+            };
+          })
+        : localAtts;
 
     return {
       ...remote,
@@ -294,655 +352,757 @@ const processLettersSync = (lettersData) => {
         attachments: mergedAtts,
       },
       comments: Array.from(commentMap.values()),
-    }
-  })
+    };
+  });
 
   // Gunakan lettersData dari database MySQL sebagai sumber kebenaran
-  const fakeLetterIds = new Set(['ltr-001', 'ltr-002', 'ltr-003'])
-  const cleanCurrentLetters = currentLetters.filter((l) => l && l.id && !fakeLetterIds.has(l.id))
-  const remoteIds = new Set(lettersData.map((r) => r.id))
-  const currentUid = String(getCurrentUser()?.id || '')
+  const fakeLetterIds = new Set(["ltr-001", "ltr-002", "ltr-003"]);
+  const cleanCurrentLetters = currentLetters.filter(
+    (l) => l && l.id && !fakeLetterIds.has(l.id),
+  );
+  const remoteIds = new Set(lettersData.map((r) => r.id));
+  const currentUid = String(getCurrentUser()?.id || "");
   const localDrafts = cleanCurrentLetters.filter(
-    (l) => l && l.id && !remoteIds.has(l.id) && !fakeLetterIds.has(l.id) && l.status === 'draft' && String(l.userId) === currentUid
-  )
-  const finalLetters = [...mergedLetters, ...localDrafts]
+    (l) =>
+      l &&
+      l.id &&
+      !remoteIds.has(l.id) &&
+      !fakeLetterIds.has(l.id) &&
+      l.status === "draft" &&
+      String(l.userId) === currentUid,
+  );
+  const finalLetters = [...mergedLetters, ...localDrafts];
 
-  const newHash = finalLetters.map((l) => `${l.id}_${l.status}_${l.currentStep}_${l.updatedAt || ''}_${(l.comments || []).length}`).join('|')
+  const newHash = finalLetters
+    .map(
+      (l) =>
+        `${l.id}_${l.status}_${l.currentStep}_${l.updatedAt || ""}_${(l.comments || []).length}`,
+    )
+    .join("|");
   if (newHash !== lastLettersHash) {
-    lastLettersHash = newHash
-    setStorageItem(STORAGE_KEYS.LETTERS, finalLetters)
-    window.dispatchEvent(new Event('letters_change'))
+    lastLettersHash = newHash;
+    setStorageItem(STORAGE_KEYS.LETTERS, finalLetters);
+    window.dispatchEvent(new Event("letters_change"));
   }
-}
+};
 
 // Initialize seed data and sync from MySQL API
 export const syncWithDatabase = async (options = {}) => {
-  if (isSyncing) return
-  isSyncing = true
-  const lettersOnly = Boolean(options.lettersOnly)
+  if (isSyncing) return;
+  isSyncing = true;
+  const lettersOnly = Boolean(options.lettersOnly);
 
   try {
     if (lettersOnly) {
-      const lettersData = await api.getLetters()
+      const lettersData = await api.getLetters();
       if (Array.isArray(lettersData)) {
-        processLettersSync(lettersData)
+        processLettersSync(lettersData);
       }
-      return
+      return;
     }
 
-    const [branchesData, usersData, templatesData, lettersData, globalViewersData, jabatanData, categoriesData] = await Promise.all([
+    const [
+      branchesData,
+      usersData,
+      templatesData,
+      lettersData,
+      globalViewersData,
+      jabatanData,
+      categoriesData,
+    ] = await Promise.all([
       api.getCabang(),
       api.getUsers(),
       api.getTemplates(),
       api.getLetters(),
-      api.getSetting('global_default_viewers'),
+      api.getSetting("global_default_viewers"),
       api.getJabatan(),
       api.getCategories(),
-    ])
+    ]);
 
     if (Array.isArray(categoriesData)) {
-      setStorageItem(STORAGE_KEYS.CATEGORIES || 'suratajuan_categories_v2', categoriesData)
-      window.dispatchEvent(new Event('categories_change'))
+      setStorageItem(
+        STORAGE_KEYS.CATEGORIES || "suratajuan_categories_v2",
+        categoriesData,
+      );
+      window.dispatchEvent(new Event("categories_change"));
     }
 
     if (Array.isArray(globalViewersData)) {
-      setStorageItem(STORAGE_KEYS.GLOBAL_DEFAULT_VIEWERS, globalViewersData)
-      window.dispatchEvent(new Event('global_viewers_change'))
+      setStorageItem(STORAGE_KEYS.GLOBAL_DEFAULT_VIEWERS, globalViewersData);
+      window.dispatchEvent(new Event("global_viewers_change"));
     }
 
     if (Array.isArray(branchesData) && branchesData.length > 0) {
-      const currentSavedBranches = getStorageItem(STORAGE_KEYS.BRANCHES, [])
+      const currentSavedBranches = getStorageItem(STORAGE_KEYS.BRANCHES, []);
       const mergedBranches = branchesData.map((remote) => {
         const existing = currentSavedBranches.find(
-          (b) => b.id === remote.id || b.code === remote.code || b.id === remote.code
-        )
+          (b) =>
+            b.id === remote.id ||
+            b.code === remote.code ||
+            b.id === remote.code,
+        );
         return {
           ...remote,
-          madeBy: existing?.madeBy || '',
-          madeByPosition: existing?.madeByPosition || '',
-          knownBy: existing?.knownBy || '',
-          knownByPosition: existing?.knownByPosition || '',
-        }
-      })
-      setStorageItem(STORAGE_KEYS.BRANCHES, mergedBranches)
-      window.dispatchEvent(new Event('branches_change'))
+          madeBy: existing?.madeBy || "",
+          madeByPosition: existing?.madeByPosition || "",
+          knownBy: existing?.knownBy || "",
+          knownByPosition: existing?.knownByPosition || "",
+        };
+      });
+      setStorageItem(STORAGE_KEYS.BRANCHES, mergedBranches);
+      window.dispatchEvent(new Event("branches_change"));
     }
 
     if (Array.isArray(usersData) && usersData.length > 0) {
-      setStorageItem(STORAGE_KEYS.USERS, usersData)
-      window.dispatchEvent(new Event('users_change'))
+      setStorageItem(STORAGE_KEYS.USERS, usersData);
+      window.dispatchEvent(new Event("users_change"));
     }
 
     if (Array.isArray(jabatanData) && jabatanData.length > 0) {
-      setStorageItem(STORAGE_KEYS.JABATAN, jabatanData)
-      window.dispatchEvent(new Event('jabatan_change'))
+      setStorageItem(STORAGE_KEYS.JABATAN, jabatanData);
+      window.dispatchEvent(new Event("jabatan_change"));
     }
 
     if (Array.isArray(templatesData)) {
-      setStorageItem(STORAGE_KEYS.TEMPLATES, templatesData)
-      window.dispatchEvent(new Event('templates_change'))
+      setStorageItem(STORAGE_KEYS.TEMPLATES, templatesData);
+      window.dispatchEvent(new Event("templates_change"));
     }
 
     if (Array.isArray(lettersData)) {
-      processLettersSync(lettersData)
+      processLettersSync(lettersData);
     }
 
     // Sync Master Produk saat sync lengkap
     try {
-      const remoteProduk = await api.getProduk()
+      const remoteProduk = await api.getProduk();
       if (Array.isArray(remoteProduk) && remoteProduk.length > 0) {
-        setStorageItem(STORAGE_KEYS.PRODUCTS, remoteProduk)
+        setStorageItem(STORAGE_KEYS.PRODUCTS, remoteProduk);
       }
     } catch (prodErr) {
-      console.warn('Sync produk warning:', prodErr.message)
+      console.warn("Sync produk warning:", prodErr.message);
     }
   } catch (err) {
-    console.warn('Sync database error:', err.message)
+    console.warn("Sync database error:", err.message);
   } finally {
-    isSyncing = false
+    isSyncing = false;
   }
-}
+};
 
 export const initializeStorage = async () => {
   // 1. Bersihkan sisa data dummy / fake lama dari localStorage & IndexedDB jika ada
   try {
-    const fakeIds = ['ltr-001', 'ltr-002', 'ltr-003']
-    const rawLetters = localStorage.getItem(STORAGE_KEYS.LETTERS)
+    const fakeIds = ["ltr-001", "ltr-002", "ltr-003"];
+    const rawLetters = localStorage.getItem(STORAGE_KEYS.LETTERS);
     if (rawLetters) {
-      const parsed = JSON.parse(rawLetters)
-      if (Array.isArray(parsed) && parsed.some((p) => fakeIds.includes(p?.id))) {
-        const cleaned = parsed.filter((p) => !fakeIds.includes(p?.id))
-        setStorageItem(STORAGE_KEYS.LETTERS, cleaned)
+      const parsed = JSON.parse(rawLetters);
+      if (
+        Array.isArray(parsed) &&
+        parsed.some((p) => fakeIds.includes(p?.id))
+      ) {
+        const cleaned = parsed.filter((p) => !fakeIds.includes(p?.id));
+        setStorageItem(STORAGE_KEYS.LETTERS, cleaned);
       }
     }
-    const fakeTpls = ['tpl-perdin', 'tpl-service', 'tpl-diskon-crm', 'tpl-cuti']
-    const rawTpls = localStorage.getItem(STORAGE_KEYS.TEMPLATES)
+    const fakeTpls = [
+      "tpl-perdin",
+      "tpl-service",
+      "tpl-diskon-crm",
+      "tpl-cuti",
+    ];
+    const rawTpls = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
     if (rawTpls) {
-      const parsedT = JSON.parse(rawTpls)
-      if (Array.isArray(parsedT) && parsedT.some((p) => fakeTpls.includes(p?.id))) {
-        const cleanedT = parsedT.filter((p) => !fakeTpls.includes(p?.id))
-        setStorageItem(STORAGE_KEYS.TEMPLATES, cleanedT)
+      const parsedT = JSON.parse(rawTpls);
+      if (
+        Array.isArray(parsedT) &&
+        parsedT.some((p) => fakeTpls.includes(p?.id))
+      ) {
+        const cleanedT = parsedT.filter((p) => !fakeTpls.includes(p?.id));
+        setStorageItem(STORAGE_KEYS.TEMPLATES, cleanedT);
       }
     }
   } catch (cleanErr) {
-    console.warn('Storage cleanup:', cleanErr.message)
+    console.warn("Storage cleanup:", cleanErr.message);
   }
 
   // 2. Hydrate dari IndexedDB terlebih dahulu agar lampiran utuh terbaca sebelum sync API
   try {
-    const idbLetters = await idbGet(STORAGE_KEYS.LETTERS)
+    const idbLetters = await idbGet(STORAGE_KEYS.LETTERS);
     if (Array.isArray(idbLetters) && idbLetters.length > 0) {
-      const fakeIds = new Set(['ltr-001', 'ltr-002', 'ltr-003'])
-      lettersMemoryCache = idbLetters.filter((l) => l && !fakeIds.has(l.id))
-      window.dispatchEvent(new Event('letters_change'))
+      const fakeIds = new Set(["ltr-001", "ltr-002", "ltr-003"]);
+      lettersMemoryCache = idbLetters.filter((l) => l && !fakeIds.has(l.id));
+      window.dispatchEvent(new Event("letters_change"));
     }
   } catch (e) {
-    console.warn('IDB early hydration failed:', e)
+    console.warn("IDB early hydration failed:", e);
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-    setStorageItem(STORAGE_KEYS.USERS, [])
+    setStorageItem(STORAGE_KEYS.USERS, []);
   }
   if (!localStorage.getItem(STORAGE_KEYS.BRANCHES)) {
-    setStorageItem(STORAGE_KEYS.BRANCHES, [])
+    setStorageItem(STORAGE_KEYS.BRANCHES, []);
   }
   if (!localStorage.getItem(STORAGE_KEYS.TEMPLATES)) {
-    setStorageItem(STORAGE_KEYS.TEMPLATES, [])
+    setStorageItem(STORAGE_KEYS.TEMPLATES, []);
   }
   if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
-    setStorageItem(STORAGE_KEYS.PRODUCTS, [])
+    setStorageItem(STORAGE_KEYS.PRODUCTS, []);
   }
-  if (localStorage.getItem(STORAGE_KEYS.LETTERS) === null && !lettersMemoryCache) {
-    setStorageItem(STORAGE_KEYS.LETTERS, [])
+  if (
+    localStorage.getItem(STORAGE_KEYS.LETTERS) === null &&
+    !lettersMemoryCache
+  ) {
+    setStorageItem(STORAGE_KEYS.LETTERS, []);
   }
 
   // Sinkronisasi data real-time dengan MySQL
-  await syncWithDatabase()
-}
+  await syncWithDatabase();
+};
 
 // Master Produk Management
 export const getProducts = () => {
-  const prods = getStorageItem(STORAGE_KEYS.PRODUCTS, [])
-  return Array.isArray(prods) ? prods : []
-}
+  const prods = getStorageItem(STORAGE_KEYS.PRODUCTS, []);
+  return Array.isArray(prods) ? prods : [];
+};
 
 export const saveProduct = (productData) => {
-  const products = getProducts()
-  const idx = products.findIndex((p) => p.kode_produk === productData.kode_produk)
-  const now = new Date().toISOString()
+  const products = getProducts();
+  const idx = products.findIndex(
+    (p) => p.kode_produk === productData.kode_produk,
+  );
+  const now = new Date().toISOString();
   if (idx >= 0) {
     products[idx] = {
       ...products[idx],
       ...productData,
       updated_at: now,
-    }
+    };
   } else {
     products.push({
       ...productData,
       created_at: now,
       updated_at: now,
-    })
+    });
   }
-  setStorageItem(STORAGE_KEYS.PRODUCTS, products)
-  window.dispatchEvent(new Event('products_change'))
-  return true
-}
+  setStorageItem(STORAGE_KEYS.PRODUCTS, products);
+  window.dispatchEvent(new Event("products_change"));
+  return true;
+};
 
 export const deleteProduct = (kodeProduk) => {
-  const products = getProducts()
-  const filtered = products.filter((p) => p.kode_produk !== kodeProduk)
-  setStorageItem(STORAGE_KEYS.PRODUCTS, filtered)
-  window.dispatchEvent(new Event('products_change'))
-  return true
-}
+  const products = getProducts();
+  const filtered = products.filter((p) => p.kode_produk !== kodeProduk);
+  setStorageItem(STORAGE_KEYS.PRODUCTS, filtered);
+  window.dispatchEvent(new Event("products_change"));
+  return true;
+};
 
 // User & Auth Management
-export const getUsers = () => getStorageItem(STORAGE_KEYS.USERS, [])
+export const getUsers = () => getStorageItem(STORAGE_KEYS.USERS, []);
 export const getJabatan = () => {
-  const list = getStorageItem(STORAGE_KEYS.JABATAN, [])
-  return Array.isArray(list) && list.length > 0 ? list : DEFAULT_HRD_JABATAN
-}
+  const list = getStorageItem(STORAGE_KEYS.JABATAN, []);
+  return Array.isArray(list) && list.length > 0 ? list : DEFAULT_HRD_JABATAN;
+};
 export const getCurrentUser = () => {
-  const user = getStorageItem(STORAGE_KEYS.CURRENT_USER, null)
-  if (user) return user
-  const users = getUsers()
-  return users.length > 0 ? users[0] : null
-}
+  const user = getStorageItem(STORAGE_KEYS.CURRENT_USER, null);
+  if (user) return user;
+  const users = getUsers();
+  return users.length > 0 ? users[0] : null;
+};
 export const setCurrentUser = (user) => {
   if (user) {
-    setStorageItem(STORAGE_KEYS.CURRENT_USER, user)
+    setStorageItem(STORAGE_KEYS.CURRENT_USER, user);
   } else {
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER)
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   }
   // Reset cache surat saat beralih akun agar tidak ada sisa data user sebelumnya
-  lettersMemoryCache = null
-  lastLettersHash = ''
-  isSyncing = false
-  window.dispatchEvent(new Event('auth_change'))
+  lettersMemoryCache = null;
+  lastLettersHash = "";
+  isSyncing = false;
+  window.dispatchEvent(new Event("auth_change"));
   // Segera ambil data surat resmi milik akun baru dari server tanpa perlu refresh halaman
-  syncWithDatabase().catch(() => {})
-}
+  syncWithDatabase().catch(() => {});
+};
 
 export const clearCurrentUser = () => {
-  localStorage.removeItem(STORAGE_KEYS.CURRENT_USER)
-  lettersMemoryCache = null
-  lastLettersHash = ''
-  isSyncing = false
-  localStorage.removeItem(STORAGE_KEYS.LETTERS)
-  window.dispatchEvent(new Event('auth_change'))
-}
+  localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  lettersMemoryCache = null;
+  lastLettersHash = "";
+  isSyncing = false;
+  localStorage.removeItem(STORAGE_KEYS.LETTERS);
+  window.dispatchEvent(new Event("auth_change"));
+};
 
 // Branches
 export const getBranches = () => {
-  const branches = getStorageItem(STORAGE_KEYS.BRANCHES, [])
+  const branches = getStorageItem(STORAGE_KEYS.BRANCHES, []);
   return branches.map((b) => ({
     ...b,
-    madeBy: b.madeBy || '',
-    madeByPosition: b.madeByPosition || '',
-    knownBy: b.knownBy || '',
-    knownByPosition: b.knownByPosition || '',
-    rsmId: b.rsmId || '',
-    rsmName: b.rsmName || '',
-    regionalName: b.regionalName || '',
-  }))
-}
+    madeBy: b.madeBy || "",
+    madeByPosition: b.madeByPosition || "",
+    knownBy: b.knownBy || "",
+    knownByPosition: b.knownByPosition || "",
+    rsmId: b.rsmId || "",
+    rsmName: b.rsmName || "",
+    regionalName: b.regionalName || "",
+  }));
+};
 
 export const saveBranch = (branch) => {
-  const branches = getBranches()
+  const branches = getBranches();
   const idx = branches.findIndex(
-    (b) => b.id === branch.id || (branch.code && b.code === branch.code)
-  )
+    (b) => b.id === branch.id || (branch.code && b.code === branch.code),
+  );
   if (idx >= 0) {
-    branches[idx] = { ...branches[idx], ...branch }
+    branches[idx] = { ...branches[idx], ...branch };
   } else {
-    branches.push({ ...branch, id: branch.id || `CBG-${Date.now().toString(36).toUpperCase()}` })
+    branches.push({
+      ...branch,
+      id: branch.id || `CBG-${Date.now().toString(36).toUpperCase()}`,
+    });
   }
-  setStorageItem(STORAGE_KEYS.BRANCHES, branches)
-  window.dispatchEvent(new Event('branches_change'))
-  return branches
-}
+  setStorageItem(STORAGE_KEYS.BRANCHES, branches);
+  window.dispatchEvent(new Event("branches_change"));
+  return branches;
+};
 
 // Templates
 export const BLANK_TEMPLATE = {
-  id: 'custom_blank',
-  name: 'Surat Ajuan Mandiri (Tanpa Template)',
-  code: 'MANDIRI',
-  category: 'Mandiri',
-  description: 'Tulis isi surat pengajuan secara bebas dan fleksibel menggunakan editor Word lengkap.',
+  id: "custom_blank",
+  name: "Surat Ajuan Mandiri (Tanpa Template)",
+  code: "MANDIRI",
+  category: "Mandiri",
+  description:
+    "Tulis isi surat pengajuan secara bebas dan fleksibel menggunakan editor Word lengkap.",
   isCustom: true,
   isManualNumber: true,
-  numberFormat: '{{year}}/{{branch_code}}/SP/{{roman_month}}/{{seq}}',
-  allowedBranches: ['all'],
+  numberFormat: "{{year}}/{{branch_code}}/SP/{{roman_month}}/{{seq}}",
+  allowedBranches: ["all"],
   isActive: true,
   approvalSteps: [
     {
       step: 1,
-      title: 'Persetujuan Pejabat / Pimpinan',
-      approverRole: 'Pimpinan',
-      assignmentType: 'role',
+      title: "Persetujuan Pejabat / Pimpinan",
+      approverRole: "Pimpinan",
+      assignmentType: "role",
     },
   ],
   fields: [
     {
-      id: 'f_perihal',
-      label: 'Perihal Surat',
-      name: 'perihal',
-      type: 'text',
+      id: "f_perihal",
+      label: "Perihal Surat",
+      name: "perihal",
+      type: "text",
       required: true,
-      placeholder: 'Contoh: Permohonan Pengadaan Alat Kerja',
+      placeholder: "Contoh: Permohonan Pengadaan Alat Kerja",
     },
   ],
-  letterTemplate: '<p><br></p>',
-}
+  letterTemplate: "<p><br></p>",
+};
 
 export const getTemplates = () => {
-  const templates = getStorageItem(STORAGE_KEYS.TEMPLATES, [])
+  const templates = getStorageItem(STORAGE_KEYS.TEMPLATES, []);
   return templates.map((t) => {
-    let fmt = t.numberFormat
-    if (!fmt || fmt.startsWith('{{seq}}/') || (typeof fmt === 'string' && fmt.split('/').length > 5)) {
-      fmt = '{{year}}/{{branch_code}}/SP/{{roman_month}}/{{seq}}'
+    let fmt = t.numberFormat;
+    if (
+      !fmt ||
+      fmt.startsWith("{{seq}}/") ||
+      (typeof fmt === "string" && fmt.split("/").length > 5)
+    ) {
+      fmt = "{{year}}/{{branch_code}}/SP/{{roman_month}}/{{seq}}";
     }
-    const cleanCode = (t.code || '').replace(/_COPY/gi, '').replace(/^[-_\s]+|[-_\s]+$/g, '') || 'SP'
+    const cleanCode =
+      (t.code || "").replace(/_COPY/gi, "").replace(/^[-_\s]+|[-_\s]+$/g, "") ||
+      "SP";
     return {
       ...t,
       code: cleanCode,
       numberFormat: fmt,
-    }
-  })
-}
+    };
+  });
+};
 
-export const DEFAULT_CATEGORIES = []
+export const DEFAULT_CATEGORIES = [];
 
 export const getCategories = () => {
-  return getStorageItem(STORAGE_KEYS.CATEGORIES || 'suratajuan_categories_v2', DEFAULT_CATEGORIES)
-}
+  return getStorageItem(
+    STORAGE_KEYS.CATEGORIES || "suratajuan_categories_v2",
+    DEFAULT_CATEGORIES,
+  );
+};
 
 export const saveCategories = (categoriesList) => {
-  setStorageItem(STORAGE_KEYS.CATEGORIES || 'suratajuan_categories_v2', categoriesList)
-  window.dispatchEvent(new Event('categories_change'))
-  return categoriesList
-}
+  setStorageItem(
+    STORAGE_KEYS.CATEGORIES || "suratajuan_categories_v2",
+    categoriesList,
+  );
+  window.dispatchEvent(new Event("categories_change"));
+  return categoriesList;
+};
 
 export const addCategory = async (categoryName) => {
-  const cats = getCategories()
-  const trimmed = (categoryName || '').trim()
+  const cats = getCategories();
+  const trimmed = (categoryName || "").trim();
   if (trimmed && !cats.includes(trimmed)) {
-    cats.push(trimmed)
-    saveCategories(cats)
+    cats.push(trimmed);
+    saveCategories(cats);
     try {
-      await api.addCategory(trimmed)
+      await api.addCategory(trimmed);
     } catch (e) {
-      console.warn('Sync addCategory to API failed:', e.message)
+      console.warn("Sync addCategory to API failed:", e.message);
     }
   }
-  return cats
-}
+  return cats;
+};
 
 export const updateCategory = async (oldName, newName) => {
-  const cats = getCategories()
-  const trimmedNew = (newName || '').trim()
-  const idx = cats.findIndex((c) => c === oldName)
+  const cats = getCategories();
+  const trimmedNew = (newName || "").trim();
+  const idx = cats.findIndex((c) => c === oldName);
   if (idx >= 0 && trimmedNew) {
-    cats[idx] = trimmedNew
-    saveCategories(cats)
+    cats[idx] = trimmedNew;
+    saveCategories(cats);
 
     // Update templates using this category in local storage & memory
-    const templates = getTemplates()
-    let changed = false
+    const templates = getTemplates();
+    let changed = false;
     templates.forEach((t) => {
       if (t.category === oldName) {
-        t.category = trimmedNew
-        changed = true
+        t.category = trimmedNew;
+        changed = true;
       }
-    })
+    });
     if (changed) {
-      setStorageItem(STORAGE_KEYS.TEMPLATES, templates)
-      window.dispatchEvent(new Event('templates_change'))
+      setStorageItem(STORAGE_KEYS.TEMPLATES, templates);
+      window.dispatchEvent(new Event("templates_change"));
     }
 
     // Persist to MySQL database (updates both categories and templates tables)
     try {
-      await api.updateCategory(oldName, trimmedNew)
+      await api.updateCategory(oldName, trimmedNew);
     } catch (e) {
-      console.warn('Sync updateCategory to API failed:', e.message)
+      console.warn("Sync updateCategory to API failed:", e.message);
     }
   }
-  return cats
-}
+  return cats;
+};
 
 export const deleteCategory = async (categoryName) => {
-  let cats = getCategories()
-  cats = cats.filter((c) => c !== categoryName)
-  saveCategories(cats)
+  let cats = getCategories();
+  cats = cats.filter((c) => c !== categoryName);
+  saveCategories(cats);
   try {
-    await api.deleteCategory(categoryName)
+    await api.deleteCategory(categoryName);
   } catch (e) {
-    console.warn('Sync deleteCategory to API failed:', e.message)
+    console.warn("Sync deleteCategory to API failed:", e.message);
   }
-  return cats
-}
+  return cats;
+};
 
 export const getTemplateById = (id) => {
-  if (id === 'custom_blank' || id === BLANK_TEMPLATE?.id) return BLANK_TEMPLATE
-  return getTemplates().find((t) => t.id === id)
-}
+  if (id === "custom_blank" || id === BLANK_TEMPLATE?.id) return BLANK_TEMPLATE;
+  return getTemplates().find((t) => t.id === id);
+};
 
 export const saveTemplate = (templateData) => {
-  const templates = getTemplates()
-  let saved
+  const templates = getTemplates();
+  let saved;
   if (templateData.id) {
-    const idx = templates.findIndex((t) => t.id === templateData.id)
+    const idx = templates.findIndex((t) => t.id === templateData.id);
     if (idx >= 0) {
-      templates[idx] = { ...templates[idx], ...templateData }
-      saved = templates[idx]
+      templates[idx] = { ...templates[idx], ...templateData };
+      saved = templates[idx];
     }
   } else {
     saved = {
       ...templateData,
       id: `tpl-${Date.now().toString(36)}`,
       isActive: true,
-      allowedBranches: templateData.allowedBranches || ['all'],
-    }
-    templates.push(saved)
+      allowedBranches: templateData.allowedBranches || ["all"],
+    };
+    templates.push(saved);
   }
-  setStorageItem(STORAGE_KEYS.TEMPLATES, templates)
-  window.dispatchEvent(new Event('templates_change'))
+  setStorageItem(STORAGE_KEYS.TEMPLATES, templates);
+  window.dispatchEvent(new Event("templates_change"));
   // Sync to remote MySQL API
-  api.saveTemplate(saved).catch((e) => console.warn('Sync template to API failed:', e.message))
-  return saved
-}
+  api
+    .saveTemplate(saved)
+    .catch((e) => console.warn("Sync template to API failed:", e.message));
+  return saved;
+};
 
 export const toggleTemplateStatus = (templateId) => {
-  const templates = getTemplates()
-  const idx = templates.findIndex((t) => t.id === templateId)
+  const templates = getTemplates();
+  const idx = templates.findIndex((t) => t.id === templateId);
   if (idx >= 0) {
-    templates[idx].isActive = !templates[idx].isActive
-    setStorageItem(STORAGE_KEYS.TEMPLATES, templates)
-    window.dispatchEvent(new Event('templates_change'))
-    api.toggleTemplate(templateId).catch((e) => console.warn('Toggle template API failed:', e.message))
+    templates[idx].isActive = !templates[idx].isActive;
+    setStorageItem(STORAGE_KEYS.TEMPLATES, templates);
+    window.dispatchEvent(new Event("templates_change"));
+    api
+      .toggleTemplate(templateId)
+      .catch((e) => console.warn("Toggle template API failed:", e.message));
   }
-  return templates
-}
+  return templates;
+};
 
 export const deleteTemplate = (templateId) => {
-  const letters = getLetters()
-  const isUsed = letters.some((l) => l.templateId === templateId)
+  const letters = getLetters();
+  const isUsed = letters.some((l) => l.templateId === templateId);
   if (isUsed) {
     return {
       success: false,
-      message: 'Template tidak dapat dihapus karena sudah pernah digunakan dalam pembuatan surat ajuan.',
-    }
+      message:
+        "Template tidak dapat dihapus karena sudah pernah digunakan dalam pembuatan surat ajuan.",
+    };
   }
 
-  const templates = getTemplates().filter((t) => t.id !== templateId)
-  setStorageItem(STORAGE_KEYS.TEMPLATES, templates)
-  window.dispatchEvent(new Event('templates_change'))
-  api.deleteTemplate(templateId).catch((e) => console.warn('Delete template API failed:', e.message))
-  return { success: true, message: 'Template berhasil dihapus' }
-}
+  const templates = getTemplates().filter((t) => t.id !== templateId);
+  setStorageItem(STORAGE_KEYS.TEMPLATES, templates);
+  window.dispatchEvent(new Event("templates_change"));
+  api
+    .deleteTemplate(templateId)
+    .catch((e) => console.warn("Delete template API failed:", e.message));
+  return { success: true, message: "Template berhasil dihapus" };
+};
 
 // Global Default Viewers (Berlaku untuk SEMUA Surat Ajuan)
 export const getGlobalDefaultViewers = () => {
-  return getStorageItem(STORAGE_KEYS.GLOBAL_DEFAULT_VIEWERS, [])
-}
+  return getStorageItem(STORAGE_KEYS.GLOBAL_DEFAULT_VIEWERS, []);
+};
 
 export const saveGlobalDefaultViewers = async (viewersList) => {
-  const cleanList = Array.isArray(viewersList) ? viewersList : []
-  setStorageItem(STORAGE_KEYS.GLOBAL_DEFAULT_VIEWERS, cleanList)
-  window.dispatchEvent(new Event('global_viewers_change'))
+  const cleanList = Array.isArray(viewersList) ? viewersList : [];
+  setStorageItem(STORAGE_KEYS.GLOBAL_DEFAULT_VIEWERS, cleanList);
+  window.dispatchEvent(new Event("global_viewers_change"));
   try {
-    await api.saveSetting('global_default_viewers', cleanList)
+    await api.saveSetting("global_default_viewers", cleanList);
   } catch (e) {
-    console.warn('Save global default viewers to MySQL failed:', e.message)
+    console.warn("Save global default viewers to MySQL failed:", e.message);
   }
-  return cleanList
-}
+  return cleanList;
+};
 
 // Letters Management
 export const getLetters = () => {
-  const items = getStorageItem(STORAGE_KEYS.LETTERS, [])
-  if (!Array.isArray(items)) return []
+  const items = getStorageItem(STORAGE_KEYS.LETTERS, []);
+  if (!Array.isArray(items)) return [];
   return items.map((l) => ({
     ...l,
     title: l.title ? String(l.title).toUpperCase() : l.title,
-  }))
-}
-export const getLetterById = (id) => getLetters().find((l) => l.id === id)
+  }));
+};
+export const getLetterById = (id) => getLetters().find((l) => l.id === id);
 
 // Generate letter number per branch & per year
 export const generateLetterNumber = (template, branchId, branchCode = null) => {
-  const letters = getLetters()
-  const currentYear = new Date().getFullYear()
-  const romanMonth = getRomanMonth()
+  const letters = getLetters();
+  const currentYear = new Date().getFullYear();
+  const romanMonth = getRomanMonth();
 
   // Ambil cabang dari branchId atau branchCode (resolving ke 3 huruf kode seperti BDG, TGR, PST)
-  const branches = getBranches()
+  const branches = getBranches();
   const matchedBranch = branches.find(
-    (b) => (branchId && (b.id === branchId || b.code === branchId)) ||
-           (branchCode && (b.code === branchCode || b.id === branchCode))
-  )
-  const targetBranch = matchedBranch?.code || branchCode || branchId || 'BDG'
+    (b) =>
+      (branchId && (b.id === branchId || b.code === branchId)) ||
+      (branchCode && (b.code === branchCode || b.id === branchCode)),
+  );
+  const targetBranch = matchedBranch?.code || branchCode || branchId || "BDG";
 
   // Hitung jumlah surat yang sudah pernah dibuat oleh cabang ini pada tahun berjalan
   const branchLettersThisYear = letters.filter((l) => {
-    const isSameBranch = (l.branchId && branchId && String(l.branchId).toLowerCase() === String(branchId).toLowerCase()) ||
-                         (l.branchName && targetBranch && l.branchName.toLowerCase().includes(String(targetBranch).toLowerCase())) ||
-                         (l.letterNumber && String(l.letterNumber).includes(`/${targetBranch}/`))
+    const isSameBranch =
+      (l.branchId &&
+        branchId &&
+        String(l.branchId).toLowerCase() === String(branchId).toLowerCase()) ||
+      (l.branchName &&
+        targetBranch &&
+        l.branchName
+          .toLowerCase()
+          .includes(String(targetBranch).toLowerCase())) ||
+      (l.letterNumber && String(l.letterNumber).includes(`/${targetBranch}/`));
 
-    const letterYear = l.createdAt ? new Date(l.createdAt).getFullYear() : currentYear
-    return isSameBranch && letterYear === currentYear
-  })
+    const letterYear = l.createdAt
+      ? new Date(l.createdAt).getFullYear()
+      : currentYear;
+    return isSameBranch && letterYear === currentYear;
+  });
 
   // Hitung nomor urut tertinggi yang pernah diajukan untuk cabang ini pada tahun berjalan
-  let maxSeq = 0
+  let maxSeq = 0;
   branchLettersThisYear.forEach((l) => {
     if (l.letterNumber) {
-      const parts = String(l.letterNumber).trim().split('/')
+      const parts = String(l.letterNumber).trim().split("/");
       if (parts.length >= 4) {
-        const lastPart = parts[parts.length - 1]
-        const num = parseInt(lastPart, 10)
+        const lastPart = parts[parts.length - 1];
+        const num = parseInt(lastPart, 10);
         if (!isNaN(num) && num > maxSeq) {
-          maxSeq = num
+          maxSeq = num;
         }
       }
     }
-  })
+  });
 
   // No Urut Cabang Tersebut (mengikuti urutan yang diajukan, bertambah terus tanpa bentrok)
-  const nextNumber = Math.max(maxSeq + 1, branchLettersThisYear.length + 1)
-  const sequence = String(nextNumber).padStart(3, '0')
+  const nextNumber = Math.max(maxSeq + 1, branchLettersThisYear.length + 1);
+  const sequence = String(nextNumber).padStart(3, "0");
 
   // Format baku wajib: TAHUN/CABANG/SP/BULAN_ROMAWI/NO_URUT (e.g. 2026/BDG/SP/VII/001)
-  let format = template?.numberFormat || '{{year}}/{{branch_code}}/SP/{{roman_month}}/{{seq}}'
+  let format =
+    template?.numberFormat ||
+    "{{year}}/{{branch_code}}/SP/{{roman_month}}/{{seq}}";
 
   // Bila template di browser user masih membawa format lama / kepanjangan
   if (
     !format ||
-    format.startsWith('{{seq}}/') ||
-    format.includes('TGR/SP/VII') ||
-    (typeof format === 'string' && format.split('/').length > 5)
+    format.startsWith("{{seq}}/") ||
+    format.includes("TGR/SP/VII") ||
+    (typeof format === "string" && format.split("/").length > 5)
   ) {
-    format = '{{year}}/{{branch_code}}/SP/{{roman_month}}/{{seq}}'
+    format = "{{year}}/{{branch_code}}/SP/{{roman_month}}/{{seq}}";
   }
 
   return format
-    .replace('{{year}}', String(currentYear))
-    .replace('{{branch_code}}', targetBranch)
-    .replace('{{code}}', 'SP')
-    .replace('{{roman_month}}', romanMonth)
-    .replace('{{seq}}', sequence)
-}
+    .replace("{{year}}", String(currentYear))
+    .replace("{{branch_code}}", targetBranch)
+    .replace("{{code}}", "SP")
+    .replace("{{roman_month}}", romanMonth)
+    .replace("{{seq}}", sequence);
+};
 
 // Kunci elemen nomor surat di HTML agar tidak dapat diedit / diubah di Word Editor (contenteditable="false")
 export const lockLetterNumberInHtml = (html, letterNumber) => {
-  if (!html) return html
+  if (!html) return html;
   const lockedBadge = (num) =>
-    `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #1e3a8a; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${num}</span>`
+    `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #1e3a8a; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${num}</span>`;
 
-  let result = html
+  let result = html;
 
   // 1. Sudah ada locked-letter-number span -> sinkronkan nomornya jika nomor diberikan
-  if (result.includes('locked-letter-number')) {
+  if (result.includes("locked-letter-number")) {
     if (letterNumber) {
       result = result.replace(
         /<span[^>]*class="[^"]*locked-letter-number[^"]*"[^>]*>[\s\S]*?<\/span>/gi,
-        lockedBadge(letterNumber)
-      )
+        lockedBadge(letterNumber),
+      );
     }
-    return result
+    return result;
   }
 
   // 2. Format baris tabel Nomor : [nomor]
   result = result.replace(
     /(<td[^>]*>\s*<strong>\s*Nomor\s*<\/strong>\s*<\/td>\s*<td[^>]*>\s*:\s*<\/td>\s*<td[^>]*>)([\s\S]*?)(<\/td>)/gi,
     (match, p1, p2, p3) => {
-      const currentVal = letterNumber || p2.replace(/<[^>]*>/g, '').trim() || '[NOMOR SURAT]'
-      return `${p1}${lockedBadge(currentVal)}${p3}`
-    }
-  )
+      const currentVal =
+        letterNumber || p2.replace(/<[^>]*>/g, "").trim() || "[NOMOR SURAT]";
+      return `${p1}${lockedBadge(currentVal)}${p3}`;
+    },
+  );
 
   // 3. Format teks polos "Nomor : 2026/..."
   result = result.replace(
     /(Nomor\s*:\s*)([0-9]{4}\/[A-Z0-9_\-]+\/SP\/[IVXLCDM]+\/[0-9]+)/gi,
     (match, p1, p2) => {
-      const currentVal = letterNumber || p2
-      return `${p1}${lockedBadge(currentVal)}`
-    }
-  )
+      const currentVal = letterNumber || p2;
+      return `${p1}${lockedBadge(currentVal)}`;
+    },
+  );
 
-  return result
-}
+  return result;
+};
 
 // Sinkronisasi teks perihal di dalam isi HTML surat
 export const syncPerihalInHtml = (html, perihal) => {
-  if (!html) return html
-  let result = html
-  const cleanPerihal = perihal ? String(perihal).trim().toUpperCase() : ''
+  if (!html) return html;
+  let result = html;
+  const cleanPerihal = perihal ? String(perihal).trim().toUpperCase() : "";
 
   if (cleanPerihal) {
-    result = result.replace(/{{perihal}}/g, cleanPerihal)
+    result = result.replace(/{{perihal}}/g, cleanPerihal);
     result = result.replace(
       /(<td[^>]*>\s*<strong>\s*Perihal\s*<\/strong>\s*<\/td>\s*<td[^>]*>\s*:\s*<\/td>\s*<td[^>]*>)([\s\S]*?)(<\/td>)/gi,
-      `$1<strong>${cleanPerihal}</strong>$3`
-    )
+      `$1<strong>${cleanPerihal}</strong>$3`,
+    );
     result = result.replace(
       /(<td[^>]*>\s*Perihal\s*<\/td>\s*<td[^>]*>\s*:\s*<\/td>\s*<td[^>]*>)([\s\S]*?)(<\/td>)/gi,
-      `$1<strong>${cleanPerihal}</strong>$3`
-    )
+      `$1<strong>${cleanPerihal}</strong>$3`,
+    );
   }
 
   // Bersihkan sisa tag {{tujuan}} atau {{ringkasan}} jika ada
-  result = result.replace(/{{tujuan}}/g, '[Tulis Pejabat / Pihak Yang Dituju]')
-  result = result.replace(/{{ringkasan}}/g, '[Tulis uraian dan rincian pengajuan Anda secara lengkap di sini...]')
-  result = result.replace(/{{perihal}}/g, cleanPerihal || '[PERIHAL SURAT]')
+  result = result.replace(/{{tujuan}}/g, "[Tulis Pejabat / Pihak Yang Dituju]");
+  result = result.replace(
+    /{{ringkasan}}/g,
+    "[Tulis uraian dan rincian pengajuan Anda secara lengkap di sini...]",
+  );
+  result = result.replace(/{{perihal}}/g, cleanPerihal || "[PERIHAL SURAT]");
 
-  return result
-}
+  return result;
+};
 
 // Template compiler with variables substitution
-export const compileTemplateContent = (template, fieldValues = {}, extra = {}) => {
-  let content = template.letterTemplate || ''
+export const compileTemplateContent = (
+  template,
+  fieldValues = {},
+  extra = {},
+) => {
+  let content = template.letterTemplate || "";
 
   // Replace default extra variables dengan badge terkunci agar nomor surat tidak dapat diedit
   const nomorSuratHtml = extra.nomor_surat
     ? `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #1e3a8a; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${extra.nomor_surat}</span>`
-    : '[NOMOR SURAT]'
+    : "[NOMOR SURAT]";
 
-  content = content.replace(/{{nomor_surat}}/g, nomorSuratHtml)
-  content = content.replace(/{{nama_cabang}}/g, extra.nama_cabang || '[NAMA CABANG]')
-  content = content.replace(/{{tanggal_surat}}/g, extra.tanggal_surat || formatDateId(new Date()))
+  content = content.replace(/{{nomor_surat}}/g, nomorSuratHtml);
+  content = content.replace(
+    /{{nama_cabang}}/g,
+    extra.nama_cabang || "[NAMA CABANG]",
+  );
+  content = content.replace(
+    /{{tanggal_surat}}/g,
+    extra.tanggal_surat || formatDateId(new Date()),
+  );
 
   // Pastikan variabel khusus ter-replace meskipun tidak ada di fieldValues
   const perihalVal = (
     fieldValues.perihal ||
     fieldValues.f_perihal ||
-    (!template?.isCustom && template?.id !== 'custom_blank' && template?.name ? template.name : '')
-  ).trim().toUpperCase()
+    (!template?.isCustom && template?.id !== "custom_blank" && template?.name
+      ? template.name
+      : "")
+  )
+    .trim()
+    .toUpperCase();
   if (perihalVal) {
-    content = content.replace(/{{perihal}}/g, perihalVal)
+    content = content.replace(/{{perihal}}/g, perihalVal);
   }
-  content = content.replace(/{{tujuan}}/g, fieldValues.tujuan || '[Tulis Pejabat / Pihak Yang Dituju]')
-  content = content.replace(/{{ringkasan}}/g, fieldValues.ringkasan || '')
-  content = content.replace(/<p>\s*Mengajukan permohonan dengan uraian sebagai berikut:\s*<\/p>\s*<p>\s*<\/p>/gi, '')
+  content = content.replace(
+    /{{tujuan}}/g,
+    fieldValues.tujuan || "[Tulis Pejabat / Pihak Yang Dituju]",
+  );
+  content = content.replace(/{{ringkasan}}/g, fieldValues.ringkasan || "");
+  content = content.replace(
+    /<p>\s*Mengajukan permohonan dengan uraian sebagai berikut:\s*<\/p>\s*<p>\s*<\/p>/gi,
+    "",
+  );
 
   // Replace field variables
   Object.keys(fieldValues).forEach((key) => {
-    let val = fieldValues[key]
+    let val = fieldValues[key];
 
     // Handle costs table for PERDIN
-    if (key === 'rincian_biaya' && Array.isArray(val)) {
-      let rows = ''
-      let total = 0
+    if (key === "rincian_biaya" && Array.isArray(val)) {
+      let rows = "";
+      let total = 0;
       val.forEach((row, idx) => {
-        const amt = Number(row.amount || 0)
-        total += amt
+        const amt = Number(row.amount || 0);
+        total += amt;
         rows += `
           <tr style="border-bottom: 1px solid #e2e8f0;">
             <td style="padding: 6px 10px; text-align: center;">${idx + 1}</td>
-            <td style="padding: 6px 10px;">${row.item || '-'}</td>
+            <td style="padding: 6px 10px;">${row.item || "-"}</td>
             <td style="padding: 6px 10px; text-align: right;">Rp ${formatRupiah(amt)}</td>
-          </tr>`
-      })
+          </tr>`;
+      });
 
       const tableHtml = `
         <table style="width: 100%; border-collapse: collapse; margin: 12px 0; font-family: Tahoma, Arial, sans-serif; font-size: 11px; border: 1px solid #cbd5e1;">
@@ -962,55 +1122,87 @@ export const compileTemplateContent = (template, fieldValues = {}, extra = {}) =
               <td style="padding: 8px 10px; text-align: right; color: #1e3a8a;">Rp ${formatRupiah(total)}</td>
             </tr>
           </tfoot>
-        </table>`
+        </table>`;
 
-      content = content.replace(/{{tabel_biaya_html}}/g, tableHtml)
-      content = content.replace(/{{total_biaya}}/g, `Rp ${formatRupiah(total)}`)
+      content = content.replace(/{{tabel_biaya_html}}/g, tableHtml);
+      content = content.replace(
+        /{{total_biaya}}/g,
+        `Rp ${formatRupiah(total)}`,
+      );
     } else {
-      if (typeof val === 'number' || (!isNaN(val) && val !== '' && key.includes('biaya'))) {
-        content = content.replace(new RegExp(`{{${key}_format}}`, 'g'), formatRupiah(val))
+      if (
+        typeof val === "number" ||
+        (!isNaN(val) && val !== "" && key.includes("biaya"))
+      ) {
+        content = content.replace(
+          new RegExp(`{{${key}_format}}`, "g"),
+          formatRupiah(val),
+        );
       }
-      content = content.replace(new RegExp(`{{${key}}}`, 'g'), val !== undefined && val !== null ? String(val) : '')
+      content = content.replace(
+        new RegExp(`{{${key}}}`, "g"),
+        val !== undefined && val !== null ? String(val) : "",
+      );
     }
-  })
+  });
 
   if (perihalVal) {
-    content = syncPerihalInHtml(content, perihalVal)
+    content = syncPerihalInHtml(content, perihalVal);
   }
 
-  return content
-}
+  return content;
+};
 
 // Save Letter (Draft or Submit)
 export const saveLetter = (letterData, isSubmit = false) => {
-  const letters = getLetters()
-  const currentUser = getCurrentUser()
-  let saved
-  const now = new Date().toISOString()
+  const letters = getLetters();
+  const currentUser = getCurrentUser();
+  let saved;
+  const now = new Date().toISOString();
 
   if (letterData.id) {
-    const idx = letters.findIndex((l) => l.id === letterData.id)
+    const idx = letters.findIndex((l) => l.id === letterData.id);
     if (idx >= 0) {
-      const existing = letters[idx]
-      const newStatus = isSubmit ? 'pending' : (existing.status === 'revision' ? 'pending' : existing.status)
-      const actionName = isSubmit ? 'Mengedit & Mengajukan Surat' : 'Mengedit & Menyimpan Perubahan'
-      const actionNotes = isSubmit ? 'Isi surat diperbarui lalu diajukan ke approver' : 'Perubahan isi draft/surat berhasil disimpan'
+      const existing = letters[idx];
+      const newStatus = isSubmit
+        ? "pending"
+        : existing.status === "revision"
+          ? "pending"
+          : existing.status;
+      const actionName = isSubmit
+        ? "Mengedit & Mengajukan Surat"
+        : "Mengedit & Menyimpan Perubahan";
+      const actionNotes = isSubmit
+        ? "Isi surat diperbarui lalu diajukan ke approver"
+        : "Perubahan isi draft/surat berhasil disimpan";
 
       const newEditRecord = {
         userId: currentUser.id,
         userName: currentUser.name,
-        userPosition: currentUser.position || 'Pengguna',
+        userPosition: currentUser.position || "Pengguna",
         action: actionName,
         notes: actionNotes,
         timestamp: now,
-      }
+      };
 
-      const existingEdits = Array.isArray(existing.editHistory) ? existing.editHistory : []
+      const existingEdits = Array.isArray(existing.editHistory)
+        ? existing.editHistory
+        : [];
 
-      const letterAttachments = letterData.attachments || (letterData.fieldValues && letterData.fieldValues.attachments) || existing.attachments || []
+      const letterAttachments =
+        letterData.attachments ||
+        (letterData.fieldValues && letterData.fieldValues.attachments) ||
+        existing.attachments ||
+        [];
       const persistentAttachments = Array.isArray(letterAttachments)
         ? letterAttachments.map((a) => {
-            const url = a.url || (typeof a.dataUrl === 'string' && (a.dataUrl.startsWith('/lampiran') || a.dataUrl.startsWith('http')) ? a.dataUrl : '')
+            const url =
+              a.url ||
+              (typeof a.dataUrl === "string" &&
+              (a.dataUrl.startsWith("/lampiran") ||
+                a.dataUrl.startsWith("http"))
+                ? a.dataUrl
+                : "");
             return {
               id: a.id,
               name: a.name,
@@ -1018,22 +1210,36 @@ export const saveLetter = (letterData, isSubmit = false) => {
               extension: a.extension,
               category: a.category,
               url,
-              dataUrl: a.dataUrl || url || '',
+              dataUrl: a.dataUrl || url || "",
               uploadedAt: a.uploadedAt || now,
-            }
+            };
           })
-        : []
+        : [];
 
       // Jika draft baru pertama kali diajukan ke approver, berikan nomor surat resmi urutan terbaru (kecuali surat mandiri manual)
-      const template = getTemplateById(existing.templateId || letterData.templateId)
-      const isMandiri = (existing.templateId || letterData.templateId) === 'custom_blank' || template?.code === 'MANDIRI' || template?.isManualNumber || template?.isCustom
-      let targetNumber = (letterData.letterNumber && letterData.letterNumber.trim()) || existing.letterNumber
-      if (!targetNumber || targetNumber.includes('DRAFT')) {
-        targetNumber = generateLetterNumber(template, existing.branchId || currentUser.branchId)
+      const template = getTemplateById(
+        existing.templateId || letterData.templateId,
+      );
+      const isMandiri =
+        (existing.templateId || letterData.templateId) === "custom_blank" ||
+        template?.code === "MANDIRI" ||
+        template?.isManualNumber ||
+        template?.isCustom;
+      let targetNumber =
+        (letterData.letterNumber && letterData.letterNumber.trim()) ||
+        existing.letterNumber;
+      if (!targetNumber || targetNumber.includes("DRAFT")) {
+        targetNumber = generateLetterNumber(
+          template,
+          existing.branchId || currentUser.branchId,
+        );
       }
 
-      const rawTitle = letterData.title || existing.title || `${template?.name || 'SURAT AJUAN'} - ${currentUser.name}`
-      const targetTitle = String(rawTitle).trim().toUpperCase()
+      const rawTitle =
+        letterData.title ||
+        existing.title ||
+        `${template?.name || "SURAT AJUAN"} - ${currentUser.name}`;
+      const targetTitle = String(rawTitle).trim().toUpperCase();
 
       saved = {
         ...existing,
@@ -1043,48 +1249,74 @@ export const saveLetter = (letterData, isSubmit = false) => {
         attachments: persistentAttachments,
         fieldValues: {
           ...(letterData.fieldValues || existing.fieldValues || {}),
-          ...(letterData.fieldValues?.perihal ? { perihal: String(letterData.fieldValues.perihal).trim().toUpperCase() } : {}),
+          ...(letterData.fieldValues?.perihal
+            ? {
+                perihal: String(letterData.fieldValues.perihal)
+                  .trim()
+                  .toUpperCase(),
+              }
+            : {}),
           attachments: persistentAttachments,
         },
-        content: lockLetterNumberInHtml(letterData.content || existing.content || '', targetNumber),
+        content: lockLetterNumberInHtml(
+          letterData.content || existing.content || "",
+          targetNumber,
+        ),
         status: newStatus,
         updatedAt: now,
         lastEditedBy: currentUser.name,
-        lastEditedPosition: currentUser.position || 'Pengguna',
+        lastEditedPosition: currentUser.position || "Pengguna",
         lastEditedAt: now,
         editHistory: [newEditRecord, ...existingEdits],
-      }
-      letters[idx] = saved
+      };
+      letters[idx] = saved;
 
-      addAuditLog(saved.id, currentUser.name, actionName, actionNotes)
+      addAuditLog(saved.id, currentUser.name, actionName, actionNotes);
     }
   } else {
     // New letter
-    const template = getTemplateById(letterData.templateId)
-    const letterNumber = (letterData.letterNumber && letterData.letterNumber.trim() && !letterData.letterNumber.includes('DRAFT'))
-      ? letterData.letterNumber.trim()
-      : generateLetterNumber(template, currentUser.branchId)
-    const stepsCount = letterData.approvalHistory?.length || (template.approvalSteps ? template.approvalSteps.length : 1)
+    const template = getTemplateById(letterData.templateId);
+    const letterNumber =
+      letterData.letterNumber &&
+      letterData.letterNumber.trim() &&
+      !letterData.letterNumber.includes("DRAFT")
+        ? letterData.letterNumber.trim()
+        : generateLetterNumber(template, currentUser.branchId);
+    const stepsCount =
+      letterData.approvalHistory?.length ||
+      (template.approvalSteps ? template.approvalSteps.length : 1);
 
-    const approvalHistory = (letterData.approvalHistory && letterData.approvalHistory.length > 0)
-      ? letterData.approvalHistory
-      : (template.approvalSteps || [{ step: 1, approverRole: '' }]).map((st) => ({
-          step: st.step,
-          approverRole: st.approverRole || st.title,
-          kodeJabatan: st.kodeJabatan || null,
-          specificUserId: st.specificUserId || null,
-          specificUserName: st.specificUserName || null,
-          assignmentType: st.assignmentType || (st.specificUserId ? 'user' : 'role'),
-          approverName: null,
-          status: 'pending',
-          notes: '',
-          date: null,
-        }))
+    const approvalHistory =
+      letterData.approvalHistory && letterData.approvalHistory.length > 0
+        ? letterData.approvalHistory
+        : (template.approvalSteps || [{ step: 1, approverRole: "" }]).map(
+            (st) => ({
+              step: st.step,
+              approverRole: st.approverRole || st.title,
+              kodeJabatan: st.kodeJabatan || null,
+              specificUserId: st.specificUserId || null,
+              specificUserName: st.specificUserName || null,
+              assignmentType:
+                st.assignmentType || (st.specificUserId ? "user" : "role"),
+              approverName: null,
+              status: "pending",
+              notes: "",
+              date: null,
+            }),
+          );
 
-    const letterAttachments = letterData.attachments || (letterData.fieldValues && letterData.fieldValues.attachments) || []
+    const letterAttachments =
+      letterData.attachments ||
+      (letterData.fieldValues && letterData.fieldValues.attachments) ||
+      [];
     const persistentAttachments = Array.isArray(letterAttachments)
       ? letterAttachments.map((a) => {
-          const url = a.url || (typeof a.dataUrl === 'string' && (a.dataUrl.startsWith('/lampiran') || a.dataUrl.startsWith('http')) ? a.dataUrl : '')
+          const url =
+            a.url ||
+            (typeof a.dataUrl === "string" &&
+            (a.dataUrl.startsWith("/lampiran") || a.dataUrl.startsWith("http"))
+              ? a.dataUrl
+              : "");
           return {
             id: a.id,
             name: a.name,
@@ -1092,11 +1324,11 @@ export const saveLetter = (letterData, isSubmit = false) => {
             extension: a.extension,
             category: a.category,
             url,
-            dataUrl: a.dataUrl || url || '',
+            dataUrl: a.dataUrl || url || "",
             uploadedAt: a.uploadedAt || now,
-          }
+          };
         })
-      : []
+      : [];
 
     saved = {
       id: `ltr-${Date.now().toString(36)}`,
@@ -1106,116 +1338,158 @@ export const saveLetter = (letterData, isSubmit = false) => {
       letterNumber,
       userId: currentUser.id,
       userName: currentUser.name,
-      userPosition: currentUser.position || 'Pemohon',
+      userPosition: currentUser.position || "Pemohon",
       branchId: currentUser.branchId,
       branchName: currentUser.branchName,
-      status: isSubmit ? 'pending' : 'draft',
+      status: isSubmit ? "pending" : "draft",
       currentStep: 1,
       totalSteps: stepsCount,
-      title: (letterData.title || `${template.name} - ${currentUser.name}`).trim().toUpperCase(),
-      includeKnownBy: letterData.includeKnownBy !== undefined ? letterData.includeKnownBy : (currentUser.branchId !== 'PST'),
-      knownByName: letterData.knownByName || '',
-      knownByPosition: letterData.knownByPosition || '',
+      title: (letterData.title || `${template.name} - ${currentUser.name}`)
+        .trim()
+        .toUpperCase(),
+      includeKnownBy:
+        letterData.includeKnownBy !== undefined
+          ? letterData.includeKnownBy
+          : currentUser.branchId !== "PST",
+      knownByName: letterData.knownByName || "",
+      knownByPosition: letterData.knownByPosition || "",
       fieldValues: {
         ...(letterData.fieldValues || {}),
-        ...(letterData.fieldValues?.perihal ? { perihal: String(letterData.fieldValues.perihal).trim().toUpperCase() } : {}),
+        ...(letterData.fieldValues?.perihal
+          ? {
+              perihal: String(letterData.fieldValues.perihal)
+                .trim()
+                .toUpperCase(),
+            }
+          : {}),
         attachments: persistentAttachments,
-        includeKnownBy: letterData.includeKnownBy !== undefined ? letterData.includeKnownBy : (currentUser.branchId !== 'PST'),
-        knownByName: letterData.knownByName || '',
-        knownByPosition: letterData.knownByPosition || '',
+        includeKnownBy:
+          letterData.includeKnownBy !== undefined
+            ? letterData.includeKnownBy
+            : currentUser.branchId !== "PST",
+        knownByName: letterData.knownByName || "",
+        knownByPosition: letterData.knownByPosition || "",
       },
       attachments: persistentAttachments,
-      content: lockLetterNumberInHtml(letterData.content || '', letterNumber),
+      content: lockLetterNumberInHtml(letterData.content || "", letterNumber),
       approvalHistory,
       createdBy: currentUser.name,
-      createdByPosition: currentUser.position || 'Pemohon',
+      createdByPosition: currentUser.position || "Pemohon",
       createdAt: now,
       updatedAt: now,
       lastEditedBy: null,
       lastEditedPosition: null,
       lastEditedAt: null,
       editHistory: [],
-    }
+    };
 
-    letters.unshift(saved)
+    letters.unshift(saved);
 
-    addAuditLog(saved.id, currentUser.name, isSubmit ? 'Membuat & Mengajukan Surat Baru' : 'Membuat Draft Surat', isSubmit ? 'Surat diajukan ke approver' : 'Disimpan sebagai draft')
+    addAuditLog(
+      saved.id,
+      currentUser.name,
+      isSubmit ? "Membuat & Mengajukan Surat Baru" : "Membuat Draft Surat",
+      isSubmit ? "Surat diajukan ke approver" : "Disimpan sebagai draft",
+    );
 
     if (isSubmit) {
       addNotification({
-        userId: 'approver_role_1',
-        title: 'Pengajuan Surat Baru',
+        userId: "approver_role_1",
+        title: "Pengajuan Surat Baru",
         message: `${currentUser.name} mengajukan ${template.name} (${letterNumber})`,
         letterId: saved.id,
-      })
+      });
     }
   }
 
-  setStorageItem(STORAGE_KEYS.LETTERS, letters)
-  window.dispatchEvent(new Event('letters_change'))
+  setStorageItem(STORAGE_KEYS.LETTERS, letters);
+  window.dispatchEvent(new Event("letters_change"));
   // Sync to remote MySQL API
-  api.saveLetter(saved).catch((e) => console.warn('Sync letter to API failed:', e.message))
-  return saved
-}
+  api
+    .saveLetter(saved)
+    .catch((e) => console.warn("Sync letter to API failed:", e.message));
+  return saved;
+};
 
 // Hapus Dokumen Surat (Khusus status draft)
 export const deleteLetter = (letterId) => {
-  const letters = getLetters()
-  const idx = letters.findIndex((l) => l.id === letterId)
-  if (idx === -1) return false
+  const letters = getLetters();
+  const idx = letters.findIndex((l) => l.id === letterId);
+  if (idx === -1) return false;
 
-  const letter = letters[idx]
-  if (letter.status !== 'draft') {
-    return false
+  const letter = letters[idx];
+  if (letter.status !== "draft") {
+    return false;
   }
 
-  const updated = letters.filter((l) => l.id !== letterId)
-  setStorageItem(STORAGE_KEYS.LETTERS, updated)
-  window.dispatchEvent(new Event('letters_change'))
+  const updated = letters.filter((l) => l.id !== letterId);
+  setStorageItem(STORAGE_KEYS.LETTERS, updated);
+  window.dispatchEvent(new Event("letters_change"));
 
   // Sync delete to MySQL API
-  api.deleteLetter(letterId).catch((e) => console.warn('Delete letter API failed:', e.message))
-  return true
-}
+  api
+    .deleteLetter(letterId)
+    .catch((e) => console.warn("Delete letter API failed:", e.message));
+  return true;
+};
 
 // Ambil nama dan jabatan Pihak Mengetahui yang valid untuk suatu surat
 export const getEffectiveKnownBy = (letter) => {
-  if (!letter) return { name: '', position: '', hasKnownBy: false }
+  if (!letter) return { name: "", position: "", hasKnownBy: false };
 
   const isPST =
-    letter.branchId === 'PST' ||
-    (letter.branchName && letter.branchName.toLowerCase().includes('pusat'))
+    letter.branchId === "PST" ||
+    (letter.branchName && letter.branchName.toLowerCase().includes("pusat"));
 
-  let hasKnownBy = true
+  let hasKnownBy = true;
   if (letter.includeKnownBy !== undefined) {
-    hasKnownBy = Boolean(letter.includeKnownBy)
+    hasKnownBy = Boolean(letter.includeKnownBy);
   } else if (letter.fieldValues?.includeKnownBy !== undefined) {
-    hasKnownBy = Boolean(letter.fieldValues.includeKnownBy)
+    hasKnownBy = Boolean(letter.fieldValues.includeKnownBy);
   } else if (isPST && !letter.knownByName && !letter.fieldValues?.knownByName) {
-    hasKnownBy = false
+    hasKnownBy = false;
   }
 
   if (!hasKnownBy) {
-    return { name: '', position: '', hasKnownBy: false }
+    return { name: "", position: "", hasKnownBy: false };
   }
 
-  const creatorName = (letter.userName || letter.createdBy || '').trim()
-  const creatorPos = (letter.userPosition || letter.fieldValues?.jabatan || '').trim()
+  const creatorName = (letter.userName || letter.createdBy || "").trim();
+  const creatorPos = (
+    letter.userPosition ||
+    letter.fieldValues?.jabatan ||
+    ""
+  ).trim();
 
-  const branches = getBranches()
-  const currentBranch = branches.find((b) => b.id === letter.branchId || b.code === letter.branchId) || {}
+  const branches = getBranches();
+  const currentBranch =
+    branches.find(
+      (b) => b.id === letter.branchId || b.code === letter.branchId,
+    ) || {};
 
-  let name = (letter.knownByName || letter.fieldValues?.knownByName || '').trim()
-  let position = (letter.knownByPosition || letter.fieldValues?.knownByPosition || '').trim()
+  let name = (
+    letter.knownByName ||
+    letter.fieldValues?.knownByName ||
+    ""
+  ).trim();
+  let position = (
+    letter.knownByPosition ||
+    letter.fieldValues?.knownByPosition ||
+    ""
+  ).trim();
 
   // Prioritaskan nama yang valid di database users
-  const users = getUsers()
-  const candidateUser = users.find((u) => u.name && u.name.trim().toLowerCase() === name.toLowerCase())
+  const users = getUsers();
+  const candidateUser = users.find(
+    (u) => u.name && u.name.trim().toLowerCase() === name.toLowerCase(),
+  );
   if (!candidateUser) {
-    name = ''
+    name = "";
   }
 
-  const isSameAsCreator = Boolean(creatorName && name && name.toLowerCase() === creatorName.toLowerCase())
+  const isSameAsCreator = Boolean(
+    creatorName && name && name.toLowerCase() === creatorName.toLowerCase(),
+  );
 
   // Jika nama Mengetahui kosong ATAU sama persis dengan pembuat surat, alihkan otomatis ke rekanan manager di cabang tsb
   if (!name || isSameAsCreator) {
@@ -1223,432 +1497,618 @@ export const getEffectiveKnownBy = (letter) => {
       (u) =>
         u.name &&
         u.name.trim().toLowerCase() !== creatorName.toLowerCase() &&
-        ((u.branchId && (u.branchId === letter.branchId || u.branchId === currentBranch.code || u.branchId === currentBranch.id)) ||
-        (u.branchName && letter.branchName && u.branchName.toLowerCase().includes(letter.branchName.toLowerCase().replace('cabang ', ''))))
-    )
+        ((u.branchId &&
+          (u.branchId === letter.branchId ||
+            u.branchId === currentBranch.code ||
+            u.branchId === currentBranch.id)) ||
+          (u.branchName &&
+            letter.branchName &&
+            u.branchName
+              .toLowerCase()
+              .includes(
+                letter.branchName.toLowerCase().replace("cabang ", ""),
+              ))),
+    );
 
-    const isCreatorOM = /operation\s*manager|\bOM\b/i.test(creatorPos) || letter.kodeJabatan === 'J08'
+    const isCreatorOM =
+      /operation\s*manager|\bOM\b/i.test(creatorPos) ||
+      letter.kodeJabatan === "J08";
     if (isCreatorOM) {
-      const smmUser = branchUsers.find((u) => u.kodeJabatan === 'J07' || /sales\s*marketing|\bSMM\b/i.test(u.position || ''))
+      const smmUser = branchUsers.find(
+        (u) =>
+          u.kodeJabatan === "J07" ||
+          /sales\s*marketing|\bSMM\b/i.test(u.position || ""),
+      );
       if (smmUser) {
-        name = smmUser.name
-        position = smmUser.position || 'Sales Marketing Manager (SMM)'
+        name = smmUser.name;
+        position = smmUser.position || "Sales Marketing Manager (SMM)";
       }
     } else {
-      const omUser = branchUsers.find((u) => u.kodeJabatan === 'J08' || /operation\s*manager|\bOM\b/i.test(u.position || ''))
+      const omUser = branchUsers.find(
+        (u) =>
+          u.kodeJabatan === "J08" ||
+          /operation\s*manager|\bOM\b/i.test(u.position || ""),
+      );
       if (omUser) {
-        name = omUser.name
-        position = omUser.position || 'Operation Manager (OM)'
+        name = omUser.name;
+        position = omUser.position || "Operation Manager (OM)";
       }
     }
 
-    if (!name || (creatorName && name.toLowerCase() === creatorName.toLowerCase())) {
-      const otherManager = branchUsers.find((u) => (u.position || '').toLowerCase().includes('manager') || ['J05', 'J07', 'J08'].includes(u.kodeJabatan))
+    if (
+      !name ||
+      (creatorName && name.toLowerCase() === creatorName.toLowerCase())
+    ) {
+      const otherManager = branchUsers.find(
+        (u) =>
+          (u.position || "").toLowerCase().includes("manager") ||
+          ["J05", "J07", "J08"].includes(u.kodeJabatan),
+      );
       if (otherManager) {
-        name = otherManager.name
-        position = otherManager.position || 'Manager Cabang'
+        name = otherManager.name;
+        position = otherManager.position || "Manager Cabang";
       } else {
-        name = isPST ? 'Pimpinan Divisi Terkait' : ''
-        position = isPST ? 'Manajer Terkait' : ''
+        name = isPST ? "Pimpinan Divisi Terkait" : "";
+        position = isPST ? "Manajer Terkait" : "";
       }
     }
   }
 
-  return { name, position, hasKnownBy: Boolean(name) }
-}
+  return { name, position, hasKnownBy: Boolean(name) };
+};
 
 // Cek apakah surat sedang menunggu tanda tangan / persetujuan dari Pihak Mengetahui terlebih dahulu
 export const isLetterAwaitingKnownBy = (letter) => {
-  if (!letter || letter.status !== 'pending') return false
+  if (!letter || letter.status !== "pending") return false;
 
-  const { name, hasKnownBy } = getEffectiveKnownBy(letter)
-  if (!hasKnownBy || !name) return false
+  const { name, hasKnownBy } = getEffectiveKnownBy(letter);
+  if (!hasKnownBy || !name) return false;
 
   const isApproved = Boolean(
     letter.knownByApproved ||
-    letter.knownByStatus === 'approved' ||
+    letter.knownByStatus === "approved" ||
     letter.fieldValues?.knownByApproved ||
-    letter.fieldValues?.knownByStatus === 'approved'
-  )
-  return !isApproved
-}
+    letter.fieldValues?.knownByStatus === "approved",
+  );
+  return !isApproved;
+};
 
 // Cek apakah seorang user adalah Pihak Mengetahui dari surat tsb
 export const isUserLetterKnownBy = (letter, user) => {
-  if (!letter || !user) return false
-  const uName = (user.name || '').trim().toLowerCase()
-  const uid = String(user.id || '')
-  const creator = (letter.userName || letter.createdBy || '').trim().toLowerCase()
+  if (!letter || !user) return false;
+  const uName = (user.name || "").trim().toLowerCase();
+  const uid = String(user.id || "");
+  const creator = (letter.userName || letter.createdBy || "")
+    .trim()
+    .toLowerCase();
   // Pembuat surat tidak boleh menyetujui suratnya sendiri sebagai Mengetahui
-  if (uName && creator && uName === creator) return false
+  if (uName && creator && uName === creator) return false;
 
-  const { name: effectiveName } = getEffectiveKnownBy(letter)
-  const kName = (effectiveName || letter.knownByName || letter.fieldValues?.knownByName || '').trim().toLowerCase()
-  if (kName && uName && (kName === uName || kName.includes(uName) || uName.includes(kName))) {
-    return true
+  const { name: effectiveName } = getEffectiveKnownBy(letter);
+  const kName = (
+    effectiveName ||
+    letter.knownByName ||
+    letter.fieldValues?.knownByName ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+  if (
+    kName &&
+    uName &&
+    (kName === uName || kName.includes(uName) || uName.includes(kName))
+  ) {
+    return true;
   }
 
-  const kUid = String(letter.knownById || letter.fieldValues?.knownById || '')
+  const kUid = String(letter.knownById || letter.fieldValues?.knownById || "");
   if (kUid && uid && kUid === uid) {
-    return true
+    return true;
   }
 
-  return false
-}
+  return false;
+};
 
 // Approval Actions
-export const approveLetter = (letterId, notes = '', signature = null) => {
-  const letters = getLetters()
-  const currentUser = getCurrentUser()
-  const idx = letters.findIndex((l) => l.id === letterId)
-  if (idx === -1) return null
+export const approveLetter = (letterId, notes = "", signature = null) => {
+  const letters = getLetters();
+  const currentUser = getCurrentUser();
+  const idx = letters.findIndex((l) => l.id === letterId);
+  if (idx === -1) return null;
 
-  const letter = letters[idx]
-  const now = new Date().toISOString()
+  const letter = letters[idx];
+  const now = new Date().toISOString();
 
   // 1. JIKA SURAT MASIH MENUNGGU PERSETUJUAN DARI PIHAK MENGETAHUI:
   if (isLetterAwaitingKnownBy(letter)) {
     const updated = {
       ...letter,
       knownByApproved: true,
-      knownByStatus: 'approved',
+      knownByStatus: "approved",
       knownByApprovedAt: now,
       knownByApprovedBy: currentUser.name,
-      knownByNotes: notes || 'Disetujui pihak mengetahui.',
+      knownByNotes: notes || "Disetujui pihak mengetahui.",
       ...(signature ? { knownBySignature: signature } : {}),
       fieldValues: {
         ...(letter.fieldValues || {}),
         knownByApproved: true,
-        knownByStatus: 'approved',
+        knownByStatus: "approved",
         knownByApprovedAt: now,
         knownByApprovedBy: currentUser.name,
-        knownByNotes: notes || 'Disetujui pihak mengetahui.',
+        knownByNotes: notes || "Disetujui pihak mengetahui.",
         ...(signature ? { knownBySignature: signature } : {}),
       },
       updatedAt: now,
-    }
+    };
 
-    letters[idx] = updated
-    setStorageItem(STORAGE_KEYS.LETTERS, letters)
-    window.dispatchEvent(new Event('letters_change'))
+    letters[idx] = updated;
+    setStorageItem(STORAGE_KEYS.LETTERS, letters);
+    window.dispatchEvent(new Event("letters_change"));
 
-    api.submitDecision(letter.id, 'approve', notes, currentUser.name, currentUser.kodeJabatan, true, signature)
-      .catch((e) => console.warn('Sync approve decision failed:', e.message))
+    api
+      .submitDecision(
+        letter.id,
+        "approve",
+        notes,
+        currentUser.name,
+        currentUser.kodeJabatan,
+        true,
+        signature,
+      )
+      .catch((e) => console.warn("Sync approve decision failed:", e.message));
 
-    addAuditLog(letter.id, currentUser.name, 'Tanda Tangan Pihak Mengetahui', notes || 'Disetujui oleh Pihak Mengetahui')
+    addAuditLog(
+      letter.id,
+      currentUser.name,
+      "Tanda Tangan Pihak Mengetahui",
+      notes || "Disetujui oleh Pihak Mengetahui",
+    );
 
     // Notifikasi ke pemohon bahwa Mengetahui sudah menyetujui
     addNotification({
       userId: letter.userId,
-      title: 'Disetujui Pihak Mengetahui',
+      title: "Disetujui Pihak Mengetahui",
       message: `${currentUser.name} (Mengetahui) telah menyetujui surat ${letter.letterNumber}. Surat diteruskan ke pejabat penyetuju.`,
       letterId: letter.id,
-    })
+    });
 
     // Notifikasi ke pejabat penyetuju tahap pertama
-    const firstApproverStep = letter.approvalHistory?.[0]
+    const firstApproverStep = letter.approvalHistory?.[0];
     if (firstApproverStep?.specificUserId) {
       addNotification({
         userId: firstApproverStep.specificUserId,
-        title: 'Menunggu Persetujuan Anda',
+        title: "Menunggu Persetujuan Anda",
         message: `Surat ${letter.letterNumber} telah disetujui Pihak Mengetahui dan kini menunggu persetujuan Anda.`,
         letterId: letter.id,
-      })
+      });
     }
 
-    return updated
+    return updated;
   }
 
   // 2. KASUS BIASA: PERSETUJUAN JALUR PEJABAT (approvalHistory)
-  const stepIdx = letter.currentStep - 1
-  const history = [...letter.approvalHistory]
+  const stepIdx = letter.currentStep - 1;
+  const history = [...letter.approvalHistory];
 
   if (history[stepIdx]) {
     history[stepIdx] = {
       ...history[stepIdx],
       approverName: currentUser.name,
-      status: 'approved',
-      notes: notes || 'Disetujui tanpa catatan khusus.',
+      status: "approved",
+      notes: notes || "Disetujui tanpa catatan khusus.",
       date: now,
       ...(signature ? { signature } : {}),
-    }
+    };
   }
 
-  let nextStep = letter.currentStep + 1
-  let nextStatus = 'pending'
+  let nextStep = letter.currentStep + 1;
+  let nextStatus = "pending";
 
   if (nextStep > letter.totalSteps) {
-    nextStatus = 'approved' // Fully approved!
+    nextStatus = "approved"; // Fully approved!
   }
 
   letters[idx] = {
     ...letter,
-    currentStep: nextStatus === 'approved' ? letter.totalSteps : nextStep,
+    currentStep: nextStatus === "approved" ? letter.totalSteps : nextStep,
     status: nextStatus,
     approvalHistory: history,
     updatedAt: now,
-  }
+  };
 
-  setStorageItem(STORAGE_KEYS.LETTERS, letters)
-  window.dispatchEvent(new Event('letters_change'))
+  setStorageItem(STORAGE_KEYS.LETTERS, letters);
+  window.dispatchEvent(new Event("letters_change"));
 
   // Sync decision to MySQL API
-  api.submitDecision(letter.id, 'approve', notes, currentUser.name, currentUser.kodeJabatan, false, signature)
-    .catch((e) => console.warn('Sync approve decision failed:', e.message))
+  api
+    .submitDecision(
+      letter.id,
+      "approve",
+      notes,
+      currentUser.name,
+      currentUser.kodeJabatan,
+      false,
+      signature,
+    )
+    .catch((e) => console.warn("Sync approve decision failed:", e.message));
 
-  addAuditLog(letter.id, currentUser.name, `Persetujuan Tahap ${letter.currentStep}`, notes || 'Disetujui')
+  addAuditLog(
+    letter.id,
+    currentUser.name,
+    `Persetujuan Tahap ${letter.currentStep}`,
+    notes || "Disetujui",
+  );
 
   // Notify submitter
   addNotification({
     userId: letter.userId,
-    title: nextStatus === 'approved' ? 'Surat Telah Disetujui Penuh!' : `Persetujuan Tahap ${letter.currentStep} Disetujui`,
-    message: `${currentUser.name} menyetujui ${letter.letterNumber}. ${notes ? `Catatan: "${notes}"` : ''}`,
+    title:
+      nextStatus === "approved"
+        ? "Surat Telah Disetujui Penuh!"
+        : `Persetujuan Tahap ${letter.currentStep} Disetujui`,
+    message: `${currentUser.name} menyetujui ${letter.letterNumber}. ${notes ? `Catatan: "${notes}"` : ""}`,
     letterId: letter.id,
-  })
+  });
 
-  return letters[idx]
-}
+  return letters[idx];
+};
 
 export const updateLetterApprovalNotes = (letterId, stepIndex, notes) => {
-  const letters = getLetters()
-  const currentUser = getCurrentUser()
-  const idx = letters.findIndex((l) => l.id === letterId)
-  if (idx === -1) return null
+  const letters = getLetters();
+  const currentUser = getCurrentUser();
+  const idx = letters.findIndex((l) => l.id === letterId);
+  if (idx === -1) return null;
 
-  const letter = letters[idx]
-  const history = [...(letter.approvalHistory || [])]
+  const letter = letters[idx];
+  const history = [...(letter.approvalHistory || [])];
   if (history[stepIndex]) {
     history[stepIndex] = {
       ...history[stepIndex],
       notes: notes,
-    }
+    };
   }
 
   const updated = {
     ...letter,
     approvalHistory: history,
     updatedAt: new Date().toISOString(),
-  }
+  };
 
-  letters[idx] = updated
-  setStorageItem(STORAGE_KEYS.LETTERS, letters)
-  window.dispatchEvent(new Event('letters_change'))
+  letters[idx] = updated;
+  setStorageItem(STORAGE_KEYS.LETTERS, letters);
+  window.dispatchEvent(new Event("letters_change"));
 
-  api.saveLetter(updated).catch((e) => console.warn('Save letter notes to API failed:', e.message))
-  addAuditLog(letter.id, currentUser?.name || 'Approver', `Memperbarui Catatan Tahap ${stepIndex + 1}`, notes || 'Menghapus catatan')
+  api
+    .saveLetter(updated)
+    .catch((e) => console.warn("Save letter notes to API failed:", e.message));
+  addAuditLog(
+    letter.id,
+    currentUser?.name || "Approver",
+    `Memperbarui Catatan Tahap ${stepIndex + 1}`,
+    notes || "Menghapus catatan",
+  );
 
-  return updated
-}
+  return updated;
+};
 
-export const rejectLetter = (letterId, notes = '') => {
-  const letters = getLetters()
-  const currentUser = getCurrentUser()
-  const idx = letters.findIndex((l) => l.id === letterId)
-  if (idx === -1) return null
+export const rejectLetter = (letterId, notes = "") => {
+  const letters = getLetters();
+  const currentUser = getCurrentUser();
+  const idx = letters.findIndex((l) => l.id === letterId);
+  if (idx === -1) return null;
 
-  const letter = letters[idx]
-  const now = new Date().toISOString()
+  const letter = letters[idx];
+  const now = new Date().toISOString();
 
   // 1. JIKA DITOLAK SAAT TAHAP MENGETAHUI
   if (isLetterAwaitingKnownBy(letter)) {
     const updated = {
       ...letter,
-      status: 'rejected',
-      knownByStatus: 'rejected',
+      status: "rejected",
+      knownByStatus: "rejected",
       knownByApproved: false,
-      knownByNotes: notes || 'Ditolak oleh Pihak Mengetahui.',
+      knownByNotes: notes || "Ditolak oleh Pihak Mengetahui.",
       knownByApprovedAt: now,
       knownByApprovedBy: currentUser.name,
       updatedAt: now,
-    }
+    };
 
-    letters[idx] = updated
-    setStorageItem(STORAGE_KEYS.LETTERS, letters)
-    window.dispatchEvent(new Event('letters_change'))
+    letters[idx] = updated;
+    setStorageItem(STORAGE_KEYS.LETTERS, letters);
+    window.dispatchEvent(new Event("letters_change"));
 
-    api.submitDecision(letter.id, 'reject', notes, currentUser.name, currentUser.kodeJabatan, true)
-      .catch((e) => console.warn('Sync reject decision failed:', e.message))
+    api
+      .submitDecision(
+        letter.id,
+        "reject",
+        notes,
+        currentUser.name,
+        currentUser.kodeJabatan,
+        true,
+      )
+      .catch((e) => console.warn("Sync reject decision failed:", e.message));
 
-    addAuditLog(letter.id, currentUser.name, 'Menolak Surat (Pihak Mengetahui)', notes || 'Ditolak')
+    addAuditLog(
+      letter.id,
+      currentUser.name,
+      "Menolak Surat (Pihak Mengetahui)",
+      notes || "Ditolak",
+    );
 
     addNotification({
       userId: letter.userId,
-      title: 'Surat Ditolak Pihak Mengetahui',
-      message: `${currentUser.name} (Mengetahui) menolak surat ${letter.letterNumber}. Alasan: ${notes || 'Tidak disetujui.'}`,
+      title: "Surat Ditolak Pihak Mengetahui",
+      message: `${currentUser.name} (Mengetahui) menolak surat ${letter.letterNumber}. Alasan: ${notes || "Tidak disetujui."}`,
       letterId: letter.id,
-    })
+    });
 
-    return updated
+    return updated;
   }
 
   // 2. KASUS BIASA: DITOLAK PEJABAT PENYETUJU
-  const stepIdx = letter.currentStep - 1
-  const history = [...letter.approvalHistory]
+  const stepIdx = letter.currentStep - 1;
+  const history = [...letter.approvalHistory];
 
   if (history[stepIdx]) {
     history[stepIdx] = {
       ...history[stepIdx],
       approverName: currentUser.name,
-      status: 'rejected',
-      notes: notes || 'Ditolak.',
+      status: "rejected",
+      notes: notes || "Ditolak.",
       date: now,
-    }
+    };
   }
 
   letters[idx] = {
     ...letter,
-    status: 'rejected',
+    status: "rejected",
     approvalHistory: history,
     updatedAt: now,
-  }
+  };
 
-  setStorageItem(STORAGE_KEYS.LETTERS, letters)
-  window.dispatchEvent(new Event('letters_change'))
+  setStorageItem(STORAGE_KEYS.LETTERS, letters);
+  window.dispatchEvent(new Event("letters_change"));
 
   // Sync decision to MySQL API
-  api.submitDecision(letter.id, 'reject', notes, currentUser.name, currentUser.kodeJabatan)
-    .catch((e) => console.warn('Sync reject decision failed:', e.message))
+  api
+    .submitDecision(
+      letter.id,
+      "reject",
+      notes,
+      currentUser.name,
+      currentUser.kodeJabatan,
+    )
+    .catch((e) => console.warn("Sync reject decision failed:", e.message));
 
-  addAuditLog(letter.id, currentUser.name, `Menolak Surat (Tahap ${letter.currentStep})`, notes || 'Ditolak')
+  addAuditLog(
+    letter.id,
+    currentUser.name,
+    `Menolak Surat (Tahap ${letter.currentStep})`,
+    notes || "Ditolak",
+  );
 
   // Notify submitter
   addNotification({
     userId: letter.userId,
-    title: 'Surat Ditolak',
-    message: `${currentUser.name} menolak surat ${letter.letterNumber}. Alasan: ${notes || 'Tidak memenuhi kriteria.'}`,
+    title: "Surat Ditolak",
+    message: `${currentUser.name} menolak surat ${letter.letterNumber}. Alasan: ${notes || "Tidak memenuhi kriteria."}`,
     letterId: letter.id,
-  })
+  });
 
-  return letters[idx]
-}
+  return letters[idx];
+};
 
-export const requestRevisionLetter = (letterId, notes = '') => {
-  const letters = getLetters()
-  const currentUser = getCurrentUser()
-  const idx = letters.findIndex((l) => l.id === letterId)
-  if (idx === -1) return null
+export const requestRevisionLetter = (letterId, notes = "") => {
+  const letters = getLetters();
+  const currentUser = getCurrentUser();
+  const idx = letters.findIndex((l) => l.id === letterId);
+  if (idx === -1) return null;
 
-  const letter = letters[idx]
-  const now = new Date().toISOString()
+  const letter = letters[idx];
+  const now = new Date().toISOString();
 
   // 1. JIKA DIREVISI SAAT TAHAP MENGETAHUI
   if (isLetterAwaitingKnownBy(letter)) {
     const updated = {
       ...letter,
-      status: 'revision',
-      knownByStatus: 'revision',
+      status: "revision",
+      knownByStatus: "revision",
       knownByApproved: false,
-      knownByNotes: notes || 'Perlu revisi dari Pihak Mengetahui.',
+      knownByNotes: notes || "Perlu revisi dari Pihak Mengetahui.",
       updatedAt: now,
-    }
+    };
 
-    letters[idx] = updated
-    setStorageItem(STORAGE_KEYS.LETTERS, letters)
-    window.dispatchEvent(new Event('letters_change'))
+    letters[idx] = updated;
+    setStorageItem(STORAGE_KEYS.LETTERS, letters);
+    window.dispatchEvent(new Event("letters_change"));
 
-    api.submitDecision(letter.id, 'revision', notes, currentUser.name, currentUser.kodeJabatan, true)
-      .catch((e) => console.warn('Sync revision decision failed:', e.message))
+    api
+      .submitDecision(
+        letter.id,
+        "revision",
+        notes,
+        currentUser.name,
+        currentUser.kodeJabatan,
+        true,
+      )
+      .catch((e) => console.warn("Sync revision decision failed:", e.message));
 
-    addAuditLog(letter.id, currentUser.name, 'Meminta Revisi (Pihak Mengetahui)', notes || 'Perlu revisi')
+    addAuditLog(
+      letter.id,
+      currentUser.name,
+      "Meminta Revisi (Pihak Mengetahui)",
+      notes || "Perlu revisi",
+    );
 
     addNotification({
       userId: letter.userId,
-      title: 'Permintaan Revisi (Pihak Mengetahui)',
+      title: "Permintaan Revisi (Pihak Mengetahui)",
       message: `${currentUser.name} (Mengetahui) meminta perbaikan surat ${letter.letterNumber}: "${notes}"`,
       letterId: letter.id,
-    })
+    });
 
-    return updated
+    return updated;
   }
 
   // 2. KASUS BIASA: DIREVISI PEJABAT PENYETUJU
-  const stepIdx = letter.currentStep - 1
-  const history = [...letter.approvalHistory]
+  const stepIdx = letter.currentStep - 1;
+  const history = [...letter.approvalHistory];
 
   if (history[stepIdx]) {
     history[stepIdx] = {
       ...history[stepIdx],
       approverName: currentUser.name,
-      status: 'revision',
-      notes: notes || 'Perlu perbaikan kelengkapan data.',
+      status: "revision",
+      notes: notes || "Perlu perbaikan kelengkapan data.",
       date: now,
-    }
+    };
   }
 
   letters[idx] = {
     ...letter,
-    status: 'revision',
+    status: "revision",
     approvalHistory: history,
     updatedAt: now,
-  }
+  };
 
-  setStorageItem(STORAGE_KEYS.LETTERS, letters)
-  window.dispatchEvent(new Event('letters_change'))
+  setStorageItem(STORAGE_KEYS.LETTERS, letters);
+  window.dispatchEvent(new Event("letters_change"));
 
   // Sync decision to MySQL API
-  api.submitDecision(letter.id, 'revision', notes, currentUser.name, currentUser.kodeJabatan)
-    .catch((e) => console.warn('Sync revision decision failed:', e.message))
+  api
+    .submitDecision(
+      letter.id,
+      "revision",
+      notes,
+      currentUser.name,
+      currentUser.kodeJabatan,
+    )
+    .catch((e) => console.warn("Sync revision decision failed:", e.message));
 
-  addAuditLog(letter.id, currentUser.name, `Mengembalikan Surat untuk Revisi`, notes || 'Perlu revisi')
+  addAuditLog(
+    letter.id,
+    currentUser.name,
+    `Mengembalikan Surat untuk Revisi`,
+    notes || "Perlu revisi",
+  );
 
   // Notify submitter
   addNotification({
     userId: letter.userId,
-    title: 'Surat Dikembalikan (Perlu Revisi)',
+    title: "Surat Dikembalikan (Perlu Revisi)",
     message: `${currentUser.name} meminta revisi untuk surat ${letter.letterNumber}. Catatan: ${notes}`,
     letterId: letter.id,
-  })
+  });
 
-  return letters[idx]
-}
+  return letters[idx];
+};
 
 // Notifications
 export const getNotifications = (userId) => {
-  const notifs = getStorageItem(STORAGE_KEYS.NOTIFICATIONS, [])
-  if (!userId) return notifs
-  return notifs.filter((n) => n.userId === userId || n.userId === 'approver_role_1' || n.userId === 'all')
-}
+  const notifs = getStorageItem(STORAGE_KEYS.NOTIFICATIONS, []);
+  if (!Array.isArray(notifs) || notifs.length === 0) return [];
+
+  // Validasi dengan data surat saat ini dari database/storage
+  const letters = getLetters();
+  const validLetterIds = new Set(letters.map((l) => l.id));
+
+  // Otomatis bersihkan notifikasi untuk surat yang sudah dihapus dari database
+  const validNotifs = notifs.filter(
+    (n) => !n.letterId || validLetterIds.has(n.letterId),
+  );
+  if (validNotifs.length !== notifs.length) {
+    setStorageItem(STORAGE_KEYS.NOTIFICATIONS, validNotifs);
+  }
+
+  if (!userId) return validNotifs;
+  return validNotifs.filter(
+    (n) =>
+      n.userId === userId ||
+      n.userId === "approver_role_1" ||
+      n.userId === "all",
+  );
+};
 
 export const addNotification = (notif) => {
-  const notifs = getStorageItem(STORAGE_KEYS.NOTIFICATIONS, [])
+  const notifs = getStorageItem(STORAGE_KEYS.NOTIFICATIONS, []);
   notifs.unshift({
     id: `notif-${Date.now().toString(36)}`,
     isRead: false,
     createdAt: new Date().toISOString(),
     ...notif,
-  })
-  setStorageItem(STORAGE_KEYS.NOTIFICATIONS, notifs)
-}
+  });
+  setStorageItem(STORAGE_KEYS.NOTIFICATIONS, notifs);
+  window.dispatchEvent(new Event("notifications_change"));
+};
 
 export const markNotificationRead = (notifId) => {
-  const notifs = getStorageItem(STORAGE_KEYS.NOTIFICATIONS, [])
-  const idx = notifs.findIndex((n) => n.id === notifId)
+  const notifs = getStorageItem(STORAGE_KEYS.NOTIFICATIONS, []);
+  const idx = notifs.findIndex((n) => n.id === notifId);
   if (idx >= 0) {
-    notifs[idx].isRead = true
-    setStorageItem(STORAGE_KEYS.NOTIFICATIONS, notifs)
+    notifs[idx].isRead = true;
+    setStorageItem(STORAGE_KEYS.NOTIFICATIONS, notifs);
+    window.dispatchEvent(new Event("notifications_change"));
   }
-}
+};
+
+export const markAllNotificationsRead = (userId) => {
+  const notifs = getStorageItem(STORAGE_KEYS.NOTIFICATIONS, []);
+  const updated = notifs.map((n) => {
+    if (
+      !userId ||
+      n.userId === userId ||
+      n.userId === "approver_role_1" ||
+      n.userId === "all"
+    ) {
+      return { ...n, isRead: true };
+    }
+    return n;
+  });
+  setStorageItem(STORAGE_KEYS.NOTIFICATIONS, updated);
+  window.dispatchEvent(new Event("notifications_change"));
+};
+
+export const clearAllNotifications = (userId) => {
+  if (!userId) {
+    setStorageItem(STORAGE_KEYS.NOTIFICATIONS, []);
+  } else {
+    const notifs = getStorageItem(STORAGE_KEYS.NOTIFICATIONS, []);
+    const remaining = notifs.filter(
+      (n) =>
+        n.userId !== userId &&
+        n.userId !== "approver_role_1" &&
+        n.userId !== "all",
+    );
+    setStorageItem(STORAGE_KEYS.NOTIFICATIONS, remaining);
+  }
+  window.dispatchEvent(new Event("notifications_change"));
+};
 
 // Audit Logs
 export const getAuditLogs = (letterId) => {
-  const logs = getStorageItem(STORAGE_KEYS.AUDIT_LOGS, [])
-  const filtered = letterId ? logs.filter((l) => l.letterId === letterId) : logs
+  const logs = getStorageItem(STORAGE_KEYS.AUDIT_LOGS, []);
+  const filtered = letterId
+    ? logs.filter((l) => l.letterId === letterId)
+    : logs;
 
   if (letterId && filtered.length === 0) {
-    const letters = getLetters()
-    const ltr = letters.find((l) => l.id === letterId)
+    const letters = getLetters();
+    const ltr = letters.find((l) => l.id === letterId);
     if (ltr) {
-      const generatedLogs = []
+      const generatedLogs = [];
 
       // 1. Initial creation
       generatedLogs.push({
         id: `aud-${ltr.id}-create`,
         letterId: ltr.id,
-        userName: ltr.userName || ltr.createdBy || 'Pemohon',
-        action: ltr.status === 'draft' ? 'Membuat Draf Surat' : 'Membuat & Mengajukan Surat',
-        notes: `Surat diajukan untuk Cabang ${ltr.branchName || '-'}`,
+        userName: ltr.userName || ltr.createdBy || "Pemohon",
+        action:
+          ltr.status === "draft"
+            ? "Membuat Draf Surat"
+            : "Membuat & Mengajukan Surat",
+        notes: `Surat diajukan untuk Cabang ${ltr.branchName || "-"}`,
         timestamp: ltr.createdAt || new Date().toISOString(),
-      })
+      });
 
       // 2. Edit records
       if (Array.isArray(ltr.editHistory) && ltr.editHistory.length > 0) {
@@ -1656,67 +2116,78 @@ export const getAuditLogs = (letterId) => {
           generatedLogs.push({
             id: `aud-${ltr.id}-edit-${idx}`,
             letterId: ltr.id,
-            userName: eh.userName || eh.user || 'Pengguna',
-            action: eh.action || 'Mengedit Isi Surat',
-            notes: eh.notes || `Perubahan data surat (${eh.userPosition || 'Pengguna'})`,
+            userName: eh.userName || eh.user || "Pengguna",
+            action: eh.action || "Mengedit Isi Surat",
+            notes:
+              eh.notes ||
+              `Perubahan data surat (${eh.userPosition || "Pengguna"})`,
             timestamp: eh.timestamp || eh.date || ltr.updatedAt,
-          })
-        })
-      } else if (ltr.lastEditedAt || (ltr.updatedAt && ltr.updatedAt !== ltr.createdAt)) {
+          });
+        });
+      } else if (
+        ltr.lastEditedAt ||
+        (ltr.updatedAt && ltr.updatedAt !== ltr.createdAt)
+      ) {
         generatedLogs.push({
           id: `aud-${ltr.id}-edit-latest`,
           letterId: ltr.id,
-          userName: ltr.lastEditedBy || ltr.userName || 'Pengguna',
-          action: 'Mengedit Isi Surat',
-          notes: `Perubahan isi dan rincian surat (${ltr.lastEditedPosition || 'Pengguna'})`,
+          userName: ltr.lastEditedBy || ltr.userName || "Pengguna",
+          action: "Mengedit Isi Surat",
+          notes: `Perubahan isi dan rincian surat (${ltr.lastEditedPosition || "Pengguna"})`,
           timestamp: ltr.lastEditedAt || ltr.updatedAt,
-        })
+        });
       }
 
       // 3. Approval history
       if (Array.isArray(ltr.approvalHistory)) {
         ltr.approvalHistory.forEach((step, sIdx) => {
-          if (step.status === 'approved') {
+          if (step.status === "approved") {
             generatedLogs.push({
               id: `aud-${ltr.id}-app-${sIdx}`,
               letterId: ltr.id,
-              userName: step.approverName || step.specificUserName || step.approverRole || 'Approver',
+              userName:
+                step.approverName ||
+                step.specificUserName ||
+                step.approverRole ||
+                "Approver",
               action: `Persetujuan Tahap ${step.step} (${step.approverRole})`,
-              notes: step.notes || 'Disetujui',
+              notes: step.notes || "Disetujui",
               timestamp: step.date || ltr.updatedAt || ltr.createdAt,
-            })
-          } else if (step.status === 'rejected') {
+            });
+          } else if (step.status === "rejected") {
             generatedLogs.push({
               id: `aud-${ltr.id}-rej-${sIdx}`,
               letterId: ltr.id,
-              userName: step.approverName || step.approverRole || 'Approver',
+              userName: step.approverName || step.approverRole || "Approver",
               action: `Penolakan Tahap ${step.step}`,
-              notes: step.notes || 'Ditolak',
+              notes: step.notes || "Ditolak",
               timestamp: step.date || ltr.updatedAt || ltr.createdAt,
-            })
-          } else if (step.status === 'revision') {
+            });
+          } else if (step.status === "revision") {
             generatedLogs.push({
               id: `aud-${ltr.id}-rev-${sIdx}`,
               letterId: ltr.id,
-              userName: step.approverName || step.approverRole || 'Approver',
+              userName: step.approverName || step.approverRole || "Approver",
               action: `Permintaan Revisi Tahap ${step.step}`,
-              notes: step.notes || 'Perlu perbaikan oleh pemohon',
+              notes: step.notes || "Perlu perbaikan oleh pemohon",
               timestamp: step.date || ltr.updatedAt || ltr.createdAt,
-            })
+            });
           }
-        })
+        });
       }
 
-      generatedLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      return generatedLogs
+      generatedLogs.sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
+      );
+      return generatedLogs;
     }
   }
 
-  return filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-}
+  return filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+};
 
 export const addAuditLog = (letterId, userName, action, notes) => {
-  const logs = getStorageItem(STORAGE_KEYS.AUDIT_LOGS, [])
+  const logs = getStorageItem(STORAGE_KEYS.AUDIT_LOGS, []);
   logs.unshift({
     id: `aud-${Date.now().toString(36)}`,
     letterId,
@@ -1724,192 +2195,227 @@ export const addAuditLog = (letterId, userName, action, notes) => {
     action,
     notes,
     timestamp: new Date().toISOString(),
-  })
-  setStorageItem(STORAGE_KEYS.AUDIT_LOGS, logs)
-}
+  });
+  setStorageItem(STORAGE_KEYS.AUDIT_LOGS, logs);
+};
 
 // ==========================================
 // Pemeriksaan Hak Edit Surat (HANYA Pemohon / Pembuat yang Mengajukan)
 // ==========================================
 export const canUserEditLetter = (letter, currentUser) => {
-  if (!letter || !currentUser) return false
-  if (letter.status === 'approved' || letter.status === 'rejected' || letter.knownByStatus === 'rejected') return false
+  if (!letter || !currentUser) return false;
+  if (
+    letter.status === "approved" ||
+    letter.status === "rejected" ||
+    letter.knownByStatus === "rejected"
+  )
+    return false;
 
   // Hanya pemohon / pembuat yang mengajukan surat yang berhak mengedit
-  const uid = String(currentUser.id || '')
-  const uName = (currentUser.name || '').trim().toLowerCase()
+  const uid = String(currentUser.id || "");
+  const uName = (currentUser.name || "").trim().toLowerCase();
   const isCreator =
     (uid && String(letter.userId) === uid) ||
-    (uName && (
-      (letter.userName && letter.userName.trim().toLowerCase() === uName) ||
-      (letter.createdBy && letter.createdBy.trim().toLowerCase() === uName)
-    ))
+    (uName &&
+      ((letter.userName && letter.userName.trim().toLowerCase() === uName) ||
+        (letter.createdBy && letter.createdBy.trim().toLowerCase() === uName)));
 
-  return Boolean(isCreator)
-}
+  return Boolean(isCreator);
+};
 
 // ==========================================
 // Pemeriksaan Visibilitas Surat (Draf hanya untuk pembuat)
 // ==========================================
 
 export const isLetterVisibleToUser = (letter, currentUser) => {
-  if (!letter || !currentUser) return false
+  if (!letter || !currentUser) return false;
 
-  const uid = String(currentUser.id || '')
-  const uName = (currentUser.name || '').trim().toLowerCase()
-  const uUsername = (currentUser.username || '').trim().toLowerCase()
+  const uid = String(currentUser.id || "");
+  const uName = (currentUser.name || "").trim().toLowerCase();
+  const uUsername = (currentUser.username || "").trim().toLowerCase();
 
   // 1. SUPER VIEWER: Hanya Jemmy (Direktur Utama / J01) & Jazz (Super Admin IT / J27) yang bisa melihat SEMUANYA
   const isJemmyOrJazz =
-    uName.includes('jemmy') ||
-    uUsername.includes('jemmy') ||
-    uName.includes('jazz') ||
-    uUsername.includes('jazz') ||
-    uName.includes('jazman') ||
-    uUsername.includes('jazman') ||
-    currentUser.kodeJabatan === 'J01' ||
-    currentUser.kodeJabatan === 'J27'
+    uName.includes("jemmy") ||
+    uUsername.includes("jemmy") ||
+    uName.includes("jazz") ||
+    uUsername.includes("jazz") ||
+    uName.includes("jazman") ||
+    uUsername.includes("jazman") ||
+    currentUser.kodeJabatan === "J01" ||
+    currentUser.kodeJabatan === "J27";
 
   if (isJemmyOrJazz) {
-    return true
+    return true;
   }
 
   // 2. Pembuat / Pemohon surat
   const isCreator =
     (uid && String(letter.userId) === uid) ||
-    (uName && (
-      letter.userName?.trim().toLowerCase() === uName ||
-      letter.createdBy?.trim().toLowerCase() === uName
-    ))
+    (uName &&
+      (letter.userName?.trim().toLowerCase() === uName ||
+        letter.createdBy?.trim().toLowerCase() === uName));
 
   // Draf belum dikirim: HANYA pembuat yang boleh lihat
-  if (letter.status === 'draft') {
-    return Boolean(isCreator)
+  if (letter.status === "draft") {
+    return Boolean(isCreator);
   }
 
-  if (isCreator) return true
+  if (isCreator) return true;
 
   // 3. Pihak Mengetahui (Orang yang ditunjuk mengetahui di surat ini)
   if (isUserLetterKnownBy(letter, currentUser)) {
-    return true
+    return true;
   }
 
   // Jika surat belum di-ACC oleh pihak mengetahui, pejabat penyetuju belum boleh lihat
   if (isLetterAwaitingKnownBy(letter)) {
-    return false
+    return false;
   }
 
   // 4. Pejabat Penyetuju (HANYA user yang tercantum di approval history surat ini)
   const isInApproval = (letter.approvalHistory || []).some((st) => {
-    if (st.specificUserId && String(st.specificUserId) === uid) return true
-    if (st.specificUserName && st.specificUserName.trim().toLowerCase() === uName) return true
-    if (st.approverName && st.approverName.trim().toLowerCase() === uName) return true
-    return false
-  })
+    if (st.specificUserId && String(st.specificUserId) === uid) return true;
+    if (
+      st.specificUserName &&
+      st.specificUserName.trim().toLowerCase() === uName
+    )
+      return true;
+    if (st.approverName && st.approverName.trim().toLowerCase() === uName)
+      return true;
+    return false;
+  });
 
-  if (isInApproval) return true
+  if (isInApproval) return true;
 
   // 5. Tembusan / Allowed Viewers (Tercantum eksplisit)
-  const allowed = Array.isArray(letter.allowedViewers) ? letter.allowedViewers : []
+  const allowed = Array.isArray(letter.allowedViewers)
+    ? letter.allowedViewers
+    : [];
   const isDirectViewer = allowed.some((v) => {
-    if (typeof v === 'string' || typeof v === 'number') {
-      return String(v) === uid || String(v).toLowerCase() === uName
+    if (typeof v === "string" || typeof v === "number") {
+      return String(v) === uid || String(v).toLowerCase() === uName;
     }
-    if (typeof v === 'object' && v !== null) {
-      if (v.userId && String(v.userId) === uid) return true
-      if (v.userName && v.userName.trim().toLowerCase() === uName) return true
+    if (typeof v === "object" && v !== null) {
+      if (v.userId && String(v.userId) === uid) return true;
+      if (v.userName && v.userName.trim().toLowerCase() === uName) return true;
     }
-    return false
-  })
-  if (isDirectViewer) return true
+    return false;
+  });
+  if (isDirectViewer) return true;
 
   // 6. Dibagikan secara manual (Fitur Bagikan Surat)
-  const isSharedWith = Array.isArray(letter.sharedWith) && letter.sharedWith.some((s) => {
-    if (typeof s === 'string' || typeof s === 'number') {
-      return String(s) === uid || String(s).toLowerCase() === uName
-    }
-    if (typeof s === 'object' && s !== null) {
-      if (s.id && String(s.id) === uid) return true
-      if (s.userId && String(s.userId) === uid) return true
-      if (s.userName && s.userName.trim().toLowerCase() === uName) return true
-    }
-    return false
-  })
-  if (isSharedWith) return true
+  const isSharedWith =
+    Array.isArray(letter.sharedWith) &&
+    letter.sharedWith.some((s) => {
+      if (typeof s === "string" || typeof s === "number") {
+        return String(s) === uid || String(s).toLowerCase() === uName;
+      }
+      if (typeof s === "object" && s !== null) {
+        if (s.id && String(s.id) === uid) return true;
+        if (s.userId && String(s.userId) === uid) return true;
+        if (s.userName && s.userName.trim().toLowerCase() === uName)
+          return true;
+      }
+      return false;
+    });
+  if (isSharedWith) return true;
 
   // Selain orang-orang di atas, TIDAK BOLEH MELIHAT
-  return false
-}
+  return false;
+};
 
 // ==========================================
 // Fitur Chat & Diskusi Surat (Hak Akses Terbatas)
 // ==========================================
 
 export const canUserAccessLetterChat = (letter, currentUser) => {
-  if (!letter || !currentUser) return false
+  if (!letter || !currentUser) return false;
 
   // Semua pengguna yang berhak melihat surat (pembuat, penyetuju, tembusan, pejabat cabang & direksi/pusat) berhak mengakses dan berpartisipasi dalam chat / diskusi
-  return isLetterVisibleToUser(letter, currentUser)
-}
+  return isLetterVisibleToUser(letter, currentUser);
+};
 
 export const getLetterComments = (letterId) => {
-  const letters = getLetters()
-  const letter = letters.find((l) => l.id === letterId)
-  return letter?.comments || []
-}
+  const letters = getLetters();
+  const letter = letters.find((l) => l.id === letterId);
+  return letter?.comments || [];
+};
 
-export const addLetterComment = (letterId, messageText, currentUser = getCurrentUser()) => {
-  if (!messageText || !messageText.trim()) return null
-  const letters = getLetters()
-  const idx = letters.findIndex((l) => l.id === letterId)
-  if (idx === -1) return null
+export const addLetterComment = (
+  letterId,
+  messageText,
+  currentUser = getCurrentUser(),
+) => {
+  if (!messageText || !messageText.trim()) return null;
+  const letters = getLetters();
+  const idx = letters.findIndex((l) => l.id === letterId);
+  if (idx === -1) return null;
 
-  const letter = letters[idx]
+  const letter = letters[idx];
   if (!canUserAccessLetterChat(letter, currentUser)) {
-    console.warn('Akses ditolak: Hanya pembuat, mengetahui, dan penyetuju yang dapat berdiskusi.')
-    return null
+    console.warn(
+      "Akses ditolak: Hanya pembuat, mengetahui, dan penyetuju yang dapat berdiskusi.",
+    );
+    return null;
   }
 
   const isCreator =
     letter.userId === currentUser.id ||
-    letter.userName?.trim().toLowerCase() === currentUser.name?.trim().toLowerCase()
+    letter.userName?.trim().toLowerCase() ===
+      currentUser.name?.trim().toLowerCase();
 
   const isKnownBy =
     letter.knownByName &&
-    (letter.knownByName?.trim().toLowerCase() === currentUser.name?.trim().toLowerCase() ||
-     currentUser.position?.trim().toLowerCase() === letter.knownByPosition?.trim().toLowerCase())
+    (letter.knownByName?.trim().toLowerCase() ===
+      currentUser.name?.trim().toLowerCase() ||
+      currentUser.position?.trim().toLowerCase() ===
+        letter.knownByPosition?.trim().toLowerCase());
 
-  const roleType = isCreator ? 'Pembuat' : isKnownBy ? 'Mengetahui' : 'Penyetuju'
+  const roleType = isCreator
+    ? "Pembuat"
+    : isKnownBy
+      ? "Mengetahui"
+      : "Penyetuju";
 
   const newComment = {
     id: `cmt-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
     letterId,
     senderId: currentUser.id,
     senderName: currentUser.name,
-    senderPosition: currentUser.position || currentUser.roleLabel || 'Pengguna',
+    senderPosition: currentUser.position || currentUser.roleLabel || "Pengguna",
     roleType,
     message: messageText.trim(),
     createdAt: new Date().toISOString(),
-  }
+  };
 
-  const updatedComments = [...(letter.comments || []), newComment]
+  const updatedComments = [...(letter.comments || []), newComment];
   letters[idx] = {
     ...letter,
     comments: updatedComments,
     updatedAt: new Date().toISOString(),
-  }
+  };
 
-  setStorageItem(STORAGE_KEYS.LETTERS, letters)
-  window.dispatchEvent(new Event('letters_change'))
-  window.dispatchEvent(new CustomEvent('letter_chat_updated', { detail: { letterId, comment: newComment } }))
+  setStorageItem(STORAGE_KEYS.LETTERS, letters);
+  window.dispatchEvent(new Event("letters_change"));
+  window.dispatchEvent(
+    new CustomEvent("letter_chat_updated", {
+      detail: { letterId, comment: newComment },
+    }),
+  );
 
   // Simpan secara permanen ke database MySQL
   api.addComment(letter.id, newComment).catch((err) => {
-    console.warn('Gagal sinkron komentar ke backend MySQL:', err.message)
-  })
+    console.warn("Gagal sinkron komentar ke backend MySQL:", err.message);
+  });
 
   // Audit log jejak pesan
-  addAuditLog(letter.id, currentUser.name, `Pesan Diskusi (${roleType})`, messageText.trim().substring(0, 80))
+  addAuditLog(
+    letter.id,
+    currentUser.name,
+    `Pesan Diskusi (${roleType})`,
+    messageText.trim().substring(0, 80),
+  );
 
   // Notifikasi otomatis ke pihak terkait selain pengirim
   if (!isCreator && letter.userId) {
@@ -1918,30 +2424,36 @@ export const addLetterComment = (letterId, messageText, currentUser = getCurrent
       title: `Pesan Diskusi Baru: ${letter.letterNumber}`,
       message: `${currentUser.name} (${roleType}): "${messageText.trim().substring(0, 60)}..."`,
       letterId: letter.id,
-    })
+    });
   }
 
-  return newComment
-}
+  return newComment;
+};
 
 // Bagikan akses surat ke pengguna lain
-export const shareLetterWithUsers = async (letterId, targetUsers, currentUser) => {
-  const letters = getLetters()
-  const idx = letters.findIndex((l) => l.id === letterId)
-  if (idx === -1) return false
+export const shareLetterWithUsers = async (
+  letterId,
+  targetUsers,
+  currentUser,
+) => {
+  const letters = getLetters();
+  const idx = letters.findIndex((l) => l.id === letterId);
+  if (idx === -1) return false;
 
-  const formattedUsers = (Array.isArray(targetUsers) ? targetUsers : []).map((u) => ({
-    userId: u.id || u.userId,
-    userName: u.name || u.userName,
-    branchName: u.branchName || u.branch || '',
-    role: u.role || u.position || '',
-    sharedAt: u.sharedAt || new Date().toISOString(),
-    sharedBy: u.sharedBy || currentUser?.name || 'User',
-    sharedById: u.sharedById || currentUser?.id,
-    note: u.note || '',
-    readAt: u.readAt || null,
-    isRead: Boolean(u.isRead || u.readAt),
-  }))
+  const formattedUsers = (Array.isArray(targetUsers) ? targetUsers : []).map(
+    (u) => ({
+      userId: u.id || u.userId,
+      userName: u.name || u.userName,
+      branchName: u.branchName || u.branch || "",
+      role: u.role || u.position || "",
+      sharedAt: u.sharedAt || new Date().toISOString(),
+      sharedBy: u.sharedBy || currentUser?.name || "User",
+      sharedById: u.sharedById || currentUser?.id,
+      note: u.note || "",
+      readAt: u.readAt || null,
+      isRead: Boolean(u.isRead || u.readAt),
+    }),
+  );
 
   const updatedLetter = {
     ...letters[idx],
@@ -1951,85 +2463,97 @@ export const shareLetterWithUsers = async (letterId, targetUsers, currentUser) =
       sharedWith: formattedUsers,
     },
     updatedAt: new Date().toISOString(),
-  }
+  };
 
-  letters[idx] = updatedLetter
-  setStorageItem(STORAGE_KEYS.LETTERS, letters)
-  window.dispatchEvent(new Event('letters_change'))
+  letters[idx] = updatedLetter;
+  setStorageItem(STORAGE_KEYS.LETTERS, letters);
+  window.dispatchEvent(new Event("letters_change"));
 
   // Sync ke backend MySQL
   try {
-    await api.shareLetter(letterId, formattedUsers)
+    await api.shareLetter(letterId, formattedUsers);
   } catch (err) {
-    console.warn('API shareLetter sync warning:', err)
+    console.warn("API shareLetter sync warning:", err);
   }
 
   // Tambahkan audit log
-  addAuditLog(letterId, currentUser?.name || 'User', 'Bagikan Akses Surat', `Surat dibagikan kepada ${formattedUsers.length} user (${formattedUsers.map((u) => u.userName).join(', ')})`)
+  addAuditLog(
+    letterId,
+    currentUser?.name || "User",
+    "Bagikan Akses Surat",
+    `Surat dibagikan kepada ${formattedUsers.length} user (${formattedUsers.map((u) => u.userName).join(", ")})`,
+  );
 
-  return true
-}
+  return true;
+};
 
 // Helper cari info share untuk user saat ini
 export const getSharedLetterInfo = (letter, currentUser) => {
-  if (!letter || !currentUser || !Array.isArray(letter.sharedWith)) return null
-  const myUid = String(currentUser.id || '')
-  const myName = (currentUser.name || currentUser.username || '').trim().toLowerCase()
-  return letter.sharedWith.find((s) => {
-    if (s.userId && String(s.userId) === myUid) return true
-    if (s.id && String(s.id) === myUid) return true
-    if (s.userName && s.userName.trim().toLowerCase() === myName) return true
-    if (typeof s === 'string' && (s === myUid || s.toLowerCase() === myName)) return true
-    return false
-  }) || null
-}
+  if (!letter || !currentUser || !Array.isArray(letter.sharedWith)) return null;
+  const myUid = String(currentUser.id || "");
+  const myName = (currentUser.name || currentUser.username || "")
+    .trim()
+    .toLowerCase();
+  return (
+    letter.sharedWith.find((s) => {
+      if (s.userId && String(s.userId) === myUid) return true;
+      if (s.id && String(s.id) === myUid) return true;
+      if (s.userName && s.userName.trim().toLowerCase() === myName) return true;
+      if (typeof s === "string" && (s === myUid || s.toLowerCase() === myName))
+        return true;
+      return false;
+    }) || null
+  );
+};
 
 // Cek apakah surat dibagikan sudah dibaca oleh user saat ini
 export const isSharedLetterRead = (letter, currentUser) => {
-  if (!letter || !currentUser) return false
-  const uid = String(currentUser.id || '')
+  if (!letter || !currentUser) return false;
+  const uid = String(currentUser.id || "");
   // Cek cache lokal khusus user untuk persistensi instan
-  const localReads = getStorageItem(`shared_reads_${uid}`, {})
+  const localReads = getStorageItem(`shared_reads_${uid}`, {});
   if (localReads[letter.id] !== undefined) {
-    return Boolean(localReads[letter.id])
+    return Boolean(localReads[letter.id]);
   }
-  const share = getSharedLetterInfo(letter, currentUser)
-  if (!share) return false
-  return Boolean(share.readAt || share.isRead)
-}
+  const share = getSharedLetterInfo(letter, currentUser);
+  if (!share) return false;
+  return Boolean(share.readAt || share.isRead);
+};
 
 // Tandai status baca surat yang dibagikan (read / unread)
 export const markSharedLetterRead = (letterId, currentUser, isRead = true) => {
-  if (!letterId || !currentUser) return false
-  const uid = String(currentUser.id || '')
-  const myName = (currentUser.name || currentUser.username || '').trim().toLowerCase()
+  if (!letterId || !currentUser) return false;
+  const uid = String(currentUser.id || "");
+  const myName = (currentUser.name || currentUser.username || "")
+    .trim()
+    .toLowerCase();
 
   // 1. Simpan ke localReads cache
-  const localReads = getStorageItem(`shared_reads_${uid}`, {})
-  localReads[letterId] = Boolean(isRead)
-  setStorageItem(`shared_reads_${uid}`, localReads)
+  const localReads = getStorageItem(`shared_reads_${uid}`, {});
+  localReads[letterId] = Boolean(isRead);
+  setStorageItem(`shared_reads_${uid}`, localReads);
 
   // 2. Update objek surat di letters
-  const letters = getLetters()
-  const idx = letters.findIndex((l) => l.id === letterId)
+  const letters = getLetters();
+  const idx = letters.findIndex((l) => l.id === letterId);
   if (idx >= 0 && Array.isArray(letters[idx].sharedWith)) {
-    let modified = false
+    let modified = false;
     const updatedSharedWith = letters[idx].sharedWith.map((s) => {
       const match =
         (s.userId && String(s.userId) === uid) ||
         (s.id && String(s.id) === uid) ||
         (s.userName && s.userName.trim().toLowerCase() === myName) ||
-        (typeof s === 'string' && (s === uid || s.toLowerCase() === myName))
+        (typeof s === "string" && (s === uid || s.toLowerCase() === myName));
       if (match) {
-        modified = true
+        modified = true;
         return {
-          ...(typeof s === 'object' ? s : { userId: s, userName: s }),
+          ...(typeof s === "object" ? s : { userId: s, userName: s }),
           isRead: Boolean(isRead),
-          readAt: isRead ? (s.readAt || new Date().toISOString()) : null,
-        }
+          readAt: isRead ? s.readAt || new Date().toISOString() : null,
+        };
       }
-      return s
-    })
+      return s;
+    });
 
     if (modified) {
       letters[idx] = {
@@ -2039,50 +2563,54 @@ export const markSharedLetterRead = (letterId, currentUser, isRead = true) => {
           ...(letters[idx].fieldValues || {}),
           sharedWith: updatedSharedWith,
         },
-      }
-      setStorageItem(STORAGE_KEYS.LETTERS, letters)
+      };
+      setStorageItem(STORAGE_KEYS.LETTERS, letters);
       // Sync background ke backend
-      api.shareLetter(letterId, updatedSharedWith).catch(() => {})
+      api.shareLetter(letterId, updatedSharedWith).catch(() => {});
     }
   }
 
   // Trigger event agar semua komponen update
-  window.dispatchEvent(new Event('letters_change'))
-  window.dispatchEvent(new CustomEvent('shared_read_change', { detail: { letterId, isRead } }))
-  return true
-}
+  window.dispatchEvent(new Event("letters_change"));
+  window.dispatchEvent(
+    new CustomEvent("shared_read_change", { detail: { letterId, isRead } }),
+  );
+  return true;
+};
 
 // Tandai semua surat yang dibagikan ke currentUser sebagai sudah dibaca
 export const markAllSharedLettersRead = (currentUser) => {
-  if (!currentUser) return false
-  const uid = String(currentUser.id || '')
-  const myName = (currentUser.name || currentUser.username || '').trim().toLowerCase()
-  const letters = getLetters()
-  const localReads = getStorageItem(`shared_reads_${uid}`, {})
-  let anyModified = false
+  if (!currentUser) return false;
+  const uid = String(currentUser.id || "");
+  const myName = (currentUser.name || currentUser.username || "")
+    .trim()
+    .toLowerCase();
+  const letters = getLetters();
+  const localReads = getStorageItem(`shared_reads_${uid}`, {});
+  let anyModified = false;
 
   letters.forEach((l, idx) => {
     if (Array.isArray(l.sharedWith)) {
-      let letterModified = false
+      let letterModified = false;
       const updatedSharedWith = l.sharedWith.map((s) => {
         const match =
           (s.userId && String(s.userId) === uid) ||
           (s.id && String(s.id) === uid) ||
           (s.userName && s.userName.trim().toLowerCase() === myName) ||
-          (typeof s === 'string' && (s === uid || s.toLowerCase() === myName))
+          (typeof s === "string" && (s === uid || s.toLowerCase() === myName));
         if (match) {
-          letterModified = true
+          letterModified = true;
           return {
-            ...(typeof s === 'object' ? s : { userId: s, userName: s }),
+            ...(typeof s === "object" ? s : { userId: s, userName: s }),
             isRead: true,
             readAt: s.readAt || new Date().toISOString(),
-          }
+          };
         }
-        return s
-      })
+        return s;
+      });
 
       if (letterModified) {
-        localReads[l.id] = true
+        localReads[l.id] = true;
         letters[idx] = {
           ...l,
           sharedWith: updatedSharedWith,
@@ -2090,31 +2618,32 @@ export const markAllSharedLettersRead = (currentUser) => {
             ...(l.fieldValues || {}),
             sharedWith: updatedSharedWith,
           },
-        }
-        anyModified = true
-        api.shareLetter(l.id, updatedSharedWith).catch(() => {})
+        };
+        anyModified = true;
+        api.shareLetter(l.id, updatedSharedWith).catch(() => {});
       }
     }
-  })
+  });
 
-  setStorageItem(`shared_reads_${uid}`, localReads)
+  setStorageItem(`shared_reads_${uid}`, localReads);
   if (anyModified) {
-    setStorageItem(STORAGE_KEYS.LETTERS, letters)
+    setStorageItem(STORAGE_KEYS.LETTERS, letters);
   }
-  window.dispatchEvent(new Event('letters_change'))
-  window.dispatchEvent(new CustomEvent('shared_read_change', { detail: { all: true } }))
-  return true
-}
-
+  window.dispatchEvent(new Event("letters_change"));
+  window.dispatchEvent(
+    new CustomEvent("shared_read_change", { detail: { all: true } }),
+  );
+  return true;
+};
 
 // Reset data to defaults
 export const resetDemoData = () => {
-  localStorage.removeItem(STORAGE_KEYS.USERS)
-  localStorage.removeItem(STORAGE_KEYS.CURRENT_USER)
-  localStorage.removeItem(STORAGE_KEYS.BRANCHES)
-  localStorage.removeItem(STORAGE_KEYS.TEMPLATES)
-  localStorage.removeItem(STORAGE_KEYS.LETTERS)
-  localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS)
-  localStorage.removeItem(STORAGE_KEYS.AUDIT_LOGS)
-  initializeStorage()
-}
+  localStorage.removeItem(STORAGE_KEYS.USERS);
+  localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  localStorage.removeItem(STORAGE_KEYS.BRANCHES);
+  localStorage.removeItem(STORAGE_KEYS.TEMPLATES);
+  localStorage.removeItem(STORAGE_KEYS.LETTERS);
+  localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
+  localStorage.removeItem(STORAGE_KEYS.AUDIT_LOGS);
+  initializeStorage();
+};

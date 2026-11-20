@@ -699,14 +699,19 @@ export const saveBranch = (branch) => {
   } else {
     branches.push({
       ...branch,
-      id: branch.code || branch.id || `CBG-${Date.now().toString(36).toUpperCase()}`,
+      id:
+        branch.code ||
+        branch.id ||
+        `CBG-${Date.now().toString(36).toUpperCase()}`,
     });
   }
   setStorageItem(STORAGE_KEYS.BRANCHES, branches);
   window.dispatchEvent(new Event("branches_change"));
 
   // Simpan ke database MySQL backend
-  api.saveCabang(branch).catch((e) => console.warn("Save branch to MySQL failed:", e.message));
+  api
+    .saveCabang(branch)
+    .catch((e) => console.warn("Save branch to MySQL failed:", e.message));
 
   return branches;
 };
@@ -888,8 +893,15 @@ export const saveTemplate = async (templateData) => {
 };
 
 // Hitung Jalur Persetujuan Wajib Berdasarkan Limit Nominal Ajuan
-export const calculateRequiredApprovalSteps = (template, letterOrFieldValues) => {
-  if (!template || !template.approvalSteps || template.approvalSteps.length === 0) {
+export const calculateRequiredApprovalSteps = (
+  template,
+  letterOrFieldValues,
+) => {
+  if (
+    !template ||
+    !template.approvalSteps ||
+    template.approvalSteps.length === 0
+  ) {
     return template?.approvalSteps || [];
   }
   if (!template.hasNominalLimit) {
@@ -898,25 +910,43 @@ export const calculateRequiredApprovalSteps = (template, letterOrFieldValues) =>
 
   // Ekstraksi nilai nominal
   let nominal = 0;
-  const fieldValues = letterOrFieldValues?.fieldValues || letterOrFieldValues || {};
-  
-  if (template.nominalField && template.nominalField !== "total_biaya" && template.nominalField !== "auto") {
+  const fieldValues =
+    letterOrFieldValues?.fieldValues || letterOrFieldValues || {};
+
+  if (
+    template.nominalField &&
+    template.nominalField !== "total_biaya" &&
+    template.nominalField !== "auto"
+  ) {
     const raw = fieldValues[template.nominalField];
     if (typeof raw === "number") nominal = raw;
-    else if (typeof raw === "string") nominal = parseFloat(raw.replace(/[^0-9.-]+/g, "")) || 0;
+    else if (typeof raw === "string")
+      nominal = parseFloat(raw.replace(/[^0-9.-]+/g, "")) || 0;
   } else {
     if (letterOrFieldValues?.totalCost !== undefined) {
       nominal = Number(letterOrFieldValues.totalCost) || 0;
     } else if (fieldValues.total_biaya !== undefined) {
       const raw = fieldValues.total_biaya;
-      nominal = typeof raw === "number" ? raw : parseFloat(String(raw).replace(/[^0-9.-]+/g, "")) || 0;
-    } else if (Array.isArray(fieldValues.rincian_biaya) && fieldValues.rincian_biaya.length > 0) {
-      nominal = fieldValues.rincian_biaya.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+      nominal =
+        typeof raw === "number"
+          ? raw
+          : parseFloat(String(raw).replace(/[^0-9.-]+/g, "")) || 0;
+    } else if (
+      Array.isArray(fieldValues.rincian_biaya) &&
+      fieldValues.rincian_biaya.length > 0
+    ) {
+      nominal = fieldValues.rincian_biaya.reduce(
+        (acc, c) => acc + (Number(c.amount) || 0),
+        0,
+      );
     } else {
       for (const key of Object.keys(fieldValues)) {
         if (/nominal|biaya|jumlah|total|dana|nilai/i.test(key)) {
           const raw = fieldValues[key];
-          const val = typeof raw === "number" ? raw : parseFloat(String(raw).replace(/[^0-9.-]+/g, "")) || 0;
+          const val =
+            typeof raw === "number"
+              ? raw
+              : parseFloat(String(raw).replace(/[^0-9.-]+/g, "")) || 0;
           if (val > 0) {
             nominal = val;
             break;

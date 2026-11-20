@@ -1033,9 +1033,51 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                             ))}
                         </select>
                       </div>
-                      <span className="text-[11px] text-amber-800 italic">
-                        💡 Tentukan batas nominal maksimal pada masing-masing tingkat di bawah:
-                      </span>
+                      <div className="w-full mt-2 pt-2 border-t border-amber-200">
+                        <div className="overflow-x-auto rounded-lg border border-amber-300/80 bg-white shadow-2xs">
+                          <table className="w-full text-xs text-slate-800 border-collapse">
+                            <thead>
+                              <tr className="bg-amber-100/90 text-amber-950 border-b border-amber-300 font-extrabold text-[11px]">
+                                <th className="py-1.5 px-3 text-left">JABATAN</th>
+                                <th className="py-1.5 px-3 text-right">MINIMAL</th>
+                                <th className="py-1.5 px-3 text-right">MAKSIMAL</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-amber-100 text-[11px]">
+                              <tr className="hover:bg-amber-50/60 transition">
+                                <td className="py-1.5 px-3 font-bold text-slate-900">DIREKTUR</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-medium">50.000.000</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-extrabold text-indigo-700">TIDAK TERBATAS</td>
+                              </tr>
+                              <tr className="hover:bg-amber-50/60 transition">
+                                <td className="py-1.5 px-3 font-bold text-slate-900">WAKIL DIREKTUR</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-medium">2.000.000</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">50.000.000</td>
+                              </tr>
+                              <tr className="hover:bg-amber-50/60 transition">
+                                <td className="py-1.5 px-3 font-bold text-slate-900">PEMBELIAN</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-medium">1.000.000</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">2.000.000</td>
+                              </tr>
+                              <tr className="hover:bg-amber-50/60 transition">
+                                <td className="py-1.5 px-3 font-bold text-slate-900">RSM &amp; NSM</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-medium">500.000</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">1.000.000</td>
+                              </tr>
+                              <tr className="hover:bg-amber-50/60 transition">
+                                <td className="py-1.5 px-3 font-bold text-slate-900">ALL HEAD DEPT.</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-medium">300.000</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">500.000</td>
+                              </tr>
+                              <tr className="hover:bg-amber-50/60 transition">
+                                <td className="py-1.5 px-3 font-bold text-slate-900">CABANG</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-medium">-</td>
+                                <td className="py-1.5 px-3 text-right font-mono font-bold text-emerald-700">300.000</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

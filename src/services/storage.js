@@ -340,12 +340,14 @@ export const syncWithDatabase = async (options = {}) => {
       api.getCategories(),
     ])
 
-    if (Array.isArray(categoriesData) && categoriesData.length > 0) {
+    if (Array.isArray(categoriesData)) {
       setStorageItem(STORAGE_KEYS.CATEGORIES || 'suratajuan_categories_v2', categoriesData)
+      window.dispatchEvent(new Event('categories_change'))
     }
 
     if (Array.isArray(globalViewersData)) {
       setStorageItem(STORAGE_KEYS.GLOBAL_DEFAULT_VIEWERS, globalViewersData)
+      window.dispatchEvent(new Event('global_viewers_change'))
     }
 
     if (Array.isArray(branchesData) && branchesData.length > 0) {
@@ -363,18 +365,22 @@ export const syncWithDatabase = async (options = {}) => {
         }
       })
       setStorageItem(STORAGE_KEYS.BRANCHES, mergedBranches)
+      window.dispatchEvent(new Event('branches_change'))
     }
 
     if (Array.isArray(usersData) && usersData.length > 0) {
       setStorageItem(STORAGE_KEYS.USERS, usersData)
+      window.dispatchEvent(new Event('users_change'))
     }
 
     if (Array.isArray(jabatanData) && jabatanData.length > 0) {
       setStorageItem(STORAGE_KEYS.JABATAN, jabatanData)
+      window.dispatchEvent(new Event('jabatan_change'))
     }
 
-    if (Array.isArray(templatesData) && templatesData.length > 0) {
+    if (Array.isArray(templatesData)) {
       setStorageItem(STORAGE_KEYS.TEMPLATES, templatesData)
+      window.dispatchEvent(new Event('templates_change'))
     }
 
     if (Array.isArray(lettersData)) {

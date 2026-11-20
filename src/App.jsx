@@ -142,6 +142,9 @@ export default function App() {
       } catch (e) {}
     }
     localStorage.setItem('suratajuan_active_menu', menu)
+    if (menu === 'templates' || menu === 'admin-templates' || menu === 'builder') {
+      syncWithDatabase().catch(() => {})
+    }
   }
 
   // Initialize storage once & listen to hash & auth changes
@@ -187,6 +190,9 @@ export default function App() {
         setActiveMenuState('gps')
       } else if (cleanHash && cleanHash !== activeMenu) {
         setActiveMenuState(cleanHash)
+      }
+      if (cleanHash === 'templates' || cleanHash === 'admin-templates' || cleanHash === 'builder') {
+        syncWithDatabase().catch(() => {})
       }
       checkViewParam()
     }

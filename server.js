@@ -514,36 +514,34 @@ app.get("/api/users", async (req, res) => {
 // -------------------------------------------------------------
 app.get("/api/templates", async (req, res) => {
   try {
-    const formatted = await getCachedOrFetch("templates", 20000, async () => {
-      const [rows] = await pool.query(
-        `SELECT * FROM templates ORDER BY created_at DESC`,
-      );
-      return rows.map((r) => ({
-        id: r.id,
-        code: r.code,
-        name: r.name,
-        category: r.category,
-        description: r.description,
-        numberFormat: r.number_format,
-        allowedBranches:
-          typeof r.allowed_branches === "string"
-            ? JSON.parse(r.allowed_branches)
-            : r.allowed_branches,
-        isActive: Boolean(r.is_active),
-        approvalSteps:
-          typeof r.approval_steps === "string"
-            ? JSON.parse(r.approval_steps)
-            : r.approval_steps,
-        fields: typeof r.fields === "string" ? JSON.parse(r.fields) : r.fields,
-        letterTemplate: r.letter_template,
-        defaultViewers: r.default_viewers
-          ? typeof r.default_viewers === "string"
-            ? JSON.parse(r.default_viewers)
-            : r.default_viewers
-          : [],
-        createdAt: r.created_at,
-      }));
-    });
+    const [rows] = await pool.query(
+      `SELECT * FROM templates ORDER BY created_at DESC`,
+    );
+    const formatted = rows.map((r) => ({
+      id: r.id,
+      code: r.code,
+      name: r.name,
+      category: r.category,
+      description: r.description,
+      numberFormat: r.number_format,
+      allowedBranches:
+        typeof r.allowed_branches === "string"
+          ? JSON.parse(r.allowed_branches)
+          : r.allowed_branches,
+      isActive: Boolean(r.is_active),
+      approvalSteps:
+        typeof r.approval_steps === "string"
+          ? JSON.parse(r.approval_steps)
+          : r.approval_steps,
+      fields: typeof r.fields === "string" ? JSON.parse(r.fields) : r.fields,
+      letterTemplate: r.letter_template,
+      defaultViewers: r.default_viewers
+        ? typeof r.default_viewers === "string"
+          ? JSON.parse(r.default_viewers)
+          : r.default_viewers
+        : [],
+      createdAt: r.created_at,
+    }));
     res.json({ success: true, data: formatted });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -719,12 +717,10 @@ app.delete("/api/templates/:id", async (req, res) => {
 // -------------------------------------------------------------
 app.get("/api/categories", async (req, res) => {
   try {
-    const categories = await getCachedOrFetch("categories", 30000, async () => {
-      const [rows] = await pool.query(
-        `SELECT name FROM categories ORDER BY id ASC`,
-      );
-      return rows.map((r) => r.name);
-    });
+    const [rows] = await pool.query(
+      `SELECT name FROM categories ORDER BY id ASC`,
+    );
+    const categories = rows.map((r) => r.name);
     res.json({ success: true, data: categories });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: [] });

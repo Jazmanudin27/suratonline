@@ -15,17 +15,33 @@ import {
   Mail,
   Coins,
 } from 'lucide-react'
-import { BLANK_TEMPLATE, getCategories } from '../services/storage'
+import { BLANK_TEMPLATE, getCategories, getTemplates, syncWithDatabase } from '../services/storage'
 
-export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
+export default function TemplateCatalog({ templates: propTemplates = [], onSelectTemplate }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [storedCategories, setStoredCategories] = useState(getCategories())
+  const [templates, setTemplates] = useState(() => (propTemplates && propTemplates.length > 0 ? propTemplates : getTemplates()))
+
+  React.useEffect(() => {
+    if (propTemplates && propTemplates.length > 0) {
+      setTemplates(propTemplates)
+    }
+  }, [propTemplates])
 
   React.useEffect(() => {
     const handleCatChange = () => setStoredCategories(getCategories())
+    const handleTplChange = () => setTemplates(getTemplates())
     window.addEventListener('categories_change', handleCatChange)
-    return () => window.removeEventListener('categories_change', handleCatChange)
+    window.addEventListener('templates_change', handleTplChange)
+
+    // Sync langsung dari database saat katalog dibuka
+    syncWithDatabase().catch(() => {})
+
+    return () => {
+      window.removeEventListener('categories_change', handleCatChange)
+      window.removeEventListener('templates_change', handleTplChange)
+    }
   }, [])
 
   // Build unified categories list

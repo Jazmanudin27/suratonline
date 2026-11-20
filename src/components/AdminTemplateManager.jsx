@@ -152,14 +152,44 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
         { id: `f_${Date.now()}_2`, label: 'Keperluan / Perihal', name: 'perihal', type: 'text', required: true },
       ],
       letterTemplate: `
-<p style="text-align: right;">{{nama_cabang}}, {{tanggal_surat}}</p>
-<p>Nomor: {{nomor_surat}}<br>Perihal: {{perihal}}</p>
-<p>Kepada Yth,<br>Pimpinan Terkait<br>Di Tempat</p>
+<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
+  <tbody>
+    <tr>
+      <td style="width: 15%; vertical-align: top; padding: 2px 0;"><strong>Nomor</strong></td>
+      <td style="width: 3%; vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;">{{nomor_surat}}</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>Lampiran</strong></td>
+      <td style="vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;">-</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>Perihal</strong></td>
+      <td style="vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>{{perihal}}</strong></td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>Dari</strong></td>
+      <td style="vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;">{{nama_pemohon}}</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>Kepada</strong></td>
+      <td style="vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;">Yth. [Pimpinan / Manajer Terkait]</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>Tembusan</strong></td>
+      <td style="vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;">1. Arsip Cabang</td>
+    </tr>
+  </tbody>
+</table>
+<p><br></p>
 <p>Dengan hormat,</p>
-<p>Saya yang bertanda tangan di bawah ini:</p>
-<p>Nama: {{nama_pemohon}}<br>Cabang: {{nama_cabang}}</p>
-<p>Bersama surat ini mengajukan permohonan sebagaimana perihal di atas.</p>
-<p>Demikian surat permohonan ini kami sampaikan, atas perhatian dan persetujuannya kami ucapkan terima kasih.</p>
+<p>Bersama surat ini kami mengajukan permohonan sebagaimana perihal di atas dengan uraian sebagai berikut:</p>
+<p><br></p>
 `,
     })
     setActiveTab('form')

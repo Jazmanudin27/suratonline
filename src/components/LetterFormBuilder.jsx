@@ -532,6 +532,63 @@ export default function LetterFormBuilder({
   );
   const effectiveTitle = rawTitle ? rawTitle.trim().toUpperCase() : "";
 
+  // Template HTML Resmi Otomatis untuk Surat Custom / Mandiri
+  const buildMandiriHeaderHtml = (targetNum, targetPerihal) => {
+    const numDisplay = targetNum || letterNumber || "[NOMOR SURAT]";
+    const perihalDisplay = (
+      targetPerihal ||
+      fieldValues.perihal ||
+      fieldValues.f_perihal ||
+      effectiveTitle ||
+      "Permohonan"
+    )
+      .trim()
+      .toUpperCase();
+    const submitterName = currentUser?.name || "Pemohon";
+    const submitterPos = currentUser?.position || "Staff";
+    const dariDisplay = `${submitterName}${submitterPos ? ` (${submitterPos})` : ""}`;
+    const lockedBadge = `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #1e3a8a; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${numDisplay}</span>`;
+
+    return `<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
+  <tbody>
+    <tr>
+      <td style="width: 15%; vertical-align: top; padding: 2px 0;"><strong>Nomor</strong></td>
+      <td style="width: 3%; vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;">${lockedBadge}</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>Lampiran</strong></td>
+      <td style="vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;">-</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>Perihal</strong></td>
+      <td style="vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>${perihalDisplay}</strong></td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>Dari</strong></td>
+      <td style="vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;">${dariDisplay}</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>Kepada</strong></td>
+      <td style="vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;">Yth. [Pimpinan / Manajer Terkait]</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; padding: 2px 0;"><strong>Tembusan</strong></td>
+      <td style="vertical-align: top; padding: 2px 0;">:</td>
+      <td style="vertical-align: top; padding: 2px 0;">1. Arsip Cabang</td>
+    </tr>
+  </tbody>
+</table>
+<p><br></p>
+<p>Dengan hormat,</p>
+<p>Bersama surat ini, kami bermaksud mengajukan permohonan dengan rincian sebagai berikut:</p>
+<p><br></p>`;
+  };
+
   // Validasi kolom wajib (termasuk Perihal Surat tidak boleh lanjut jika kosong)
   const validateRequiredFields = () => {
     const perihalVal = (
@@ -647,14 +704,26 @@ export default function LetterFormBuilder({
     if (!letterNumber) setLetterNumber(currentNumber);
 
     if (isMandiri) {
+      const perihal = (fieldValues.perihal || fieldValues.f_perihal || effectiveTitle || "").trim().toUpperCase();
       const isBoilerplate =
         !letterContent ||
+        letterContent.trim() === "<p><br></p>" ||
+        letterContent.trim() === "<p></p>" ||
         letterContent.includes("{{perihal}}") ||
         letterContent.includes("Di Tempat") ||
         letterContent.includes("Sehubungan dengan kebutuhan operasional") ||
         letterContent.includes("[Tulis uraian");
+
       if (isBoilerplate) {
-        setLetterContent("<p><br></p>");
+        setLetterContent(buildMandiriHeaderHtml(currentNumber, perihal));
+      } else {
+        setLetterContent((prev) => {
+          let finalHtml = lockLetterNumberInHtml(prev, currentNumber);
+          if (perihal) {
+            finalHtml = syncPerihalInHtml(finalHtml, perihal);
+          }
+          return finalHtml;
+        });
       }
       setActiveTab("preview");
       return;
@@ -703,14 +772,26 @@ export default function LetterFormBuilder({
     if (!letterNumber) setLetterNumber(currentNumber);
 
     if (isMandiri) {
+      const perihal = (fieldValues.perihal || fieldValues.f_perihal || effectiveTitle || "").trim().toUpperCase();
       const isBoilerplate =
         !letterContent ||
+        letterContent.trim() === "<p><br></p>" ||
+        letterContent.trim() === "<p></p>" ||
         letterContent.includes("{{perihal}}") ||
         letterContent.includes("Di Tempat") ||
         letterContent.includes("Sehubungan dengan kebutuhan operasional") ||
         letterContent.includes("[Tulis uraian");
+
       if (isBoilerplate) {
-        setLetterContent("<p><br></p>");
+        setLetterContent(buildMandiriHeaderHtml(currentNumber, perihal));
+      } else {
+        setLetterContent((prev) => {
+          let finalHtml = lockLetterNumberInHtml(prev, currentNumber);
+          if (perihal) {
+            finalHtml = syncPerihalInHtml(finalHtml, perihal);
+          }
+          return finalHtml;
+        });
       }
       setIsWordFullscreen(true);
       return;
@@ -795,9 +876,14 @@ export default function LetterFormBuilder({
       attachments: persistentAttachments,
       content: isMandiri
         ? letterContent &&
-          !letterContent.includes("Sehubungan dengan kebutuhan operasional")
-          ? letterContent
-          : "<p><br></p>"
+          !letterContent.includes("Sehubungan dengan kebutuhan operasional") &&
+          letterContent.trim() !== "<p><br></p>" &&
+          letterContent.trim() !== "<p></p>"
+          ? lockLetterNumberInHtml(
+              syncPerihalInHtml(letterContent, effectiveTitle),
+              letterNumber,
+            )
+          : buildMandiriHeaderHtml(letterNumber, effectiveTitle)
         : lockLetterNumberInHtml(
             syncPerihalInHtml(
               letterContent ||
@@ -883,9 +969,14 @@ export default function LetterFormBuilder({
       attachments: persistentAttachments,
       content: isMandiri
         ? letterContent &&
-          !letterContent.includes("Sehubungan dengan kebutuhan operasional")
-          ? letterContent
-          : "<p><br></p>"
+          !letterContent.includes("Sehubungan dengan kebutuhan operasional") &&
+          letterContent.trim() !== "<p><br></p>" &&
+          letterContent.trim() !== "<p></p>"
+          ? lockLetterNumberInHtml(
+              syncPerihalInHtml(letterContent, effectiveTitle),
+              letterNumber,
+            )
+          : buildMandiriHeaderHtml(letterNumber, effectiveTitle)
         : lockLetterNumberInHtml(
             syncPerihalInHtml(
               letterContent ||
@@ -940,9 +1031,14 @@ export default function LetterFormBuilder({
     },
     content: isMandiri
       ? letterContent &&
-        !letterContent.includes("Sehubungan dengan kebutuhan operasional")
-        ? letterContent
-        : "<p><br></p>"
+        !letterContent.includes("Sehubungan dengan kebutuhan operasional") &&
+        letterContent.trim() !== "<p><br></p>" &&
+        letterContent.trim() !== "<p></p>"
+        ? lockLetterNumberInHtml(
+            syncPerihalInHtml(letterContent, effectiveTitle),
+            initialLetter?.letterNumber || letterNumber || "DRAFT/NO-NUMBER",
+          )
+        : buildMandiriHeaderHtml(initialLetter?.letterNumber || letterNumber, effectiveTitle)
       : lockLetterNumberInHtml(
           syncPerihalInHtml(
             letterContent ||

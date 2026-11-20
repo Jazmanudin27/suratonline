@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import {
   FileText,
   Search,
+  Filter,
   ArrowRight,
   Briefcase,
   Layers,
@@ -148,41 +149,39 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
       </div>
 
       {/* Filter & Search Toolbar Card - Rapat & Bersih */}
-      <div className="bg-white border border-slate-300 rounded-xl p-2.5 sm:p-3 shadow-xs space-y-2">
+      <div className="bg-white border border-slate-300 rounded-xl p-2.5 sm:p-3 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          {/* Category Tabs with Notification Counter */}
-          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-thin scrollbar-thumb-slate-200 flex-1">
-            {categories.map((cat) => {
-              const isSelected = selectedCategory === cat
-              const count = categoryCounts[cat] || (cat === 'all' ? categoryCounts.all : 0) || 0
-              const label = cat === 'all' ? 'Semua Kategori' : cat
-
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer ${
-                    isSelected
-                      ? 'bg-slate-900 text-white shadow-xs ring-1 ring-slate-900'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/90 hover:border-slate-300'
-                  }`}
-                >
-                  <span>{label}</span>
-                  {/* Notification Badge */}
-                  <span
-                    className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold transition-all ${
-                      isSelected
-                        ? 'bg-blue-500 text-white shadow-2xs'
-                        : count > 0
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200 group-hover:bg-blue-100 group-hover:text-blue-800'
-                        : 'bg-slate-200/70 text-slate-500'
-                    }`}
-                  >
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
+          {/* Category Select Dropdown */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 shrink-0">
+              <Filter className="w-3.5 h-3.5 text-blue-600" />
+              <span>Filter Kategori:</span>
+            </div>
+            <select
+              id="select-template-category"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="py-1.5 pl-3 pr-8 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:bg-white transition cursor-pointer"
+            >
+              {categories.map((cat) => {
+                const count = categoryCounts[cat] || (cat === 'all' ? categoryCounts.all : 0) || 0
+                const label = cat === 'all' ? 'Semua Kategori' : cat
+                return (
+                  <option key={cat} value={cat}>
+                    {label} ({count})
+                  </option>
+                )
+              })}
+            </select>
+            {selectedCategory !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('all')}
+                className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer underline ml-1"
+              >
+                Reset Filter
+              </button>
+            )}
           </div>
 
           {/* Search Input */}

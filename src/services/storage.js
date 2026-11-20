@@ -636,16 +636,57 @@ export const clearCurrentUser = () => {
 // Branches
 export const getBranches = () => {
   const branches = getStorageItem(STORAGE_KEYS.BRANCHES, []);
-  return branches.map((b) => ({
-    ...b,
-    madeBy: b.madeBy || "",
-    madeByPosition: b.madeByPosition || "",
-    knownBy: b.knownBy || "",
-    knownByPosition: b.knownByPosition || "",
-    rsmId: b.rsmId || "",
-    rsmName: b.rsmName || "",
-    regionalName: b.regionalName || "",
-  }));
+  const users = getUsers();
+
+  return branches.map((b) => {
+    const code = (b.code || b.id || "").toUpperCase().trim();
+
+    // Cari Kepala Cabang otomatis dari tabel users di database MySQL (kode_jabatan J07/J08 atau posisi Manager Cabang)
+    const branchUsers = users.filter((u) => {
+      const uBranch = (u.branchId || u.kodeCabang || "").toUpperCase().trim();
+      return uBranch === code;
+    });
+
+    const kepalaCabang = branchUsers.find(
+      (u) =>
+        u.kodeJabatan === "J07" ||
+        u.kodeJabatan === "J08" ||
+        (u.position &&
+          (u.position.toLowerCase().includes("kepala cabang") ||
+            u.position.toLowerCase().includes("manager cabang"))),
+    );
+
+    // Cari RSM dari users (kode_jabatan J03)
+    const rsm = users.find(
+      (u) =>
+        u.kodeJabatan === "J03" ||
+        (u.position &&
+          u.position.toLowerCase().includes("regional sales manager")),
+    );
+
+    return {
+      ...b,
+      id: code,
+      code,
+      name: b.name || b.nama_cabang || code,
+      pt: b.pt || b.nama_pt || "",
+      address: b.address || b.alamat_cabang || "",
+      phone: b.phone || b.telepon_cabang || "",
+      email: b.email || "",
+      totalPersonnel: branchUsers.length,
+      knownBy:
+        b.knownBy ||
+        kepalaCabang?.name ||
+        (branchUsers.length > 0 ? branchUsers[0].name : ""),
+      knownByPosition:
+        b.knownByPosition || kepalaCabang?.position || "Kepala Cabang",
+      madeBy: b.madeBy || "Pembuat Surat",
+      madeByPosition: b.madeByPosition || "Staf Cabang",
+      rsmName: b.rsmName || rsm?.name || "Regional Sales Manager",
+      rsmId: b.rsmId || rsm?.id || "",
+      regionalName: b.regionalName || "Regional",
+    };
+  });
 };
 
 export const saveBranch = (branch) => {
@@ -658,11 +699,15 @@ export const saveBranch = (branch) => {
   } else {
     branches.push({
       ...branch,
-      id: branch.id || `CBG-${Date.now().toString(36).toUpperCase()}`,
+      id: branch.code || branch.id || `CBG-${Date.now().toString(36).toUpperCase()}`,
     });
   }
   setStorageItem(STORAGE_KEYS.BRANCHES, branches);
   window.dispatchEvent(new Event("branches_change"));
+
+  // Simpan ke database MySQL backend
+  api.saveCabang(branch).catch((e) => console.warn("Save branch to MySQL failed:", e.message));
+
   return branches;
 };
 
@@ -804,7 +849,7 @@ export const getTemplateById = (id) => {
   return getTemplates().find((t) => t.id === id);
 };
 
-export const saveTemplate = (templateData) => {
+export const saveTemplate = async (templateData) => {
   const templates = getTemplates();
   let saved;
   if (templateData.id) {
@@ -812,6 +857,9 @@ export const saveTemplate = (templateData) => {
     if (idx >= 0) {
       templates[idx] = { ...templates[idx], ...templateData };
       saved = templates[idx];
+    } else {
+      saved = { ...templateData };
+      templates.push(saved);
     }
   } else {
     saved = {
@@ -824,11 +872,84 @@ export const saveTemplate = (templateData) => {
   }
   setStorageItem(STORAGE_KEYS.TEMPLATES, templates);
   window.dispatchEvent(new Event("templates_change"));
-  // Sync to remote MySQL API
-  api
-    .saveTemplate(saved)
-    .catch((e) => console.warn("Sync template to API failed:", e.message));
-  return saved;
+
+  // Sync langsung dan tuntas ke remote MySQL API
+  try {
+    const res = await api.saveTemplate(saved);
+    if (res && res.success === false) {
+      console.error("Save template to MySQL failed:", res.message);
+      return { success: false, message: res.message, data: saved };
+    }
+    return { success: true, data: saved };
+  } catch (e) {
+    console.warn("Sync template to API failed:", e.message);
+    return { success: false, message: e.message, data: saved };
+  }
+};
+
+// Hitung Jalur Persetujuan Wajib Berdasarkan Limit Nominal Ajuan
+export const calculateRequiredApprovalSteps = (template, letterOrFieldValues) => {
+  if (!template || !template.approvalSteps || template.approvalSteps.length === 0) {
+    return template?.approvalSteps || [];
+  }
+  if (!template.hasNominalLimit) {
+    return template.approvalSteps;
+  }
+
+  // Ekstraksi nilai nominal
+  let nominal = 0;
+  const fieldValues = letterOrFieldValues?.fieldValues || letterOrFieldValues || {};
+  
+  if (template.nominalField && template.nominalField !== "total_biaya" && template.nominalField !== "auto") {
+    const raw = fieldValues[template.nominalField];
+    if (typeof raw === "number") nominal = raw;
+    else if (typeof raw === "string") nominal = parseFloat(raw.replace(/[^0-9.-]+/g, "")) || 0;
+  } else {
+    if (letterOrFieldValues?.totalCost !== undefined) {
+      nominal = Number(letterOrFieldValues.totalCost) || 0;
+    } else if (fieldValues.total_biaya !== undefined) {
+      const raw = fieldValues.total_biaya;
+      nominal = typeof raw === "number" ? raw : parseFloat(String(raw).replace(/[^0-9.-]+/g, "")) || 0;
+    } else if (Array.isArray(fieldValues.rincian_biaya) && fieldValues.rincian_biaya.length > 0) {
+      nominal = fieldValues.rincian_biaya.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+    } else {
+      for (const key of Object.keys(fieldValues)) {
+        if (/nominal|biaya|jumlah|total|dana|nilai/i.test(key)) {
+          const raw = fieldValues[key];
+          const val = typeof raw === "number" ? raw : parseFloat(String(raw).replace(/[^0-9.-]+/g, "")) || 0;
+          if (val > 0) {
+            nominal = val;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Jika nominal 0 atau belum terisi, tampilkan semua langkah
+  if (nominal <= 0) {
+    return template.approvalSteps;
+  }
+
+  const steps = template.approvalSteps;
+  let targetStepIdx = -1;
+
+  for (let i = 0; i < steps.length; i++) {
+    const stepMax = Number(steps[i].maxAmount);
+    if (stepMax && stepMax > 0 && nominal <= stepMax) {
+      targetStepIdx = i;
+      break;
+    }
+  }
+
+  if (targetStepIdx === -1) {
+    targetStepIdx = steps.length - 1;
+  }
+
+  return steps.slice(0, targetStepIdx + 1).map((s, idx) => ({
+    ...s,
+    step: idx + 1,
+  }));
 };
 
 export const toggleTemplateStatus = (templateId) => {

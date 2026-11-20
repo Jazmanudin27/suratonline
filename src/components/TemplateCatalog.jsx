@@ -302,6 +302,11 @@ export default function TemplateCatalog({ templates: propTemplates = [], onSelec
                                   <span className="truncate max-w-[120px]">
                                     {step.specificUserName || step.approverRole || step.title}
                                   </span>
+                                  {step.maxAmount && (
+                                    <span className="text-[9px] bg-amber-100 text-amber-900 border border-amber-300 font-mono px-1 rounded font-bold">
+                                      &le;{step.maxAmount >= 1000000 ? `${step.maxAmount / 1000000}Jt` : `${step.maxAmount / 1000}Rb`}
+                                    </span>
+                                  )}
                                 </span>
                                 {sIdx < tpl.approvalSteps.length - 1 && (
                                   <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />

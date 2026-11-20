@@ -28,6 +28,22 @@ export const api = {
     }
   },
 
+  async saveCabang(branch) {
+    try {
+      const isEdit = Boolean(branch.id && branch.id === branch.code)
+      const url = isEdit ? `${API_BASE}/cabang/${branch.id}` : `${API_BASE}/cabang`
+      const method = isEdit ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(branch),
+      })
+      return await res.json()
+    } catch (e) {
+      return { success: false, message: e.message }
+    }
+  },
+
   // 2. HRD Jabatan (J01 s.d J32)
   async getJabatan() {
     try {

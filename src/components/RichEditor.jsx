@@ -41,6 +41,7 @@ import {
   CheckCircle2,
   X,
   Minimize2,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export default function RichEditor({
@@ -64,6 +65,13 @@ export default function RichEditor({
 
   // Tab ribbon Word: 'home' | 'insert' | 'layout' | 'table'
   const [activeTab, setActiveTab] = useState("home");
+
+  // Excel / Spreadsheet import modal states
+  const [showExcelModal, setShowExcelModal] = useState(false);
+  const [excelPasteText, setExcelPasteText] = useState("");
+  const [excelHeaderFirstRow, setExcelHeaderFirstRow] = useState(true);
+  const [excelAutoAlign, setExcelAutoAlign] = useState(true);
+  const savedRangeRef = useRef(null);
 
   // Table manipulation states
   const [activeTableState, setActiveTableState] = useState(null);
@@ -996,6 +1004,230 @@ export default function RichEditor({
     }
   };
 
+  // =========================================================================
+  // EXCEL / SPREADSHEET TABLE IMPORT & PASTE LOGIC
+  // =========================================================================
+  const openExcelModal = () => {
+    if (readOnly) return;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    } else {
+      savedRangeRef.current = null;
+    }
+    setShowExcelModal(true);
+  };
+
+  const isTsvData = (text) => {
+    if (!text) return false;
+    const lines = text.trim().split(/\r\n|\r|\n/);
+    const tabLines = lines.filter((l) => l.includes("\t"));
+    return (
+      tabLines.length >= 1 &&
+      (lines.length > 1 || lines[0].split("\t").length >= 2)
+    );
+  };
+
+  const formatTsvToTable = (tsvText, firstRowIsHeader = true, autoAlign = true) => {
+    if (!tsvText) return "";
+    const lines = tsvText.trim().split(/\r\n|\r|\n/);
+    if (lines.length === 0) return "";
+
+    const matrix = lines.map((line) => line.split("\t"));
+    const maxCols = Math.max(...matrix.map((r) => r.length));
+    if (maxCols <= 1 && matrix.length <= 1) return "";
+
+    const widthPct = (100 / maxCols).toFixed(1);
+    let html = `<table style="width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: inherit; font-size: 11pt; table-layout: auto;">`;
+
+    matrix.forEach((row, rowIdx) => {
+      html += `<tr>`;
+      for (let c = 0; c < maxCols; c++) {
+        const rawVal = row[c] !== undefined ? row[c].trim() : "";
+        const cellContent = rawVal
+          ? rawVal.replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          : "<br>";
+        
+        let align = "text-align: left;";
+        if (autoAlign && rawVal) {
+          const cleanNum = rawVal.replace(/[.,%Rp\s]/g, "");
+          if (cleanNum && !isNaN(cleanNum) && !/[a-zA-Z]/.test(rawVal)) {
+            align = "text-align: right;";
+          }
+        }
+
+        if (rowIdx === 0 && firstRowIsHeader) {
+          html += `<th style="width: ${widthPct}%; border: 1px solid #cbd5e1; padding: 6px 10px; background-color: #f1f5f9; font-weight: bold; font-size: 11pt; ${align} vertical-align: middle;">${cellContent}</th>`;
+        } else {
+          html += `<td style="width: ${widthPct}%; border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 11pt; ${align} vertical-align: middle;">${cellContent}</td>`;
+        }
+      }
+      html += `</tr>`;
+    });
+    html += `</table><p><br></p>`;
+    return html;
+  };
+
+  const formatExcelHtmlTable = (htmlText) => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, "text/html");
+      const tables = doc.querySelectorAll("table");
+      if (!tables || tables.length === 0) return null;
+
+      tables.forEach((table) => {
+        table.removeAttribute("width");
+        table.removeAttribute("height");
+        table.removeAttribute("border");
+        table.removeAttribute("cellspacing");
+        table.removeAttribute("cellpadding");
+        table.className = "w-full my-3";
+        table.setAttribute(
+          "style",
+          "width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: inherit; font-size: 11pt; table-layout: auto;"
+        );
+
+        // Remove colgroup/col
+        table.querySelectorAll("colgroup, col").forEach((el) => el.remove());
+
+        const rows = table.querySelectorAll("tr");
+        rows.forEach((tr, rIdx) => {
+          tr.removeAttribute("height");
+          tr.removeAttribute("style");
+
+          const cells = tr.querySelectorAll("td, th");
+          cells.forEach((cell) => {
+            let textAlign = "left";
+            const styleAlign = cell.style.textAlign;
+            const alignAttr = cell.getAttribute("align");
+            if (styleAlign) textAlign = styleAlign;
+            else if (alignAttr) textAlign = alignAttr;
+            else {
+              const text = cell.innerText.trim();
+              if (
+                text &&
+                !isNaN(text.replace(/[.,%Rp\s]/g, "")) &&
+                !/[a-zA-Z]/.test(text)
+              ) {
+                textAlign = "right";
+              }
+            }
+
+            const isHeader = rIdx === 0;
+            const bg = isHeader
+              ? "background-color: #f1f5f9; font-weight: bold;"
+              : "";
+
+            cell.removeAttribute("class");
+            cell.removeAttribute("width");
+            cell.removeAttribute("height");
+            cell.setAttribute(
+              "style",
+              `border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 11pt; text-align: ${textAlign}; vertical-align: middle; ${bg}`
+            );
+
+            if (!cell.innerHTML.trim()) {
+              cell.innerHTML = "<br>";
+            }
+          });
+        });
+      });
+
+      return (
+        Array.from(tables)
+          .map((t) => t.outerHTML)
+          .join("<p><br></p>") + "<p><br></p>"
+      );
+    } catch (err) {
+      console.error("Failed to parse Excel HTML:", err);
+      return null;
+    }
+  };
+
+  const handlePaste = (e) => {
+    if (readOnly) return;
+    const clipboardData = e.clipboardData || window.clipboardData;
+    if (!clipboardData) return;
+
+    const htmlData = clipboardData.getData("text/html");
+    const textData = clipboardData.getData("text/plain");
+
+    // Case 1: Copied from Excel / Word / web as HTML table
+    if (htmlData && htmlData.includes("<table")) {
+      const cleanTable = formatExcelHtmlTable(htmlData);
+      if (cleanTable) {
+        e.preventDefault();
+        document.execCommand("insertHTML", false, cleanTable);
+        handleInput();
+        return;
+      }
+    }
+
+    // Case 2: Copied as TSV (tab separated rows/columns from Excel)
+    if (textData && isTsvData(textData)) {
+      const cleanTable = formatTsvToTable(textData, true, true);
+      if (cleanTable) {
+        e.preventDefault();
+        document.execCommand("insertHTML", false, cleanTable);
+        handleInput();
+        return;
+      }
+    }
+  };
+
+  const insertExcelTableFromModal = () => {
+    if (!excelPasteText.trim() || !editorRef.current) return;
+    let tableHtml = "";
+
+    if (excelPasteText.includes("<table")) {
+      tableHtml = formatExcelHtmlTable(excelPasteText);
+    } else {
+      tableHtml = formatTsvToTable(
+        excelPasteText,
+        excelHeaderFirstRow,
+        excelAutoAlign
+      );
+    }
+
+    if (!tableHtml) {
+      alert("Format data tidak terbaca sebagai tabel. Pastikan Anda meng-copy sel dari Excel atau spreadsheet.");
+      return;
+    }
+
+    editorRef.current.focus();
+    const sel = window.getSelection();
+    if (savedRangeRef.current && sel) {
+      try {
+        sel.removeAllRanges();
+        sel.addRange(savedRangeRef.current);
+      } catch (e) {
+        // Range expired
+      }
+    }
+
+    const inserted = document.execCommand("insertHTML", false, tableHtml);
+    if (!inserted) {
+      editorRef.current.innerHTML += tableHtml;
+    }
+
+    handleInput();
+    setShowExcelModal(false);
+    setExcelPasteText("");
+  };
+
+  const readClipboardDirectly = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          setExcelPasteText(text);
+        }
+      }
+    } catch (err) {
+      alert("Akses clipboard langsung dibatasi browser. Silakan tekan Ctrl+V pada kotak teks di bawah.");
+    }
+  };
+
   const containerClasses = isFullscreen
     ? "fixed inset-0 z-50 bg-[#e9ecef] flex flex-col h-screen w-screen overflow-hidden animate-fadeIn select-none font-sans"
     : "bg-[#f3f4f6] border border-slate-300 rounded-lg overflow-hidden shadow-xl flex flex-col font-sans select-none";
@@ -1146,6 +1378,15 @@ export default function RichEditor({
                   >
                     <Clipboard className="w-4 h-4 text-amber-600" />
                     <span>Paste</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openExcelModal}
+                    className="p-1 text-emerald-800 hover:bg-emerald-100 rounded flex flex-col items-center gap-0.5 text-[10px] font-semibold border border-emerald-300 bg-emerald-50"
+                    title="Paste Tabel dari Microsoft Excel / Spreadsheet"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <span>Excel</span>
                   </button>
                   <div className="flex flex-col gap-0.5">
                     <button
@@ -1446,6 +1687,15 @@ export default function RichEditor({
                   title="Kustom Baris & Kolom"
                 >
                   <span>Kustom...</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openExcelModal}
+                  className="px-3 py-1.5 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 rounded text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition"
+                  title="Paste / Impor Tabel dari Microsoft Excel atau Google Sheets"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <span>Paste Excel</span>
                 </button>
               </div>
 
@@ -1850,6 +2100,7 @@ export default function RichEditor({
             onKeyDown={handleKeyDown}
             onInput={handleInput}
             onBlur={handleInput}
+            onPaste={handlePaste}
             onMouseUp={handleEditorMouseUp}
             onKeyUp={updateActiveTable}
             onMouseMove={handleEditorMouseMove}
@@ -1919,6 +2170,176 @@ export default function RichEditor({
           </button>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* MODAL: PASTE TABEL EXCEL / SPREADSHEET                                    */}
+      {/* ========================================================================= */}
+      {showExcelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn select-text">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-600 rounded-lg text-white">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white flex items-center gap-2">
+                    Paste Tabel dari Excel / Spreadsheet
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Otomatis mengubah sel Excel menjadi format tabel surat resmi
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowExcelModal(false);
+                  setExcelPasteText("");
+                }}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 overflow-y-auto space-y-4 text-xs">
+              {/* Petunjuk Cepat */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-emerald-900 flex items-start gap-3">
+                <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-emerald-950">Cara Penggunaan:</p>
+                  <ol className="list-decimal list-inside space-y-0.5 text-emerald-800">
+                    <li>Buka file Microsoft Excel atau Google Sheets Anda.</li>
+                    <li>Blok sel tabel yang diinginkan, lalu tekan <b>Ctrl + C</b> (Copy).</li>
+                    <li>Klik tombol <b>"Ambil dari Clipboard"</b> di bawah atau tekan <b>Ctrl + V</b> di dalam kotak teks.</li>
+                  </ol>
+                  <p className="text-[11px] text-emerald-700 italic pt-1">
+                    *Tip: Anda juga bisa langsung menekan <b>Ctrl + V</b> langsung di lembar kerja Word tanpa membuka menu ini!
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Toolbar for Paste Box */}
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-700 flex items-center gap-1.5">
+                  <span>Data Tabel Excel / TSV:</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={readClipboardDirectly}
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium flex items-center gap-1 transition shadow-xs"
+                    title="Baca teks dari clipboard"
+                  >
+                    <Clipboard className="w-3.5 h-3.5" />
+                    <span>Ambil dari Clipboard</span>
+                  </button>
+                  {excelPasteText && (
+                    <button
+                      type="button"
+                      onClick={() => setExcelPasteText("")}
+                      className="px-2 py-1 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded"
+                    >
+                      Bersihkan
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Textarea */}
+              <div className="relative">
+                <textarea
+                  value={excelPasteText}
+                  onChange={(e) => setExcelPasteText(e.target.value)}
+                  placeholder="Paste (Ctrl+V) sel Excel Anda di sini..."
+                  rows={5}
+                  className="w-full font-mono text-[11px] p-3 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
+                  autoFocus
+                />
+              </div>
+
+              {/* Opsi Tabel */}
+              <div className="flex flex-wrap items-center gap-5 pt-1 border-t border-slate-200">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={excelHeaderFirstRow}
+                    onChange={(e) => setExcelHeaderFirstRow(e.target.checked)}
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                  />
+                  <span className="font-semibold text-slate-700">
+                    Jadikan baris pertama sebagai Header (Judul Kolom)
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={excelAutoAlign}
+                    onChange={(e) => setExcelAutoAlign(e.target.checked)}
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                  />
+                  <span className="font-semibold text-slate-700">
+                    Rata kanan otomatis untuk kolom angka/nilai
+                  </span>
+                </label>
+              </div>
+
+              {/* Live Preview */}
+              {excelPasteText.trim() && (
+                <div className="space-y-2 pt-2 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-700">
+                      Pratinjau Tampilan Tabel:
+                    </span>
+                    <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
+                      {excelPasteText.trim().split(/\r\n|\r|\n/).length} baris terdeteksi
+                    </span>
+                  </div>
+                  <div
+                    className="max-h-48 overflow-auto border border-slate-200 rounded-lg p-2.5 bg-white shadow-inner"
+                    dangerouslySetInnerHTML={{
+                      __html: excelPasteText.includes("<table")
+                        ? formatExcelHtmlTable(excelPasteText)
+                        : formatTsvToTable(
+                            excelPasteText,
+                            excelHeaderFirstRow,
+                            excelAutoAlign
+                          ),
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="px-5 py-3.5 bg-slate-100 border-t border-slate-200 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowExcelModal(false);
+                  setExcelPasteText("");
+                }}
+                className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={insertExcelTableFromModal}
+                disabled={!excelPasteText.trim()}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Sisipkan ke Lembar Surat</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -35,6 +35,8 @@ import {
   Clock,
   Send,
   HelpCircle,
+  Sliders,
+  DollarSign,
 } from 'lucide-react'
 import RichEditor from './RichEditor'
 import SearchableSelect from './SearchableSelect'
@@ -139,9 +141,11 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
       numberFormat: '{{seq}}/{{code}}/{{branch_code}}/{{roman_month}}/{{year}}',
       allowedBranches: ['all'],
       isActive: true,
+      hasNominalLimit: false,
+      nominalField: 'total_biaya',
       attachments: [],
       approvalSteps: [
-        { step: 1, title: 'Persetujuan Kepala Cabang', approverRole: 'Kepala Cabang', kodeJabatan: 'J08' },
+        { step: 1, title: 'Persetujuan Kepala Cabang', approverRole: 'Kepala Cabang', kodeJabatan: 'J08', maxAmount: null },
       ],
       fields: [
         { id: `f_${Date.now()}_1`, label: 'Nama Pemohon', name: 'nama_pemohon', type: 'text', required: true },
@@ -161,15 +165,34 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
     setActiveTab('form')
   }
 
-  const handleDuplicateTemplate = (tpl) => {
+  const handleDuplicateTemplate = async (tpl) => {
     const dup = JSON.parse(JSON.stringify(tpl))
     delete dup.id
     dup.name = `${tpl.name} (Salinan)`
-    dup.code = `${tpl.code || 'SP'}_COPY`.slice(0, 15)
+
+    // Pastikan kode template salinan selalu unik dan tidak bentrok dengan template asli
+    const cleanBaseCode = (tpl.code || 'SP')
+      .replace(/(_COPY|_CP)[\w]*/gi, '')
+      .replace(/[^A-Za-z0-9]/g, '_')
+      .slice(0, 8)
+      .toUpperCase()
+    const uniqueSuffix = `_CP${Date.now().toString(36).slice(-4).toUpperCase()}`
+    dup.code = `${cleanBaseCode}${uniqueSuffix}`
     dup.isActive = true
-    saveTemplate(dup)
+
+    const res = await saveTemplate(dup)
+    if (res && res.success === false) {
+      notify.error(
+        'Gagal Menyimpan ke Database',
+        res.message || 'Terjadi kesalahan saat menyimpan ke database MySQL.'
+      )
+      return
+    }
     refreshList()
-    notify.success('Template Diduplikasi', `Berhasil membuat salinan dari template ${tpl.name}`)
+    notify.success(
+      'Template Diduplikasi',
+      `Berhasil membuat salinan template "${tpl.name}" dan tersimpan ke database.`
+    )
   }
 
   const handleDeleteTemplate = (tpl) => {
@@ -217,6 +240,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
       title: `Persetujuan Tahap ${nextStepNum}`,
       approverRole: nextStepNum === 2 ? 'Manajer Area' : 'Pimpinan Pusat',
       kodeJabatan: '',
+      maxAmount: null,
     })
     setEditingTemplate({ ...editingTemplate, approvalSteps: steps })
   }
@@ -249,7 +273,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
     setActiveTab('preview')
   }
 
-  const handleSaveTemplate = () => {
+  const handleSaveTemplate = async () => {
     if (!editingTemplate.name?.trim()) {
       notify.warning('Nama Template Kosong', 'Nama Template Surat wajib diisi!')
       return
@@ -268,7 +292,11 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
       allowedBranches: editingTemplate.allowedBranches?.length ? editingTemplate.allowedBranches : ['all'],
     }
 
-    saveTemplate(toSave)
+    const res = await saveTemplate(toSave)
+    if (res && res.success === false) {
+      notify.error('Gagal Menyimpan', res.message || 'Gagal menyimpan template ke database MySQL.')
+      return
+    }
     notify.success('Template Tersimpan', `Template "${editingTemplate.name}" berhasil disimpan ke sistem!`)
     setEditingTemplate(null)
     setIsWordFullscreen(false)
@@ -850,22 +878,19 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
-                      <select
-                        value={editingTemplate.category || ''}
-                        onChange={(e) => setEditingTemplate({ ...editingTemplate, category: e.target.value })}
-                        className="w-full p-2.5 rounded-xl border border-slate-300 text-slate-800 font-semibold bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                      >
-                        <option value="">-- Pilih Kategori --</option>
-                        {categories.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex-1">
+                        <SearchableSelect
+                          options={categories.map((cat) => ({ value: cat, label: cat }))}
+                          value={editingTemplate.category || ''}
+                          onChange={(val) => setEditingTemplate({ ...editingTemplate, category: val })}
+                          placeholder="-- Cari / Pilih Kategori --"
+                          isClearable={true}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() => setShowCategoryModal(true)}
-                        className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-slate-700 font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition"
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-slate-700 font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition h-[38px]"
                         title="Buka popup manajemen kategori"
                       >
                         <Tag className="w-3.5 h-3.5 text-amber-500" />
@@ -910,6 +935,84 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                     <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                     <span>Tambah Tingkat Persetujuan</span>
                   </button>
+                </div>
+
+                {/* Opsi Batasan Limit Nominal Approval */}
+                <div className="p-3.5 bg-gradient-to-r from-amber-50/90 to-orange-50/80 border border-amber-200/90 rounded-xl space-y-3 shadow-2xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 bg-amber-500 text-white rounded-lg shadow-2xs shrink-0">
+                        <Sliders className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-xs text-amber-950">
+                            Aturan Limit Nominal Persetujuan (Approval Threshold)
+                          </h4>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
+                              editingTemplate.hasNominalLimit
+                                ? 'bg-amber-500 text-white shadow-2xs'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {editingTemplate.hasNominalLimit ? 'AKTIF' : 'NON-AKTIF'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-800">
+                          Aktifkan jika pengajuan bernilai kecil cukup disetujui sampai pejabat tertentu (misal: &lt; 300rb cukup SMM, &lt; 500rb cukup Manager, 500rb–5jt Wakil Direktur, dst).
+                        </p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(editingTemplate.hasNominalLimit)}
+                        onChange={(e) =>
+                          setEditingTemplate({
+                            ...editingTemplate,
+                            hasNominalLimit: e.target.checked,
+                          })
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600 shadow-inner"></div>
+                    </label>
+                  </div>
+
+                  {editingTemplate.hasNominalLimit && (
+                    <div className="pt-2.5 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-3 text-xs animate-fadeIn">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-amber-900">Sumber Acuan Nominal:</span>
+                        <select
+                          value={editingTemplate.nominalField || 'total_biaya'}
+                          onChange={(e) =>
+                            setEditingTemplate({
+                              ...editingTemplate,
+                              nominalField: e.target.value,
+                            })
+                          }
+                          className="p-1.5 bg-white border border-amber-300 rounded-lg text-slate-800 font-semibold text-xs focus:ring-2 focus:ring-amber-500 outline-none shadow-2xs"
+                        >
+                          <option value="total_biaya">Total Biaya (Tabel Rincian Biaya / Pengeluaran)</option>
+                          {(editingTemplate.fields || [])
+                            .filter(
+                              (f) =>
+                                f.type === 'number' ||
+                                /biaya|nominal|dana|jumlah|harga|nilai/i.test(f.name || f.label)
+                            )
+                            .map((f) => (
+                              <option key={f.name} value={f.name}>
+                                Kolom Form: {f.label} ({f.name})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <span className="text-[11px] text-amber-800 italic">
+                        💡 Tentukan batas nominal maksimal pada masing-masing tingkat di bawah:
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -1036,6 +1139,56 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                             />
                           )}
                         </div>
+
+                        {editingTemplate.hasNominalLimit && (
+                          <div className="w-full mt-1 pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 bg-amber-50/70 p-2.5 rounded-xl border border-amber-200/80">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-amber-950 text-[11px] flex items-center gap-1 shrink-0">
+                                <DollarSign className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Batas Nominal Maksimal (Wewenang):</span>
+                              </span>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs select-none">
+                                  Rp
+                                </span>
+                                <input
+                                  type="text"
+                                  value={
+                                    step.maxAmount
+                                      ? Number(step.maxAmount).toLocaleString('id-ID')
+                                      : ''
+                                  }
+                                  onChange={(e) => {
+                                    const raw = e.target.value.replace(/[^0-9]/g, '')
+                                    const val = raw ? parseInt(raw, 10) : null
+                                    const steps = [...editingTemplate.approvalSteps]
+                                    steps[idx].maxAmount = val
+                                    setEditingTemplate({
+                                      ...editingTemplate,
+                                      approvalSteps: steps,
+                                    })
+                                  }}
+                                  placeholder="Tanpa batas (Tingkat akhir)"
+                                  className="pl-8 pr-3 py-1 bg-white border border-amber-300 rounded-lg font-mono font-bold text-slate-800 text-xs w-48 focus:ring-2 focus:ring-amber-500 outline-none shadow-2xs"
+                                />
+                              </div>
+                            </div>
+                            <div className="text-[11px] text-amber-900 font-medium">
+                              {step.maxAmount ? (
+                                <span>
+                                  Cukup sampai tahap ini jika nominal{' '}
+                                  <strong className="text-amber-950">
+                                    &le; Rp {Number(step.maxAmount).toLocaleString('id-ID')}
+                                  </strong>
+                                </span>
+                              ) : (
+                                <span className="text-slate-500 italic">
+                                  Tanpa batas nominal (Persetujuan untuk nominal di atas limit sebelumnya)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
                         {editingTemplate.approvalSteps.length > 1 && (
                           <div className="pt-4">

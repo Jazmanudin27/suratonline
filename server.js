@@ -89,6 +89,19 @@ pool
       // Column may already exist
     }
     try {
+      await conn.query(
+        `ALTER TABLE templates ADD COLUMN has_nominal_limit TINYINT(1) DEFAULT 0`,
+      );
+      await conn.query(
+        `ALTER TABLE templates ADD COLUMN nominal_field VARCHAR(100) NULL`,
+      );
+      console.log(
+        " [MySQL] Checked/added has_nominal_limit and nominal_field columns to templates table",
+      );
+    } catch (e) {
+      // Column may already exist
+    }
+    try {
       await conn.query(`ALTER TABLE letters ADD COLUMN shared_with JSON NULL`);
       console.log(" [MySQL] Checked/added shared_with column to letters table");
     } catch (e) {
@@ -157,18 +170,61 @@ const getCachedOrFetch = async (key, ttlMs, fetchFn) => {
 // -------------------------------------------------------------
 app.get("/api/cabang", async (req, res) => {
   try {
-    const rows = await getCachedOrFetch("cabang", 60000, async () => {
-      const [r] = await pool.query(
-        `SELECT kode_cabang AS id, kode_cabang AS code, nama_cabang AS name,
-                alamat_cabang AS address, telepon_cabang AS phone,
-                nama_pt AS pt, kode_pt, status_aktif_cabang, email
-         FROM cabang
-         WHERE status_aktif_cabang = '1'
-         ORDER BY urutan ASC`,
-      );
-      return r;
-    });
+    const [rows] = await pool.query(
+      `SELECT kode_cabang AS id, kode_cabang AS code, nama_cabang AS name,
+              alamat_cabang AS address, telepon_cabang AS phone,
+              nama_pt AS pt, kode_pt, status_aktif_cabang, email, urutan
+       FROM cabang
+       WHERE status_aktif_cabang = '1'
+       ORDER BY urutan ASC, kode_cabang ASC`,
+    );
     res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: [] });
+  }
+});
+
+app.put("/api/cabang/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, address, phone, pt, email } = req.body;
+    await pool.query(
+      `UPDATE cabang 
+       SET nama_cabang = COALESCE(?, nama_cabang),
+           alamat_cabang = COALESCE(?, alamat_cabang),
+           telepon_cabang = COALESCE(?, telepon_cabang),
+           nama_pt = COALESCE(?, nama_pt),
+           email = COALESCE(?, email)
+       WHERE kode_cabang = ?`,
+      [name, address, phone, pt, email, id],
+    );
+    cacheStore.delete("cabang");
+    res.json({ success: true, message: "Data cabang berhasil disimpan ke database" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post("/api/cabang", async (req, res) => {
+  try {
+    const { code, name, address, phone, pt, email } = req.body;
+    const cleanCode = (code || "").toUpperCase().trim();
+    if (!cleanCode || !name) {
+      return res.status(400).json({ success: false, message: "Kode dan Nama Cabang wajib diisi" });
+    }
+    await pool.query(
+      `INSERT INTO cabang (kode_cabang, nama_cabang, alamat_cabang, telepon_cabang, nama_pt, email, status_aktif_cabang)
+       VALUES (?, ?, ?, ?, ?, ?, '1')
+       ON DUPLICATE KEY UPDATE
+         nama_cabang = VALUES(nama_cabang),
+         alamat_cabang = VALUES(alamat_cabang),
+         telepon_cabang = VALUES(telepon_cabang),
+         nama_pt = VALUES(nama_pt),
+         email = VALUES(email)`,
+      [cleanCode, name, address || "", phone || "", pt || "", email || ""],
+    );
+    cacheStore.delete("cabang");
+    res.json({ success: true, message: "Cabang baru berhasil disimpan ke database" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -540,6 +596,13 @@ app.get("/api/templates", async (req, res) => {
           ? JSON.parse(r.default_viewers)
           : r.default_viewers
         : [],
+      hasNominalLimit: Boolean(
+        r.has_nominal_limit !== undefined && r.has_nominal_limit !== null
+          ? r.has_nominal_limit
+          : Array.isArray(typeof r.approval_steps === "string" ? JSON.parse(r.approval_steps) : r.approval_steps) &&
+            (typeof r.approval_steps === "string" ? JSON.parse(r.approval_steps) : r.approval_steps).some((s) => s.maxAmount > 0),
+      ),
+      nominalField: r.nominal_field || "total_biaya",
       createdAt: r.created_at,
     }));
     res.json({ success: true, data: formatted });
@@ -556,12 +619,15 @@ app.post("/api/templates", async (req, res) => {
     const steps = JSON.stringify(t.approvalSteps || []);
     const fields = JSON.stringify(t.fields || []);
     const defaultViewers = JSON.stringify(t.defaultViewers || []);
+    const hasNominalLimit = t.hasNominalLimit ? 1 : 0;
+    const nominalField = t.nominalField || "total_biaya";
 
     try {
       await pool.query(
-        `INSERT INTO templates (id, code, name, category, description, number_format, allowed_branches, is_active, approval_steps, fields, letter_template, default_viewers)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO templates (id, code, name, category, description, number_format, allowed_branches, is_active, approval_steps, fields, letter_template, default_viewers, has_nominal_limit, nominal_field)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
+           code = VALUES(code),
            name = VALUES(name),
            category = VALUES(category),
            description = VALUES(description),
@@ -571,7 +637,9 @@ app.post("/api/templates", async (req, res) => {
            approval_steps = VALUES(approval_steps),
            fields = VALUES(fields),
            letter_template = VALUES(letter_template),
-           default_viewers = VALUES(default_viewers)`,
+           default_viewers = VALUES(default_viewers),
+           has_nominal_limit = VALUES(has_nominal_limit),
+           nominal_field = VALUES(nominal_field)`,
         [
           id,
           t.code,
@@ -585,37 +653,74 @@ app.post("/api/templates", async (req, res) => {
           fields,
           t.letterTemplate || "",
           defaultViewers,
+          hasNominalLimit,
+          nominalField,
         ],
       );
     } catch (insertColErr) {
-      // Fallback jika default_viewers belum terbaca di skema lama
-      await pool.query(
-        `INSERT INTO templates (id, code, name, category, description, number_format, allowed_branches, is_active, approval_steps, fields, letter_template)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-           name = VALUES(name),
-           category = VALUES(category),
-           description = VALUES(description),
-           number_format = VALUES(number_format),
-           allowed_branches = VALUES(allowed_branches),
-           is_active = VALUES(is_active),
-           approval_steps = VALUES(approval_steps),
-           fields = VALUES(fields),
-           letter_template = VALUES(letter_template)`,
-        [
-          id,
-          t.code,
-          t.name,
-          t.category || "Umum",
-          t.description || "",
-          t.numberFormat,
-          allowed,
-          t.isActive !== false ? 1 : 0,
-          steps,
-          fields,
-          t.letterTemplate || "",
-        ],
-      );
+      console.warn(" [MySQL] saveTemplate fallback 1:", insertColErr.message);
+      try {
+        await pool.query(
+          `INSERT INTO templates (id, code, name, category, description, number_format, allowed_branches, is_active, approval_steps, fields, letter_template, default_viewers)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             code = VALUES(code),
+             name = VALUES(name),
+             category = VALUES(category),
+             description = VALUES(description),
+             number_format = VALUES(number_format),
+             allowed_branches = VALUES(allowed_branches),
+             is_active = VALUES(is_active),
+             approval_steps = VALUES(approval_steps),
+             fields = VALUES(fields),
+             letter_template = VALUES(letter_template),
+             default_viewers = VALUES(default_viewers)`,
+          [
+            id,
+            t.code,
+            t.name,
+            t.category || "Umum",
+            t.description || "",
+            t.numberFormat,
+            allowed,
+            t.isActive !== false ? 1 : 0,
+            steps,
+            fields,
+            t.letterTemplate || "",
+            defaultViewers,
+          ],
+        );
+      } catch (oldColErr) {
+        console.warn(" [MySQL] saveTemplate fallback 2:", oldColErr.message);
+        await pool.query(
+          `INSERT INTO templates (id, code, name, category, description, number_format, allowed_branches, is_active, approval_steps, fields, letter_template)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             code = VALUES(code),
+             name = VALUES(name),
+             category = VALUES(category),
+             description = VALUES(description),
+             number_format = VALUES(number_format),
+             allowed_branches = VALUES(allowed_branches),
+             is_active = VALUES(is_active),
+             approval_steps = VALUES(approval_steps),
+             fields = VALUES(fields),
+             letter_template = VALUES(letter_template)`,
+          [
+            id,
+            t.code,
+            t.name,
+            t.category || "Umum",
+            t.description || "",
+            t.numberFormat,
+            allowed,
+            t.isActive !== false ? 1 : 0,
+            steps,
+            fields,
+            t.letterTemplate || "",
+          ],
+        );
+      }
     }
 
     cacheStore.delete("templates");

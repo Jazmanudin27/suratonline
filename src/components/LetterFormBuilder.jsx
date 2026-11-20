@@ -46,6 +46,7 @@ import {
   lockLetterNumberInHtml,
   syncPerihalInHtml,
   getGlobalDefaultViewers,
+  calculateRequiredApprovalSteps,
 } from "../services/storage";
 import { notify } from "../utils/alert";
 
@@ -440,6 +441,57 @@ export default function LetterFormBuilder({
     0,
   );
 
+  // Hitung nominal aktual untuk evaluasi limit wewenang persetujuan
+  const currentNominal = React.useMemo(() => {
+    if (!template?.hasNominalLimit) return 0;
+    if (
+      template.nominalField &&
+      template.nominalField !== "total_biaya" &&
+      template.nominalField !== "auto"
+    ) {
+      const val = fieldValues[template.nominalField];
+      if (typeof val === "number") return val;
+      if (typeof val === "string")
+        return parseFloat(val.replace(/[^0-9.-]+/g, "")) || 0;
+      return 0;
+    }
+    return totalCost;
+  }, [template, fieldValues, totalCost]);
+
+  // Evaluasi jalur persetujuan yang aktif berdasarkan batas nominal
+  const activeApprovalSteps = React.useMemo(() => {
+    if (!template?.hasNominalLimit) {
+      return customApprovalSteps;
+    }
+    // Jika surat sudah diajukan/berjalan (bukan draft baru), jangan potong riwayat persetujuannya
+    if (
+      initialLetter &&
+      initialLetter.status !== "draft" &&
+      Array.isArray(initialLetter.approvalHistory) &&
+      initialLetter.approvalHistory.length > 0
+    ) {
+      return customApprovalSteps;
+    }
+    if (!currentNominal || currentNominal <= 0) {
+      return customApprovalSteps;
+    }
+    let targetIdx = -1;
+    for (let i = 0; i < customApprovalSteps.length; i++) {
+      const stepMax = Number(customApprovalSteps[i].maxAmount);
+      if (stepMax && stepMax > 0 && currentNominal <= stepMax) {
+        targetIdx = i;
+        break;
+      }
+    }
+    if (targetIdx === -1) {
+      targetIdx = customApprovalSteps.length - 1;
+    }
+    return customApprovalSteps.slice(0, targetIdx + 1).map((s, idx) => ({
+      ...s,
+      step: idx + 1,
+    }));
+  }, [template, customApprovalSteps, currentNominal, initialLetter]);
+
   const decodeHtmlEntities = (str) => {
     if (!str) return "";
     return str
@@ -555,8 +607,9 @@ export default function LetterFormBuilder({
       return false;
     }
 
-    // Validasi Jalur Persetujuan Pejabat: Setiap tingkat WAJIB memilih Pejabat Penyetuju
-    if (!customApprovalSteps || customApprovalSteps.length === 0) {
+    // Validasi Jalur Persetujuan Pejabat: Setiap tingkat aktif WAJIB memilih Pejabat Penyetuju
+    const stepsToValidate = template?.hasNominalLimit ? activeApprovalSteps : customApprovalSteps;
+    if (!stepsToValidate || stepsToValidate.length === 0) {
       notify.warning(
         "Pejabat Penyetuju Wajib Diisi",
         "Surat harus memiliki minimal 1 pejabat penyetuju pada Jalur Persetujuan Pejabat.",
@@ -564,13 +617,13 @@ export default function LetterFormBuilder({
       return false;
     }
 
-    const unassignedIndex = customApprovalSteps.findIndex(
+    const unassignedIndex = stepsToValidate.findIndex(
       (s) => !s.specificUserId && !s.approverName,
     );
     if (unassignedIndex >= 0) {
       notify.warning(
         "Pejabat Penyetuju Wajib Dipilih",
-        `Silakan pilih Pejabat Penyetuju untuk Tingkat #${unassignedIndex + 1} pada Jalur Persetujuan Pejabat (Hal. 2) terlebih dahulu.`,
+        `Silakan pilih Pejabat Penyetuju untuk Tingkat #${unassignedIndex + 1} (${stepsToValidate[unassignedIndex].title || stepsToValidate[unassignedIndex].approverRole || "Pejabat"}) pada Jalur Persetujuan Pejabat terlebih dahulu.`,
       );
       const approvalSection = document.getElementById("approval-steps-section");
       if (approvalSection) {
@@ -726,7 +779,7 @@ export default function LetterFormBuilder({
       allowedViewers,
       imageLayout,
       submitterSignature: submitterSignature || null,
-      approvalHistory: customApprovalSteps,
+      approvalHistory: template?.hasNominalLimit ? activeApprovalSteps : customApprovalSteps,
       fieldValues: {
         ...fieldValues,
         submitterSignature: submitterSignature || null,
@@ -814,7 +867,7 @@ export default function LetterFormBuilder({
       allowedViewers,
       imageLayout,
       submitterSignature: submitterSignature || null,
-      approvalHistory: customApprovalSteps,
+      approvalHistory: template?.hasNominalLimit ? activeApprovalSteps : customApprovalSteps,
       fieldValues: {
         ...fieldValues,
         submitterSignature: submitterSignature || null,
@@ -1587,9 +1640,46 @@ export default function LetterFormBuilder({
                 </div>
               </div>
 
+              {/* Info Banner Aturan Limit Nominal Jika Template Mengaktifkannya */}
+              {template?.hasNominalLimit && (
+                <div className="p-2.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-lg text-xs space-y-1 shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-extrabold text-amber-950 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Aturan Limit Nominal Aktif</span>
+                    </span>
+                    <span className="font-mono font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded text-[11px] border border-amber-200 shrink-0">
+                      Nilai Ajuan: Rp {Number(currentNominal || 0).toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-tight">
+                    {activeApprovalSteps.length < customApprovalSteps.length ? (
+                      <>
+                        Sesuai nilai ajuan, persetujuan <strong>cukup sampai Tingkat {activeApprovalSteps.length} ({activeApprovalSteps[activeApprovalSteps.length - 1]?.approverRole || activeApprovalSteps[activeApprovalSteps.length - 1]?.title})</strong>. Tingkat di atasnya dilewati otomatis.
+                      </>
+                    ) : (
+                      <>
+                        Nilai pengajuan memerlukan persetujuan hingga tingkat tertinggi ({activeApprovalSteps[activeApprovalSteps.length - 1]?.approverRole || activeApprovalSteps[activeApprovalSteps.length - 1]?.title}).
+                      </>
+                    )}
+                  </p>
+                </div>
+              )}
+
               {/* List Tingkat Persetujuan yang bisa diedit */}
               <div className="space-y-2.5">
                 {customApprovalSteps.map((step, idx) => {
+                  const isStepBypassed = Boolean(
+                    template?.hasNominalLimit &&
+                      currentNominal > 0 &&
+                      idx >= activeApprovalSteps.length,
+                  );
+                  const isFinalActiveStep = Boolean(
+                    template?.hasNominalLimit &&
+                      currentNominal > 0 &&
+                      idx === activeApprovalSteps.length - 1,
+                  );
+
                   const handleUserSelect = (userId) => {
                     const updated = [...customApprovalSteps];
                     if (!userId) {
@@ -1629,64 +1719,102 @@ export default function LetterFormBuilder({
                   };
 
                   const isUnselected =
-                    !step.specificUserId && !step.approverName;
+                    !isStepBypassed &&
+                    !step.specificUserId &&
+                    !step.approverName;
 
                   return (
                     <div
                       key={idx}
-                      className={`p-1.5 bg-white border rounded-lg transition shadow-2xs ${
-                        isUnselected
-                          ? "border-amber-400 bg-amber-50/20 ring-1 ring-amber-300/60"
-                          : "border-slate-300 hover:border-indigo-400"
+                      className={`p-1.5 rounded-lg transition shadow-2xs ${
+                        isStepBypassed
+                          ? "bg-slate-100/90 border border-dashed border-slate-300 opacity-60"
+                          : isUnselected
+                            ? "bg-white border border-amber-400 bg-amber-50/20 ring-1 ring-amber-300/60"
+                            : "bg-white border border-slate-300 hover:border-indigo-400"
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
                         <div
-                          className="w-5 h-5 rounded-md bg-indigo-600 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0"
+                          className={`w-5 h-5 rounded-md font-extrabold text-[10px] flex items-center justify-center shrink-0 ${
+                            isStepBypassed
+                              ? "bg-slate-400 text-white"
+                              : "bg-indigo-600 text-white"
+                          }`}
                           title={`Tingkat #${idx + 1}`}
                         >
                           {idx + 1}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <SearchableSelect
-                            size="sm"
-                            value={step.specificUserId || ""}
-                            onChange={(val) => handleUserSelect(val)}
-                            placeholder="-- Pilih Pejabat Penyetuju (Wajib) --"
-                            options={users
-                              .filter((u) => {
-                                if (u.branchId !== "PST") return false;
-                                const pos = (
-                                  u.position ||
-                                  u.roleLabel ||
-                                  ""
-                                ).toUpperCase();
-                                const isMgrOrDir =
-                                  pos.includes("MANAGER") ||
-                                  pos.includes("MANAJER") ||
-                                  pos.includes("DIREKTUR") ||
-                                  pos.includes("DIRECTOR") ||
-                                  [
-                                    "J01",
-                                    "J02",
-                                    "J03",
-                                    "J05",
-                                    "J07",
-                                    "J08",
-                                  ].includes(u.kodeJabatan);
-                                return isMgrOrDir;
-                              })
-                              .map((u) => ({
-                                value: String(u.id),
-                                label: u.name,
-                                sublabel:
-                                  u.position || u.roleLabel || "Pejabat",
-                                group: "Pejabat Direksi & Manajemen Pusat",
-                              }))}
-                            isClearable
-                          />
-                        </div>
-                        {customApprovalSteps.length > 1 && (
+
+                        {isStepBypassed ? (
+                          <div className="flex-1 min-w-0 flex items-center justify-between text-xs py-1 px-1">
+                            <span className="font-semibold text-slate-500 truncate">
+                              {step.title || step.approverRole || `Tingkat ${idx + 1}`}
+                            </span>
+                            <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">
+                              Dilewati (Nominal di bawah limit)
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-[10px] text-slate-500 font-bold truncate">
+                                {step.title || `Tingkat ${idx + 1}`}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                {isFinalActiveStep && (
+                                  <span className="text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 rounded font-extrabold">
+                                    Pengesahan Akhir
+                                  </span>
+                                )}
+                                {step.maxAmount && (
+                                  <span className="text-[9px] bg-amber-100 text-amber-900 px-1 py-0.2 rounded font-mono font-semibold">
+                                    &le; Rp {Number(step.maxAmount).toLocaleString("id-ID")}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <SearchableSelect
+                              size="sm"
+                              value={step.specificUserId || ""}
+                              onChange={(val) => handleUserSelect(val)}
+                              placeholder="-- Pilih Pejabat Penyetuju (Wajib) --"
+                              options={users
+                                .filter((u) => {
+                                  if (u.branchId !== "PST") return false;
+                                  const pos = (
+                                    u.position ||
+                                    u.roleLabel ||
+                                    ""
+                                  ).toUpperCase();
+                                  const isMgrOrDir =
+                                    pos.includes("MANAGER") ||
+                                    pos.includes("MANAJER") ||
+                                    pos.includes("DIREKTUR") ||
+                                    pos.includes("DIRECTOR") ||
+                                    [
+                                      "J01",
+                                      "J02",
+                                      "J03",
+                                      "J05",
+                                      "J07",
+                                      "J08",
+                                    ].includes(u.kodeJabatan);
+                                  return isMgrOrDir;
+                                })
+                                .map((u) => ({
+                                  value: String(u.id),
+                                  label: u.name,
+                                  sublabel:
+                                    u.position || u.roleLabel || "Pejabat",
+                                  group: "Pejabat Direksi & Manajemen Pusat",
+                                }))}
+                              isClearable
+                            />
+                          </div>
+                        )}
+
+                        {!isStepBypassed && customApprovalSteps.length > 1 && (
                           <button
                             type="button"
                             onClick={removeStep}

@@ -215,17 +215,16 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
             <thead className="bg-blue-600 text-white font-bold border-b-2 border-blue-700 text-xs">
               <tr>
                 <th className="py-2.5 px-3 w-12 text-center border-r border-blue-500/50">No</th>
-                <th className="py-2.5 px-3.5 w-36 border-r border-blue-500/50">Kategori</th>
-                <th className="py-2.5 px-3.5 border-r border-blue-500/50">Nama & Deskripsi Template</th>
+                <th className="py-2.5 px-3.5 border-r border-blue-500/50">Perihal & Template Surat</th>
                 <th className="py-2.5 px-3.5 border-r border-blue-500/50">Alur Persetujuan</th>
                 <th className="py-2.5 px-3 w-28 text-center border-r border-blue-500/50">Status</th>
-                <th className="py-2.5 px-3.5 w-36 text-center">Aksi</th>
+                <th className="py-2.5 px-3.5 w-32 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {filteredTemplates.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="py-8 text-center text-slate-500">
+                  <td colSpan="5" className="py-8 text-center text-slate-500">
                     <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                     <p className="font-semibold text-slate-700">Tidak ada template pada kategori ini</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">
@@ -246,41 +245,37 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
                       className="hover:bg-blue-50/60 transition-colors group"
                     >
                       {/* No */}
-                      <td className="py-2 px-3 text-center font-bold text-slate-400 border-r border-slate-200">
+                      <td className="py-2.5 px-3 text-center font-bold text-slate-400 border-r border-slate-200">
                         {idx + 1}
                       </td>
 
-                      {/* Kategori */}
-                      <td className="py-2 px-3.5 border-r border-slate-200 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold border ${meta.badge}`}>
-                          <CategoryIcon className="w-3 h-3 shrink-0" />
-                          <span className="truncate max-w-[110px]">{tpl.category || 'Umum'}</span>
-                        </span>
-                      </td>
-
-                      {/* Nama & Deskripsi */}
+                      {/* Perihal & Template Surat (Kategori di atas, Nama Perihal di bawah) */}
                       <td className="py-2 px-3.5 border-r border-slate-200">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-xs sm:text-sm">
+                        <div className="space-y-1">
+                          {/* Kategori Badge di atas */}
+                          <div>
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${meta.badge}`}>
+                              <CategoryIcon className="w-3 h-3 shrink-0" />
+                              <span>{tpl.category || 'Umum'}</span>
+                            </span>
+                          </div>
+
+                          {/* Nama / Perihal Surat di bawah */}
+                          <div>
+                            <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-xs sm:text-sm block leading-snug">
                               {tpl.name}
                             </span>
-                            {tpl.code && (
-                              <span className="font-mono text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded border border-slate-200">
-                                {tpl.code}
-                              </span>
+                            {tpl.description && (
+                              <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                                {tpl.description}
+                              </p>
                             )}
                           </div>
-                          {tpl.description && (
-                            <p className="text-[11px] text-slate-500 line-clamp-1">
-                              {tpl.description}
-                            </p>
-                          )}
                         </div>
                       </td>
 
                       {/* Alur Persetujuan */}
-                      <td className="py-2 px-3.5 border-r border-slate-200">
+                      <td className="py-2.5 px-3.5 border-r border-slate-200">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {tpl.approvalSteps && tpl.approvalSteps.length > 0 ? (
                             tpl.approvalSteps.map((step, sIdx) => (
@@ -305,7 +300,7 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
                       </td>
 
                       {/* Status */}
-                      <td className="py-2 px-3 text-center border-r border-slate-200 whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-center border-r border-slate-200 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           <span>Siap Pakai</span>
@@ -313,7 +308,7 @@ export default function TemplateCatalog({ templates = [], onSelectTemplate }) {
                       </td>
 
                       {/* Aksi */}
-                      <td className="py-2 px-3 text-center whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         <button
                           id={idx === 0 ? 'btn-use-template-first' : `btn-use-template-${idx}`}
                           onClick={() => onSelectTemplate(tpl)}

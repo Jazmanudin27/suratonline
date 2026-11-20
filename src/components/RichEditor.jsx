@@ -882,16 +882,14 @@ export default function RichEditor({
     if (readOnly) return;
     const numDisplay = letterNumber || "{{nomor_surat}}";
     const perihalDisplay = perihal && perihal.trim() ? perihal.trim() : "Permohonan";
-    const dariDisplay = submitterName
-      ? `${submitterName}${submitterPosition ? ` (${submitterPosition})` : ""}`
-      : "[Nama / Jabatan Pemohon]";
+    const dariDisplay = submitterName || "[Nama Pemohon]";
 
     const html = `
 <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
   <tr>
     <td style="width: 15%; vertical-align: top; padding: 2px 0;"><strong>Nomor</strong></td>
     <td style="width: 3%; vertical-align: top; padding: 2px 0;">:</td>
-    <td style="vertical-align: top; padding: 2px 0;"><span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #1e3a8a; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem (Terkunci)">${numDisplay}</span></td>
+    <td style="vertical-align: top; padding: 2px 0;"><span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f8fafc; padding: 1px 5px; border-radius: 3px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem (Terkunci)">${numDisplay}</span></td>
   </tr>
   <tr>
     <td style="vertical-align: top; padding: 2px 0;"><strong>Lampiran</strong></td>
@@ -912,11 +910,6 @@ export default function RichEditor({
     <td style="vertical-align: top; padding: 2px 0;"><strong>Kepada</strong></td>
     <td style="vertical-align: top; padding: 2px 0;">:</td>
     <td style="vertical-align: top; padding: 2px 0;">Yth. [Pimpinan / Manajer Terkait]</td>
-  </tr>
-  <tr>
-    <td style="vertical-align: top; padding: 2px 0;"><strong>Tembusan</strong></td>
-    <td style="vertical-align: top; padding: 2px 0;">:</td>
-    <td style="vertical-align: top; padding: 2px 0;">1. Arsip Cabang</td>
   </tr>
 </table>
 <p><br></p>`;
@@ -2013,7 +2006,7 @@ export default function RichEditor({
             marginBottom:
               zoomLevel > 100 ? `${(zoomLevel - 100) * 8}px` : "20px",
           }}
-          className="bg-white w-full max-w-[820px] min-h-[1050px] p-10 sm:p-14 shadow-2xl rounded-xs border border-slate-300/80 relative text-slate-800"
+          className="bg-white w-full max-w-[820px] min-h-[1050px] p-10 sm:p-14 shadow-2xl rounded-xs border border-slate-300/80 relative text-black"
         >
           {/* Subtle Page Margin Indicator for Word look */}
           <div className="absolute top-3 right-4 text-[10px] text-slate-400 font-mono select-none">
@@ -2040,14 +2033,21 @@ export default function RichEditor({
           <style>{`
             .rich-editor-sheet {
               font-family: ${fontFamily}, Calibri, Tahoma, Arial, sans-serif;
+              color: #000000 !important;
             }
             .rich-editor-sheet,
             .rich-editor-sheet p,
+            .rich-editor-sheet span,
             .rich-editor-sheet td,
             .rich-editor-sheet th,
+            .rich-editor-sheet strong,
             .rich-editor-sheet li {
               font-size: ${fontSize};
               line-height: ${lineSpacing};
+              color: #000000;
+            }
+            .rich-editor-sheet .locked-letter-number {
+              color: #000000 !important;
             }
             ${
               paragraphSpacing === "tight"

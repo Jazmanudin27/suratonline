@@ -179,11 +179,6 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
       <td style="vertical-align: top; padding: 2px 0;">:</td>
       <td style="vertical-align: top; padding: 2px 0;">Yth. [Pimpinan / Manajer Terkait]</td>
     </tr>
-    <tr>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>Tembusan</strong></td>
-      <td style="vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;">1. Arsip Cabang</td>
-    </tr>
   </tbody>
 </table>
 <p><br></p>

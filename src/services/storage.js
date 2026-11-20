@@ -1094,7 +1094,7 @@ export const generateLetterNumber = (template, branchId, branchCode = null) => {
 export const lockLetterNumberInHtml = (html, letterNumber) => {
   if (!html) return html;
   const lockedBadge = (num) =>
-    `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #1e3a8a; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${num}</span>`;
+    `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f8fafc; padding: 1px 5px; border-radius: 3px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${num}</span>`;
 
   let result = html;
 
@@ -1170,7 +1170,7 @@ export const compileTemplateContent = (
 
   // Replace default extra variables dengan badge terkunci agar nomor surat tidak dapat diedit
   const nomorSuratHtml = extra.nomor_surat
-    ? `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #1e3a8a; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${extra.nomor_surat}</span>`
+    ? `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f8fafc; padding: 1px 5px; border-radius: 3px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${extra.nomor_surat}</span>`
     : "[NOMOR SURAT]";
 
   content = content.replace(/{{nomor_surat}}/g, nomorSuratHtml);
@@ -1240,7 +1240,7 @@ export const compileTemplateContent = (
           <tfoot>
             <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #94a3b8;">
               <td colspan="2" style="padding: 8px 10px; text-align: right;">TOTAL ESTIMASI BIAYA:</td>
-              <td style="padding: 8px 10px; text-align: right; color: #1e3a8a;">Rp ${formatRupiah(total)}</td>
+              <td style="padding: 8px 10px; text-align: right; color: #000000;">Rp ${formatRupiah(total)}</td>
             </tr>
           </tfoot>
         </table>`;

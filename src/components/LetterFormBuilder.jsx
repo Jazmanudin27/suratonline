@@ -27,13 +27,11 @@ import {
   ChevronUp,
   Search,
   Check,
-  PenTool,
 } from "lucide-react";
 import RichEditor from "./RichEditor";
 import LetterDocumentView from "./LetterDocumentView";
 import AttachmentUploader from "./AttachmentUploader";
 import SearchableSelect from "./SearchableSelect";
-import SignaturePadModal from "./SignaturePadModal";
 import {
   getCurrentUser,
   getUsers,
@@ -136,10 +134,9 @@ export default function LetterFormBuilder({
   });
 
   // State Goresan Paraf / Tanda Tangan Pemohon
-  const [submitterSignature, setSubmitterSignature] = useState(
+  const [submitterSignature] = useState(
     () => initialLetter?.submitterSignature || initialLetter?.fieldValues?.submitterSignature || null
   );
-  const [showSignaturePad, setShowSignaturePad] = useState(false);
 
   // State Layar Penuh (Word Fullscreen Mode)
   const [isWordFullscreen, setIsWordFullscreen] = useState(false);
@@ -545,9 +542,8 @@ export default function LetterFormBuilder({
       .trim()
       .toUpperCase();
     const submitterName = currentUser?.name || "Pemohon";
-    const submitterPos = currentUser?.position || "Staff";
-    const dariDisplay = `${submitterName}${submitterPos ? ` (${submitterPos})` : ""}`;
-    const lockedBadge = `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #1e3a8a; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${numDisplay}</span>`;
+    const dariDisplay = submitterName;
+    const lockedBadge = `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f8fafc; padding: 1px 5px; border-radius: 3px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${numDisplay}</span>`;
 
     return `<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
   <tbody>
@@ -575,11 +571,6 @@ export default function LetterFormBuilder({
       <td style="vertical-align: top; padding: 2px 0;"><strong>Kepada</strong></td>
       <td style="vertical-align: top; padding: 2px 0;">:</td>
       <td style="vertical-align: top; padding: 2px 0;">Yth. [Pimpinan / Manajer Terkait]</td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>Tembusan</strong></td>
-      <td style="vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;">1. Arsip Cabang</td>
     </tr>
   </tbody>
 </table>
@@ -1197,22 +1188,6 @@ export default function LetterFormBuilder({
               >
                 <Paperclip className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Kelola Lampiran &amp; Foto ({attachments.length})</span>
-              </button>
-
-              {/* Tombol Paraf / Tanda Tangan Pemohon */}
-              <button
-                type="button"
-                id="btn-signature-pad"
-                onClick={() => setShowSignaturePad(true)}
-                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition border shadow-2xs ${
-                  submitterSignature
-                    ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
-                    : "bg-white border-slate-300 hover:bg-slate-50 text-slate-800 hover:border-indigo-400"
-                }`}
-                title="Bubuhi goresan paraf atau tanda tangan pemohon"
-              >
-                <PenTool className={`w-3.5 h-3.5 ${submitterSignature ? "text-emerald-600" : "text-indigo-600"}`} />
-                <span>{submitterSignature ? "Paraf Pemohon ✓" : "Bubuhi Paraf"}</span>
               </button>
             </div>
           </div>
@@ -2490,22 +2465,6 @@ export default function LetterFormBuilder({
         </div>
       )}
 
-      {/* MODAL GORESAN TANDA TANGAN / PARAF PEMOHON */}
-      {showSignaturePad && (
-        <SignaturePadModal
-          isOpen={showSignaturePad}
-          onClose={() => setShowSignaturePad(false)}
-          userName={currentUser?.name || fieldValues.nama_pemohon || "Pemohon"}
-          userPosition={currentUser?.position || fieldValues.jabatan || "Pemohon"}
-          userId={currentUser?.id}
-          title="Paraf Pemohon Dokumen"
-          subtitle="Goreskan tanda tangan atau paraf Anda sebagai pemohon surat ini"
-          onSave={(sigDataUrl) => {
-            setSubmitterSignature(sigDataUrl);
-            notify.success("Paraf Pemohon Tersimpan", "Goresan paraf berhasil dibubuhkan pada surat.");
-          }}
-        />
-      )}
     </div>
   );
 }

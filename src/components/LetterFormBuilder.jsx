@@ -44,6 +44,7 @@ import {
   formatDateId,
   lockLetterNumberInHtml,
   syncPerihalInHtml,
+  sanitizeLetterHeaderHtml,
   getGlobalDefaultViewers,
   calculateRequiredApprovalSteps,
 } from "../services/storage";
@@ -101,7 +102,7 @@ export default function LetterFormBuilder({
       ) {
         return "<p><br></p>";
       }
-      return initialLetter.content;
+      return sanitizeLetterHeaderHtml(initialLetter.content);
     }
     return isMandiri ? "<p><br></p>" : "";
   });
@@ -709,11 +710,12 @@ export default function LetterFormBuilder({
         letterContent.includes("Sehubungan dengan kebutuhan operasional") ||
         letterContent.includes("[Tulis uraian");
 
-      if (isBoilerplate) {
+      if (isBoilerplate || !letterContent || !letterContent.includes("<table")) {
         setLetterContent(buildMandiriHeaderHtml(currentNumber, perihal));
       } else {
         setLetterContent((prev) => {
-          let finalHtml = lockLetterNumberInHtml(prev, currentNumber);
+          let finalHtml = sanitizeLetterHeaderHtml(prev);
+          finalHtml = lockLetterNumberInHtml(finalHtml, currentNumber);
           if (perihal) {
             finalHtml = syncPerihalInHtml(finalHtml, perihal);
           }
@@ -739,14 +741,16 @@ export default function LetterFormBuilder({
         tanggal_surat: formatDateId(new Date()),
       });
 
-      let finalHtml = lockLetterNumberInHtml(compiled, currentNumber);
+      let finalHtml = sanitizeLetterHeaderHtml(compiled);
+      finalHtml = lockLetterNumberInHtml(finalHtml, currentNumber);
       if (perihal) {
         finalHtml = syncPerihalInHtml(finalHtml, perihal);
       }
       setLetterContent(finalHtml);
     } else {
       setLetterContent((prev) => {
-        let finalHtml = lockLetterNumberInHtml(prev, currentNumber);
+        let finalHtml = sanitizeLetterHeaderHtml(prev);
+        finalHtml = lockLetterNumberInHtml(finalHtml, currentNumber);
         if (perihal) {
           finalHtml = syncPerihalInHtml(finalHtml, perihal);
         }
@@ -777,11 +781,12 @@ export default function LetterFormBuilder({
         letterContent.includes("Sehubungan dengan kebutuhan operasional") ||
         letterContent.includes("[Tulis uraian");
 
-      if (isBoilerplate) {
+      if (isBoilerplate || !letterContent || !letterContent.includes("<table")) {
         setLetterContent(buildMandiriHeaderHtml(currentNumber, perihal));
       } else {
         setLetterContent((prev) => {
-          let finalHtml = lockLetterNumberInHtml(prev, currentNumber);
+          let finalHtml = sanitizeLetterHeaderHtml(prev);
+          finalHtml = lockLetterNumberInHtml(finalHtml, currentNumber);
           if (perihal) {
             finalHtml = syncPerihalInHtml(finalHtml, perihal);
           }
@@ -807,14 +812,16 @@ export default function LetterFormBuilder({
         tanggal_surat: formatDateId(new Date()),
       });
 
-      let finalHtml = lockLetterNumberInHtml(compiled, currentNumber);
+      let finalHtml = sanitizeLetterHeaderHtml(compiled);
+      finalHtml = lockLetterNumberInHtml(finalHtml, currentNumber);
       if (perihal) {
         finalHtml = syncPerihalInHtml(finalHtml, perihal);
       }
       setLetterContent(finalHtml);
     } else {
       setLetterContent((prev) => {
-        let finalHtml = lockLetterNumberInHtml(prev, currentNumber);
+        let finalHtml = sanitizeLetterHeaderHtml(prev);
+        finalHtml = lockLetterNumberInHtml(finalHtml, currentNumber);
         if (perihal) {
           finalHtml = syncPerihalInHtml(finalHtml, perihal);
         }
@@ -901,6 +908,19 @@ export default function LetterFormBuilder({
     );
     if (onSaved) onSaved(saved);
   };
+
+  // Shortcut Keyboard Global: Ctrl+S untuk simpan draft otomatis
+  useEffect(() => {
+    const handleGlobalShortcuts = (e) => {
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+      if (isCtrlOrCmd && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSaveDraft();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalShortcuts);
+    return () => window.removeEventListener("keydown", handleGlobalShortcuts);
+  }, [handleSaveDraft]);
 
   const handleSubmit = async () => {
     if (!validateRequiredFields()) return;

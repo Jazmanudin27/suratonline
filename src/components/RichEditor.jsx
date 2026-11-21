@@ -104,6 +104,28 @@ export default function RichEditor({
     }
   }, [value]);
 
+  // Shortcut Keyboard Global: Ctrl+S (Simpan) & Ctrl+P (Print)
+  useEffect(() => {
+    const handleGlobalShortcuts = (e) => {
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+      if (!isCtrlOrCmd) return;
+
+      const key = e.key.toLowerCase();
+      if (key === "s") {
+        e.preventDefault();
+        if (onSave) {
+          onSave();
+        }
+      } else if (key === "p") {
+        e.preventDefault();
+        window.print();
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalShortcuts);
+    return () => window.removeEventListener("keydown", handleGlobalShortcuts);
+  }, [onSave]);
+
   const calculateWordCount = () => {
     if (!editorRef.current) return;
     const text = editorRef.current.innerText || "";
@@ -320,10 +342,116 @@ export default function RichEditor({
   };
 
   // =========================================================================
-  // KEYDOWN HANDLER: PROTECT TABLES, CELLS & NUMBERING (Word-grade robustness)
+  // KEYDOWN HANDLER: PROTECT TABLES, CELLS & SHORTCUTS (Word-grade robustness)
   // =========================================================================
   const handleKeyDown = (e) => {
     if (readOnly) return;
+
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+    // KEYBOARD SHORTCUTS (Ctrl+S, Ctrl+P, Ctrl+Z, Ctrl+Y, Ctrl+B, Ctrl+I, Ctrl+U, etc.)
+    if (isCtrlOrCmd) {
+      const key = e.key.toLowerCase();
+
+      // Ctrl + S: Simpan Draft
+      if (key === "s") {
+        e.preventDefault();
+        if (onSave) {
+          onSave();
+        }
+        return;
+      }
+
+      // Ctrl + P: Print Dokumen
+      if (key === "p") {
+        e.preventDefault();
+        window.print();
+        return;
+      }
+
+      // Ctrl + Z: Undo
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        document.execCommand("undo");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + Y / Ctrl + Shift + Z: Redo
+      if (key === "y" || (key === "z" && e.shiftKey)) {
+        e.preventDefault();
+        document.execCommand("redo");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + B: Bold
+      if (key === "b") {
+        e.preventDefault();
+        document.execCommand("bold");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + I: Italic
+      if (key === "i") {
+        e.preventDefault();
+        document.execCommand("italic");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + U: Underline
+      if (key === "u") {
+        e.preventDefault();
+        document.execCommand("underline");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + E: Center Alignment
+      if (key === "e") {
+        e.preventDefault();
+        document.execCommand("justifyCenter");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + L: Left Alignment
+      if (key === "l") {
+        e.preventDefault();
+        document.execCommand("justifyLeft");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + R: Right Alignment
+      if (key === "r") {
+        e.preventDefault();
+        document.execCommand("justifyRight");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + J: Justify Alignment
+      if (key === "j") {
+        e.preventDefault();
+        document.execCommand("justifyFull");
+        handleInput();
+        return;
+      }
+    }
+
+    // Hapus isi sel kolom yang sedang dipilih jika tombol Backspace / Delete ditekan
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0 && (e.key === "Backspace" || e.key === "Delete")) {
+      e.preventDefault();
+      selectedCells.forEach((c) => {
+        c.innerHTML = "<br>";
+      });
+      handleInput();
+      return;
+    }
 
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
@@ -528,21 +656,36 @@ export default function RichEditor({
   const handleEditorMouseMove = (e) => {
     if (readOnly || isDraggingColumnRef.current) return;
 
-    // Check if dragging across cell boundary
+    // Check if dragging across cell boundary inside table
     if (e.buttons === 1 && dragStartCellRef.current) {
       const currentCell = e.target.closest ? e.target.closest("td, th") : null;
-      if (currentCell && currentCell !== dragStartCellRef.current) {
-        // Mencegah loncat ke kolom lain saat teks di drag
-        const sel = window.getSelection();
-        if (sel && sel.rangeCount > 0) {
-          const range = sel.getRangeAt(0);
-          const orig = dragStartCellRef.current;
-          if (!orig.contains(range.startContainer)) {
-            range.setStart(orig, 0);
+      const startCell = dragStartCellRef.current;
+      const table = startCell.closest("table");
+
+      if (currentCell && table && table.contains(currentCell)) {
+        const startCol = startCell.cellIndex;
+        const startRow = startCell.parentElement.rowIndex;
+        const currentRow = currentCell.parentElement.rowIndex;
+
+        // Jika drag ke bawah / atas di tabel: KUNCI seleksi HANYA pada kolom start!
+        if (startRow !== currentRow) {
+          window.getSelection()?.removeAllRanges();
+
+          const minRow = Math.min(startRow, currentRow);
+          const maxRow = Math.max(startRow, currentRow);
+
+          table.querySelectorAll(".table-cell-selected").forEach((el) => {
+            el.classList.remove("table-cell-selected");
+          });
+
+          const rows = Array.from(table.rows);
+          for (let r = minRow; r <= maxRow; r++) {
+            const targetCell = rows[r]?.cells[startCol];
+            if (targetCell) {
+              targetCell.classList.add("table-cell-selected");
+            }
           }
-          if (!orig.contains(range.endContainer)) {
-            range.setEnd(orig, orig.childNodes.length);
-          }
+          return;
         }
       }
     }
@@ -561,10 +704,20 @@ export default function RichEditor({
   const handleEditorMouseDown = (e) => {
     if (readOnly) return;
     const cell = e.target.closest ? e.target.closest("td, th") : null;
-    if (cell) {
+    if (cell && editorRef.current?.contains(cell)) {
       dragStartCellRef.current = cell;
+      if (!e.shiftKey && editorRef.current) {
+        editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
+          el.classList.remove("table-cell-selected");
+        });
+      }
     } else {
       dragStartCellRef.current = null;
+      if (editorRef.current) {
+        editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
+          el.classList.remove("table-cell-selected");
+        });
+      }
     }
 
     const border = getCellBorderNearMouse(e);
@@ -766,6 +919,39 @@ export default function RichEditor({
         r.appendChild(newCell);
       }
     });
+    handleInput();
+    updateOverlayPosition();
+  };
+
+  // Pilih seluruh sel hanya di kolom aktif saat ini (tanpa menyentuh kolom lain)
+  const selectCurrentColumn = () => {
+    if (!activeTableState) return;
+    const { table, colIndex } = activeTableState;
+    window.getSelection()?.removeAllRanges();
+    if (editorRef.current) {
+      editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
+        el.classList.remove("table-cell-selected");
+      });
+    }
+    Array.from(table.rows).forEach((row) => {
+      const cell = row.cells[colIndex];
+      if (cell) cell.classList.add("table-cell-selected");
+    });
+  };
+
+  // Geser isi sel di kolom aktif saja ke baris bawahnya (kolom lain tidak bergeser)
+  const shiftColumnCellsDown = () => {
+    if (!activeTableState) return;
+    const { table, cell, colIndex, rowIndex } = activeTableState;
+    const rows = Array.from(table.rows);
+    for (let r = rows.length - 1; r > rowIndex; r--) {
+      const targetCell = rows[r]?.cells[colIndex];
+      const prevCell = rows[r - 1]?.cells[colIndex];
+      if (targetCell && prevCell) {
+        targetCell.innerHTML = prevCell.innerHTML;
+      }
+    }
+    cell.innerHTML = "<br>";
     handleInput();
     updateOverlayPosition();
   };
@@ -975,7 +1161,7 @@ export default function RichEditor({
     if (readOnly) return;
     if (varKey === "nomor_surat") {
       const numDisplay = letterNumber || "{{nomor_surat}}";
-      const badge = `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #1e3a8a; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi (Terkunci)">${numDisplay}</span>`;
+      const badge = `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi (Terkunci)">${numDisplay}</span>`;
       document.execCommand("insertHTML", false, badge);
     } else {
       const tag = `{{${varKey}}}`;
@@ -1166,6 +1352,48 @@ export default function RichEditor({
         return;
       }
     }
+
+    // Case 3: Copied plain text (Ctrl+V teks bersih tanpa style luar yang merusak tata letak)
+    if (textData && (!htmlData || !htmlData.includes("<table"))) {
+      e.preventDefault();
+      document.execCommand("insertText", false, textData.replace(/\r\n/g, "\n"));
+      handleInput();
+      return;
+    }
+
+    // Fallback sync input
+    setTimeout(() => {
+      handleInput();
+    }, 20);
+  };
+
+  const handleRibbonPaste = async () => {
+    if (readOnly) return;
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          if (isTsvData(text)) {
+            const cleanTable = formatTsvToTable(text, true, true);
+            if (cleanTable) {
+              document.execCommand("insertHTML", false, cleanTable);
+              handleInput();
+              return;
+            }
+          }
+          document.execCommand("insertText", false, text.replace(/\r\n/g, "\n"));
+          handleInput();
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Clipboard access warning:", err);
+    }
+    document.execCommand("paste");
+    handleInput();
   };
 
   const insertExcelTableFromModal = () => {
@@ -1365,7 +1593,7 @@ export default function RichEditor({
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => format("paste")}
+                    onClick={handleRibbonPaste}
                     className="p-1 text-slate-700 hover:bg-slate-200 rounded flex flex-col items-center gap-0.5 text-[10px]"
                     title="Tempel Teks (Ctrl+V)"
                   >
@@ -1800,6 +2028,28 @@ export default function RichEditor({
                 </button>
               </div>
 
+              {/* Opsi Kolom Khusus (Pilih Kolom & Geser Sel) */}
+              <div className="flex items-center gap-1 bg-white border border-blue-200 rounded p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={selectCurrentColumn}
+                  className="px-2.5 py-0.5 hover:bg-blue-100 text-blue-700 rounded text-[11px] font-bold bg-blue-50 border border-blue-200"
+                  title="Pilih seluruh sel hanya pada kolom ini saja (tanpa menyentuh kolom lain)"
+                >
+                  Pilih Kolom Ini
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={shiftColumnCellsDown}
+                  className="px-2 py-0.5 hover:bg-slate-100 text-slate-700 rounded text-[11px] font-medium"
+                  title="Sisipkan sel kosong & geser isi kolom ini ke bawah (kolom lain tidak bergeser)"
+                >
+                  ↓ Geser Kolom ke Bawah
+                </button>
+              </div>
+
               {/* Pengaturan Lebar */}
               <div className="flex items-center gap-1 bg-white border border-indigo-200 rounded p-0.5 shadow-2xs">
                 <button
@@ -2090,6 +2340,13 @@ export default function RichEditor({
               outline: 1.5px solid #3b82f6 !important;
               outline-offset: -1px;
               background-color: rgba(239, 246, 255, 0.35);
+            }
+            /* Highlight khusus sel kolom yang dipilih (tanpa merembet ke kolom lain) */
+            .rich-editor-sheet .table-cell-selected {
+              background-color: #bfdbfe !important;
+              color: #1e3a8a !important;
+              outline: 2px solid #2563eb !important;
+              outline-offset: -1px;
             }
           `}</style>
 

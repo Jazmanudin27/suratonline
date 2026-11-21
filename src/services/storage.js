@@ -1190,13 +1190,37 @@ export const syncPerihalInHtml = (html, perihal) => {
   return result;
 };
 
+// Sanitize and clean letter header HTML (Remove Tembusan and Jabatan in Dari row, enforce black color)
+export const sanitizeLetterHeaderHtml = (htmlContent) => {
+  if (!htmlContent || typeof htmlContent !== "string") return htmlContent || "";
+  let res = htmlContent;
+
+  // 1. Hilangkan baris Tembusan dari tabel header surat
+  res = res.replace(
+    /<tr[^>]*>\s*<td[^>]*>(?:<strong>)?\s*Tembusan\s*(?:<\/strong>)?<\/td>[\s\S]*?<\/tr>/gi,
+    "",
+  );
+
+  // 2. Hilangkan (OPERATION MANAGER) atau (Operation Manager) atau jabatan di baris Dari
+  res = res.replace(/\s*\(\s*OPERATION\s*MANAGER\s*\)/gi, "");
+  res = res.replace(/\s*\(\s*Operation\s*Manager\s*\)/gi, "");
+
+  // 3. Pastikan warna badge nomor surat terkunci selalu hitam (#000000)
+  res = res.replace(
+    /(class="[^"]*locked-letter-number[^"]*"[^>]*style="[^"]*?)color:\s*#[0-9a-fA-F]+/gi,
+    "$1color: #000000",
+  );
+
+  return res;
+};
+
 // Template compiler with variables substitution
 export const compileTemplateContent = (
   template,
   fieldValues = {},
   extra = {},
 ) => {
-  let content = template.letterTemplate || "";
+  let content = sanitizeLetterHeaderHtml(template.letterTemplate || "");
 
   // Replace default extra variables dengan badge terkunci agar nomor surat tidak dapat diedit
   const nomorSuratHtml = extra.nomor_surat

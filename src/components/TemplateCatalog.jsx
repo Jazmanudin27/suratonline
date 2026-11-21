@@ -225,71 +225,10 @@ export default function TemplateCatalog({ templates: propTemplates = [], onSelec
     }
   }
 
-  const activeTemplatesCount = templates.filter((t) => t.isActive !== false).length
-
   return (
     <div className="space-y-3.5">
       {/* ========================================================================= */}
-      {/* 1. TOP STATS / KPI CARDS (Persis Desain Simple Elegan Referensi)           */}
-      {/* ========================================================================= */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {/* Card 1: Total Template (Sky Blue) */}
-        <div className="bg-[#0284c7] text-white rounded-xl p-3.5 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
-              TOTAL TEMPLATE
-            </span>
-            <span className="text-2xl font-black mt-0.5 block">{templates.length}</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
-            <Layers className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 2: Siap Digunakan (Emerald Green) */}
-        <div className="bg-[#059669] text-white rounded-xl p-3.5 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
-              SIAP DIGUNAKAN
-            </span>
-            <span className="text-2xl font-black mt-0.5 block">{activeTemplatesCount}</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 3: Kategori Format (Amber / Orange) */}
-        <div className="bg-[#d97706] text-white rounded-xl p-3.5 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
-              KATEGORI FORMAT
-            </span>
-            <span className="text-2xl font-black mt-0.5 block">
-              {categories.filter((c) => c !== 'all').length}
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
-            <Tag className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Card 4: Alur Persetujuan (Purple) */}
-        <div className="bg-[#7c3aed] text-white rounded-xl p-3.5 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
-              ALUR VERIFIKASI
-            </span>
-            <span className="text-2xl font-black mt-0.5 block">1 - 3 Tahap</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 2. PAGE TITLE BAR DENGAN TOMBOL AKSI BERSIH                                */}
+      {/* PAGE TITLE BAR DENGAN TOMBOL AKSI BERSIH                                  */}
       {/* ========================================================================= */}
       <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">

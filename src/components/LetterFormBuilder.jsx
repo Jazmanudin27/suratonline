@@ -551,7 +551,7 @@ export default function LetterFormBuilder({
     const dariDisplay = submitterName;
     const lockedBadge = `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f8fafc; padding: 1px 5px; border-radius: 3px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem, tidak dapat diedit">${numDisplay}</span>`;
 
-    return `<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
+    return `<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: inherit; font-size: 11pt; table-layout: fixed;">
   <tbody>
     <tr>
       <td style="width: 15%; vertical-align: top; padding: 2px 0;"><strong>Nomor</strong></td>

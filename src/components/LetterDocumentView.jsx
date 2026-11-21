@@ -1058,7 +1058,7 @@ export default function LetterDocumentView({
               {/* ISI SURAT DARI EDITOR */}
               <div
                 className="prose prose-slate max-w-none text-[12px] leading-normal mb-8 text-black"
-                style={{ fontFamily: "Tahoma, Arial, sans-serif", fontSize: "12px", color: "#000000" }}
+                style={{ fontFamily: "inherit", fontSize: "12px", color: "#000000" }}
                 dangerouslySetInnerHTML={{ __html: sanitizeLetterHeaderHtml(letter.content) }}
               />
             </div>

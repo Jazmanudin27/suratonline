@@ -1211,6 +1211,9 @@ export const sanitizeLetterHeaderHtml = (htmlContent) => {
     "$1color: #000000",
   );
 
+  // 4. Pastikan tabel & teks tidak memaksakan Tahoma/font luar agar font seragam mengikuti editor/dokumen
+  res = res.replace(/font-family:\s*Tahoma[^;"]*;?/gi, "font-family: inherit;");
+
   return res;
 };
 
@@ -1280,7 +1283,7 @@ export const compileTemplateContent = (
       });
 
       const tableHtml = `
-        <table style="width: 100%; border-collapse: collapse; margin: 12px 0; font-family: Tahoma, Arial, sans-serif; font-size: 11px; border: 1px solid #cbd5e1;">
+        <table style="width: 100%; border-collapse: collapse; margin: 12px 0; font-family: inherit; font-size: 11px; border: 1px solid #cbd5e1;">
           <thead>
             <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1; font-weight: 600;">
               <th style="padding: 8px 10px; width: 40px; text-align: center;">No</th>

@@ -2817,7 +2817,7 @@ export default function RichEditor({
           {/* Scoped CSS for Word-like table formatting and smooth selection */}
           <style>{`
             .rich-editor-sheet {
-              font-family: ${fontFamily}, Calibri, Tahoma, Arial, sans-serif;
+              font-family: ${fontFamily}, Calibri, Tahoma, Arial, sans-serif !important;
               color: #000000 !important;
             }
             .rich-editor-sheet,
@@ -2826,13 +2826,28 @@ export default function RichEditor({
             .rich-editor-sheet td,
             .rich-editor-sheet th,
             .rich-editor-sheet strong,
-            .rich-editor-sheet li {
+            .rich-editor-sheet li,
+            .rich-editor-sheet table,
+            .rich-editor-sheet table tr,
+            .rich-editor-sheet table td,
+            .rich-editor-sheet table th {
+              font-family: ${fontFamily}, Calibri, Tahoma, Arial, sans-serif !important;
               font-size: ${fontSize};
               line-height: ${lineSpacing};
               color: #000000;
             }
+            .rich-editor-sheet table {
+              font-family: inherit !important;
+            }
+            .rich-editor-sheet table td,
+            .rich-editor-sheet table th,
+            .rich-editor-sheet table td strong,
+            .rich-editor-sheet table td span {
+              font-family: inherit !important;
+            }
             .rich-editor-sheet .locked-letter-number {
               color: #000000 !important;
+              font-family: inherit !important;
             }
             ${
               paragraphSpacing === "tight"

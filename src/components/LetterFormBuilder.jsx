@@ -1201,12 +1201,18 @@ export default function LetterFormBuilder({
       {/* STEP 1: FORM ISIAN */}
       {activeTab === "form" && (
         <div className="bg-white border border-slate-300/80 rounded-xl p-3 sm:p-4 shadow-lg shadow-slate-900/5 space-y-3">
-          {/* Nomor Surat Khusus Surat Mandiri jika diperlukan */}
-          {isMandiri && (
-            <div className="bg-slate-50/90 p-2 rounded-lg border border-slate-300/80 flex items-center gap-2 text-xs">
-              <span className="text-[11px] font-extrabold text-slate-800 shrink-0">
-                No. Surat:
-              </span>
+          {/* Baris 1: No. Surat berdampingan satu baris dengan Keperluan / Perihal Surat */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-stretch">
+            {/* Kolom No. Surat (Di pinggir Perihal) */}
+            <div className="md:col-span-4 bg-slate-50/90 p-2.5 rounded-lg border border-slate-300 space-y-1.5 flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-1">
+                <label className="block text-xs font-extrabold text-slate-800">
+                  No. Surat:
+                </label>
+                <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded font-semibold">
+                  Otomatis
+                </span>
+              </div>
               <input
                 type="text"
                 value={letterNumber}
@@ -1220,37 +1226,37 @@ export default function LetterFormBuilder({
                   }
                 }}
                 placeholder="Nomor surat otomatis (dapat diubah)..."
-                className="flex-1 font-mono font-bold text-slate-900 bg-white px-2.5 py-1 rounded border border-slate-300 text-xs shadow-2xs"
+                className="w-full font-mono font-bold text-slate-900 bg-white px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs shadow-2xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-          )}
 
-          {/* Input Keperluan / Perihal Surat (Otomatis terisi dari judul template, tetapi tetap dapat diedit) */}
-          <div className="bg-slate-50/90 p-2.5 rounded-lg border border-slate-300 space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <label className="block text-xs font-extrabold text-slate-800">
-                Keperluan / Perihal Surat <span className="text-rose-600">*</span>:
-              </label>
-              {!isMandiri && (
-                <span className="text-[10px] bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full font-semibold">
-                  Otomatis terisi (dapat diedit)
-                </span>
-              )}
+            {/* Kolom Keperluan / Perihal Surat */}
+            <div className="md:col-span-8 bg-slate-50/90 p-2.5 rounded-lg border border-slate-300 space-y-1.5 flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2">
+                <label className="block text-xs font-extrabold text-slate-800">
+                  Keperluan / Perihal Surat <span className="text-rose-600">*</span>:
+                </label>
+                {!isMandiri && (
+                  <span className="text-[10px] bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full font-semibold">
+                    Otomatis terisi (dapat diedit)
+                  </span>
+                )}
+              </div>
+              <input
+                type="text"
+                name="perihal"
+                value={
+                  fieldValues.perihal !== undefined
+                    ? fieldValues.perihal
+                    : fieldValues.f_perihal !== undefined
+                      ? fieldValues.f_perihal
+                      : (!isMandiri && template?.name ? template.name.toUpperCase() : "")
+                }
+                onChange={(e) => handleFieldChange("perihal", e.target.value)}
+                placeholder="Tulis Keperluan / Perihal Surat..."
+                className="w-full text-xs font-bold text-slate-900 uppercase bg-white px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+              />
             </div>
-            <input
-              type="text"
-              name="perihal"
-              value={
-                fieldValues.perihal !== undefined
-                  ? fieldValues.perihal
-                  : fieldValues.f_perihal !== undefined
-                    ? fieldValues.f_perihal
-                    : (!isMandiri && template?.name ? template.name.toUpperCase() : "")
-              }
-              onChange={(e) => handleFieldChange("perihal", e.target.value)}
-              placeholder="Tulis Keperluan / Perihal Surat..."
-              className="w-full text-xs font-bold text-slate-900 uppercase bg-white px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
-            />
           </div>
 
           {/* Dynamic Form Fields */}
@@ -1640,6 +1646,63 @@ export default function LetterFormBuilder({
                   Surat tidak mencantumkan tanda tangan pihak "Mengetahui".
                 </p>
               )}
+
+              {/* Matriks Batas Nominal Persetujuan (Tepat di bawah Yang Mengetahui) */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-300/80 rounded-lg p-2.5 text-xs space-y-1.5 shadow-2xs mt-2.5">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="font-extrabold text-amber-950 flex items-center gap-1.5 text-xs">
+                    <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span>Matriks Batas Nominal Persetujuan:</span>
+                  </span>
+                  <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
+                    Standar Otorisasi
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto rounded-lg border border-amber-300/80 bg-white shadow-2xs">
+                  <table className="w-full text-xs text-slate-800 border-collapse">
+                    <thead>
+                      <tr className="bg-amber-100/90 text-amber-950 border-b border-amber-300 font-extrabold text-[11px]">
+                        <th className="py-1.5 px-2.5 text-left">JABATAN</th>
+                        <th className="py-1.5 px-2.5 text-right">MINIMAL</th>
+                        <th className="py-1.5 px-2.5 text-right">MAKSIMAL</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-amber-100 text-[11px]">
+                      <tr className="hover:bg-amber-50/60 transition">
+                        <td className="py-1.5 px-2.5 font-bold text-slate-900">DIREKTUR</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-medium">50.000.000</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-extrabold text-indigo-700">TIDAK TERBATAS</td>
+                      </tr>
+                      <tr className="hover:bg-amber-50/60 transition">
+                        <td className="py-1.5 px-2.5 font-bold text-slate-900">WAKIL DIREKTUR</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-medium">2.000.000</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">50.000.000</td>
+                      </tr>
+                      <tr className="hover:bg-amber-50/60 transition">
+                        <td className="py-1.5 px-2.5 font-bold text-slate-900">PEMBELIAN</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-medium">1.000.000</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">2.000.000</td>
+                      </tr>
+                      <tr className="hover:bg-amber-50/60 transition">
+                        <td className="py-1.5 px-2.5 font-bold text-slate-900">RSM &amp; NSM</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-medium">500.000</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">1.000.000</td>
+                      </tr>
+                      <tr className="hover:bg-amber-50/60 transition">
+                        <td className="py-1.5 px-2.5 font-bold text-slate-900">ALL HEAD DEPT.</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-medium">300.000</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">500.000</td>
+                      </tr>
+                      <tr className="hover:bg-amber-50/60 transition">
+                        <td className="py-1.5 px-2.5 font-bold text-slate-900">CABANG</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-medium">-</td>
+                        <td className="py-1.5 px-2.5 text-right font-mono font-bold text-emerald-700">300.000</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
             {/* SISI KANAN: Jalur Pejabat Penyetuju */}
@@ -1659,19 +1722,6 @@ export default function LetterFormBuilder({
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowLimitMatrix((prev) => !prev)}
-                    className={`px-2 py-1 text-xs font-bold rounded-lg transition border flex items-center gap-1 shadow-2xs ${
-                      showLimitMatrix
-                        ? "bg-amber-100 text-amber-900 border-amber-300"
-                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
-                    }`}
-                    title="Tampilkan / Sembunyikan Tabel Batas Nominal Wewenang Persetujuan"
-                  >
-                    <Calculator className="w-3.5 h-3.5 text-amber-700" />
-                    <span>{showLimitMatrix ? "Tutup Batas Nominal" : "Batas Nominal"}</span>
-                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -1727,65 +1777,6 @@ export default function LetterFormBuilder({
                   </button>
                 </div>
               </div>
-
-              {/* Panduan Matriks Batas Nominal Persetujuan (Wewenang Otorisasi) */}
-              {showLimitMatrix && (
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-300/80 rounded-lg p-2.5 text-xs space-y-1.5 shadow-2xs animate-fadeIn">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="font-extrabold text-amber-950 flex items-center gap-1.5 text-xs">
-                      <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
-                      <span>Matriks Batas Nominal Persetujuan:</span>
-                    </span>
-                    <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
-                      Standar Otorisasi
-                    </span>
-                  </div>
-
-                  <div className="overflow-x-auto rounded-lg border border-amber-300/80 bg-white shadow-2xs">
-                    <table className="w-full text-xs text-slate-800 border-collapse">
-                      <thead>
-                        <tr className="bg-amber-100/90 text-amber-950 border-b border-amber-300 font-extrabold text-[11px]">
-                          <th className="py-1.5 px-3 text-left">JABATAN</th>
-                          <th className="py-1.5 px-3 text-right">MINIMAL</th>
-                          <th className="py-1.5 px-3 text-right">MAKSIMAL</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-amber-100 text-[11px]">
-                        <tr className="hover:bg-amber-50/60 transition">
-                          <td className="py-1.5 px-3 font-bold text-slate-900">DIREKTUR</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-medium">50.000.000</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-extrabold text-indigo-700">TIDAK TERBATAS</td>
-                        </tr>
-                        <tr className="hover:bg-amber-50/60 transition">
-                          <td className="py-1.5 px-3 font-bold text-slate-900">WAKIL DIREKTUR</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-medium">2.000.000</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">50.000.000</td>
-                        </tr>
-                        <tr className="hover:bg-amber-50/60 transition">
-                          <td className="py-1.5 px-3 font-bold text-slate-900">PEMBELIAN</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-medium">1.000.000</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">2.000.000</td>
-                        </tr>
-                        <tr className="hover:bg-amber-50/60 transition">
-                          <td className="py-1.5 px-3 font-bold text-slate-900">RSM &amp; NSM</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-medium">500.000</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">1.000.000</td>
-                        </tr>
-                        <tr className="hover:bg-amber-50/60 transition">
-                          <td className="py-1.5 px-3 font-bold text-slate-900">ALL HEAD DEPT.</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-medium">300.000</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900">500.000</td>
-                        </tr>
-                        <tr className="hover:bg-amber-50/60 transition">
-                          <td className="py-1.5 px-3 font-bold text-slate-900">CABANG</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-medium">-</td>
-                          <td className="py-1.5 px-3 text-right font-mono font-bold text-emerald-700">300.000</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
 
               {/* Info Banner Aturan Limit Nominal Jika Template Mengaktifkannya */}
               {template?.hasNominalLimit && (

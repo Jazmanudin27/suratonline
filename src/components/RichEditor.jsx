@@ -1,130 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Table from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
-import TextAlign from "@tiptap/extension-text-align";
-import Underline from "@tiptap/extension-underline";
-import TextStyle from "@tiptap/extension-text-style";
-import Color from "@tiptap/extension-color";
-import Highlight from "@tiptap/extension-highlight";
-import FontFamily from "@tiptap/extension-font-family";
-
-// Custom TipTap Table: Mendukung Tabel Bergaris (Data) dan Tanpa Garis (Kop/Layout Surat)
-const CustomTable = Table.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      borderless: {
-        default: false,
-        parseHTML: (element) => {
-          const style = element.getAttribute("style") || "";
-          const border = element.getAttribute("border");
-          const cls = element.getAttribute("class") || "";
-          const dataBorderless = element.getAttribute("data-borderless");
-          if (
-            dataBorderless === "true" ||
-            cls.includes("borderless") ||
-            cls.includes("header-table") ||
-            border === "0" ||
-            style.includes("border: none") ||
-            style.includes("border:none") ||
-            style.includes("border: 0")
-          ) {
-            return true;
-          }
-          // Deteksi otomatis tabel header surat resmi (ada Nomor dan Perihal/Kepada/Lampiran)
-          const text = element.textContent || "";
-          if (
-            (text.includes("Nomor") && text.includes("Perihal")) ||
-            (text.includes("Nomor") && text.includes("Kepada")) ||
-            (text.includes("Nomor") && text.includes("Lampiran"))
-          ) {
-            if (border !== "1" && !style.includes("border: 1px")) {
-              return true;
-            }
-          }
-          return false;
-        },
-        renderHTML: (attributes) => {
-          if (!attributes.borderless) {
-            return {
-              border: "1",
-              "data-borderless": "false",
-              class: "data-table",
-              style: "width: 100%; border-collapse: collapse; margin: 12px 0;",
-            };
-          }
-          return {
-            "data-borderless": "true",
-            class: "borderless-table",
-            border: "0",
-            style:
-              "width: 100%; border: none; border-collapse: collapse; margin: 4px 0 14px 0;",
-          };
-        },
-      },
-    };
-  },
-});
-
-const CustomTableCell = TableCell.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      colwidth: {
-        default: null,
-        parseHTML: (element) => {
-          const colwidth = element.getAttribute("colwidth");
-          if (colwidth) {
-            return colwidth.split(",").map((item) => parseInt(item, 10));
-          }
-          const text = (element.textContent || "").trim();
-          if (text === ":") {
-            return [28];
-          }
-          return null;
-        },
-        renderHTML: (attributes) => {
-          if (!attributes.colwidth) return {};
-          return {
-            colwidth: attributes.colwidth.join(","),
-          };
-        },
-      },
-    };
-  },
-});
-
-const CustomTableHeader = TableHeader.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      colwidth: {
-        default: null,
-        parseHTML: (element) => {
-          const colwidth = element.getAttribute("colwidth");
-          if (colwidth) {
-            return colwidth.split(",").map((item) => parseInt(item, 10));
-          }
-          return null;
-        },
-        renderHTML: (attributes) => {
-          if (!attributes.colwidth) return {};
-          return {
-            colwidth: attributes.colwidth.join(","),
-          };
-        },
-      },
-    };
-  },
-});
 import {
   Bold,
   Italic,
-  Underline as UnderlineIcon,
+  Underline,
   Strikethrough,
   AlignLeft,
   AlignCenter,
@@ -138,20 +16,32 @@ import {
   RotateCw,
   Layout,
   Columns,
+  Move,
   Plus,
   Trash2,
+  ArrowLeft,
+  ArrowRight,
   Grid,
   ZoomIn,
   ZoomOut,
+  Minus,
+  Palette,
+  FileText,
+  Copy,
+  Scissors,
+  Clipboard,
   Highlighter,
-  FileSpreadsheet,
+  ChevronDown,
+  Check,
+  Split,
+  Sparkles,
+  HelpCircle,
+  Eye,
   Save,
   CheckCircle2,
   X,
-  Split,
-  Merge,
-  Sparkles,
-  Clipboard,
+  Minimize2,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export default function RichEditor({
@@ -159,6 +49,7 @@ export default function RichEditor({
   onChange,
   readOnly = false,
   availableVariables = [],
+  placeholder = "Mulai ketik isi surat...",
   letterNumber = "",
   perihal = "",
   submitterName = "",
@@ -167,66 +58,168 @@ export default function RichEditor({
   onSave = null,
   onClose = null,
 }) {
+  const editorRef = useRef(null);
   const paperRef = useRef(null);
+  const dragStartCellRef = useRef(null);
+  const isDraggingColumnRef = useRef(false);
 
-  // Ribbon Word Tabs: 'home' | 'insert' | 'layout' | 'table'
+  // Tab ribbon Word: 'home' | 'insert' | 'layout' | 'table'
   const [activeTab, setActiveTab] = useState("home");
+
+  // Excel / Spreadsheet import modal states
+  const [showExcelModal, setShowExcelModal] = useState(false);
+  const [excelPasteText, setExcelPasteText] = useState("");
+  const [excelHeaderFirstRow, setExcelHeaderFirstRow] = useState(true);
+  const [excelAutoAlign, setExcelAutoAlign] = useState(true);
+  const savedRangeRef = useRef(null);
+
+  // Table manipulation states
+  const [activeTableState, setActiveTableState] = useState(null);
+  const [resizeGuide, setResizeGuide] = useState(null);
+  const [overlayPos, setOverlayPos] = useState(null);
+  const [lineSpacing, setLineSpacing] = useState("1.3");
+  const [paragraphSpacing, setParagraphSpacing] = useState("tight");
   const [zoomLevel, setZoomLevel] = useState(105);
   const [fontFamily, setFontFamily] = useState("Calibri");
   const [fontSize, setFontSize] = useState("11pt");
   const [wordCount, setWordCount] = useState(0);
 
-  // Excel Modal
-  const [showExcelModal, setShowExcelModal] = useState(false);
-  const [excelPasteText, setExcelPasteText] = useState("");
-  const [excelHeaderFirstRow, setExcelHeaderFirstRow] = useState(true);
+  const handleZoomIn = () => {
+    setZoomLevel((prev) => Math.min(200, prev + 10));
+  };
 
-  // Inisialisasi Mesin TipTap Editor
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        history: true,
-      }),
-      CustomTable.configure({
-        resizable: true,
-        lastColumnResizable: false,
-      }),
-      TableRow,
-      CustomTableHeader,
-      CustomTableCell,
-      TextAlign.configure({
-        types: ["heading", "paragraph"],
-      }),
-      Underline,
-      TextStyle,
-      Color,
-      Highlight.configure({ multicolor: true }),
-      FontFamily,
-    ],
-    content: value || "",
-    editable: !readOnly,
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      if (onChange) onChange(html);
-      const text = editor.getText() || "";
-      setWordCount(
-        text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0,
-      );
-    },
-  });
+  const handleZoomOut = () => {
+    setZoomLevel((prev) => Math.max(50, prev - 10));
+  };
 
-  // Sinkronisasi value prop ke editor jika konten berubah dari luar
-  useEffect(() => {
-    if (editor && value !== undefined && editor.getHTML() !== value) {
-      editor.commands.setContent(value || "", false);
-      const text = editor.getText() || "";
-      setWordCount(
-        text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0,
-      );
+  const handleZoomReset = () => {
+    setZoomLevel(100);
+  };
+
+  // Dedicated Undo / Redo History Stack (Mencegah tabel terhapus saat Ctrl+Z)
+  const historyRef = useRef([]);
+  const historyIndexRef = useRef(-1);
+  const isUndoRedoRef = useRef(false);
+  const typingTimerRef = useRef(null);
+
+  const calculateWordCount = () => {
+    if (!editorRef.current) return;
+    const text = editorRef.current.innerText || "";
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    setWordCount(words.length);
+  };
+
+  const saveHistorySnapshot = useCallback(() => {
+    if (!editorRef.current || isUndoRedoRef.current) return;
+    const currentHtml = editorRef.current.innerHTML;
+    const history = historyRef.current;
+    const index = historyIndexRef.current;
+
+    // Jangan simpan snapshot yang sama berulang kali
+    if (index >= 0 && history[index] === currentHtml) return;
+
+    const newHistory = history.slice(0, index + 1);
+    newHistory.push(currentHtml);
+    if (newHistory.length > 50) newHistory.shift();
+
+    historyRef.current = newHistory;
+    historyIndexRef.current = newHistory.length - 1;
+  }, []);
+
+  const handleInput = useCallback(() => {
+    if (editorRef.current && onChange) {
+      onChange(editorRef.current.innerHTML);
+      calculateWordCount();
     }
-  }, [value, editor]);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      saveHistorySnapshot();
+    }, 350);
+  }, [onChange, saveHistorySnapshot]);
 
-  // Global Keyboard Shortcuts (Ctrl+S, Ctrl+P)
+  // Detect active table when selection or click changes
+  const updateActiveTable = useCallback(() => {
+    if (isDraggingColumnRef.current) return;
+    const selection = window.getSelection();
+    if (!selection || !selection.anchorNode) {
+      return;
+    }
+    let node = selection.anchorNode;
+    if (node.nodeType === 3) node = node.parentNode;
+    const cell = node?.closest ? node.closest("td, th") : null;
+    const table = cell?.closest ? cell.closest("table") : null;
+
+    if (table && cell && editorRef.current?.contains(table)) {
+      setActiveTableState({
+        table,
+        cell,
+        colIndex: cell.cellIndex,
+        rowIndex: cell.parentElement.rowIndex,
+      });
+    } else {
+      setActiveTableState(null);
+    }
+  }, []);
+
+  const customUndo = useCallback(() => {
+    if (readOnly) return;
+    const history = historyRef.current;
+    const index = historyIndexRef.current;
+
+    if (index > 0) {
+      isUndoRedoRef.current = true;
+      const targetIndex = index - 1;
+      const prevHtml = history[targetIndex];
+      historyIndexRef.current = targetIndex;
+      if (editorRef.current) {
+        editorRef.current.innerHTML = prevHtml;
+        if (onChange) onChange(prevHtml);
+        calculateWordCount();
+        updateActiveTable();
+      }
+      isUndoRedoRef.current = false;
+    } else {
+      document.execCommand("undo");
+      handleInput();
+    }
+  }, [readOnly, onChange, updateActiveTable]);
+
+  const customRedo = useCallback(() => {
+    if (readOnly) return;
+    const history = historyRef.current;
+    const index = historyIndexRef.current;
+
+    if (index < history.length - 1) {
+      isUndoRedoRef.current = true;
+      const targetIndex = index + 1;
+      const nextHtml = history[targetIndex];
+      historyIndexRef.current = targetIndex;
+      if (editorRef.current) {
+        editorRef.current.innerHTML = nextHtml;
+        if (onChange) onChange(nextHtml);
+        calculateWordCount();
+        updateActiveTable();
+      }
+      isUndoRedoRef.current = false;
+    } else {
+      document.execCommand("redo");
+      handleInput();
+    }
+  }, [readOnly, onChange, updateActiveTable]);
+
+  // Sync initial content & history snapshot
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value || "";
+      calculateWordCount();
+    }
+    if (historyRef.current.length === 0 && editorRef.current) {
+      historyRef.current = [editorRef.current.innerHTML];
+      historyIndexRef.current = 0;
+    }
+  }, [value]);
+
+  // Shortcut Keyboard Global: Ctrl+S (Simpan), Ctrl+P (Print), Ctrl+Z (Undo), Ctrl+Y (Redo)
   useEffect(() => {
     const handleGlobalShortcuts = (e) => {
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
@@ -235,257 +228,1333 @@ export default function RichEditor({
       const key = e.key.toLowerCase();
       if (key === "s") {
         e.preventDefault();
-        if (onSave) onSave();
+        if (onSave) {
+          onSave();
+        }
       } else if (key === "p") {
         e.preventDefault();
         window.print();
+      } else if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        customUndo();
+      } else if (key === "y" || (key === "z" && e.shiftKey)) {
+        e.preventDefault();
+        customRedo();
       }
     };
 
     window.addEventListener("keydown", handleGlobalShortcuts);
     return () => window.removeEventListener("keydown", handleGlobalShortcuts);
-  }, [onSave]);
+  }, [onSave, customUndo, customRedo]);
 
-  const handleZoomIn = () => setZoomLevel((prev) => Math.min(200, prev + 10));
-  const handleZoomOut = () => setZoomLevel((prev) => Math.max(50, prev - 10));
-  const handleZoomReset = () => setZoomLevel(100);
-
-  // TipTap Format Actions
-  const toggleBold = () => editor?.chain().focus().toggleBold().run();
-  const toggleItalic = () => editor?.chain().focus().toggleItalic().run();
-  const toggleUnderline = () => editor?.chain().focus().toggleUnderline().run();
-  const toggleStrike = () => editor?.chain().focus().toggleStrike().run();
-
-  const setAlign = (align) => editor?.chain().focus().setTextAlign(align).run();
-  const toggleBulletList = () =>
-    editor?.chain().focus().toggleBulletList().run();
-  const toggleOrderedList = () =>
-    editor?.chain().focus().toggleOrderedList().run();
-
-  const handleUndo = () => editor?.chain().focus().undo().run();
-  const handleRedo = () => editor?.chain().focus().redo().run();
-
-  const applyFontFamily = (family) => {
-    setFontFamily(family);
-    editor?.chain().focus().setFontFamily(family).run();
+  // Focus helper for cells
+  const focusCell = (cell, atStart = true) => {
+    if (!cell) return;
+    const sel = window.getSelection();
+    if (!sel) return;
+    const range = document.createRange();
+    range.selectNodeContents(cell);
+    range.collapse(atStart);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    cell.scrollIntoView({ behavior: "smooth", block: "nearest" });
   };
 
-  const applyFontColor = (hex) => {
-    if (!hex) return;
-    editor?.chain().focus().setColor(hex).run();
-  };
+  // Update floating handle position relative to paper
+  const updateOverlayPosition = useCallback(() => {
+    if (!activeTableState?.table || !paperRef.current) {
+      setOverlayPos(null);
+      return;
+    }
+    try {
+      const table = activeTableState.table;
+      const paper = paperRef.current;
 
-  const applyHighlight = (hex) => {
-    if (!hex) return;
-    editor?.chain().focus().toggleHighlight({ color: hex }).run();
-  };
+      let top = 0;
+      let left = 0;
+      let curr = table;
+      while (curr && curr !== paper) {
+        top += curr.offsetTop || 0;
+        left += curr.offsetLeft || 0;
+        curr = curr.offsetParent;
+      }
 
-  // TipTap Table Actions
-  const insertTable = (rows = 3, cols = 3) => {
-    if (!editor || readOnly) return;
-    editor
-      .chain()
-      .focus()
-      .insertTable({ rows, cols, withHeaderRow: true })
-      .run();
-  };
+      setOverlayPos({
+        top: Math.max(4, top - 24),
+        left: Math.max(4, left - 26),
+        tableWidth: table.offsetWidth,
+      });
+    } catch {
+      setOverlayPos(null);
+    }
+  }, [activeTableState]);
 
-  const addRowAbove = () => editor?.chain().focus().addRowBefore().run();
-  const addRowBelow = () => editor?.chain().focus().addRowAfter().run();
-  const deleteCurrentRow = () => editor?.chain().focus().deleteRow().run();
+  useEffect(() => {
+    updateOverlayPosition();
+  }, [activeTableState, updateOverlayPosition]);
 
-  const addColLeft = () => editor?.chain().focus().addColumnBefore().run();
-  const addColRight = () => editor?.chain().focus().addColumnAfter().run();
-  const deleteCurrentCol = () => editor?.chain().focus().deleteColumn().run();
-
-  const deleteTable = () => editor?.chain().focus().deleteTable().run();
-  const toggleTableBorder = () => {
-    if (!editor) return;
-    const isCurrentBorderless = Boolean(
-      editor.getAttributes("table")?.borderless,
-    );
-    editor
-      .chain()
-      .focus()
-      .updateAttributes("table", { borderless: !isCurrentBorderless })
-      .run();
-  };
-  const mergeOrSplit = () => {
-    if (!editor) return;
-    if (editor.can().mergeCells()) {
-      editor.chain().focus().mergeCells().run();
-    } else if (editor.can().splitCell()) {
-      editor.chain().focus().splitCell().run();
+  const format = (command, val = null) => {
+    if (readOnly) return;
+    document.execCommand(command, false, val);
+    if (editorRef.current) {
+      editorRef.current.focus();
+      handleInput();
     }
   };
 
-  // Header Surat Resmi Otomatis
+  const applyFontFamily = (fontName) => {
+    if (readOnly) return;
+    setFontFamily(fontName);
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) {
+      document.execCommand("fontName", false, fontName);
+      if (editorRef.current) {
+        const fontElements = editorRef.current.querySelectorAll(
+          `font[face="${fontName}"]`
+        );
+        fontElements.forEach((el) => {
+          el.style.fontFamily = fontName;
+        });
+      }
+      handleInput();
+    } else if (editorRef.current) {
+      editorRef.current.style.fontFamily = fontName;
+      handleInput();
+    }
+  };
+
+  const applyFontColor = (colorHex) => {
+    if (readOnly || !colorHex) return;
+    document.execCommand("foreColor", false, colorHex);
+    if (editorRef.current) {
+      editorRef.current.focus();
+      handleInput();
+    }
+  };
+
+  const applyHighlightColor = (colorHex) => {
+    if (readOnly || !colorHex) return;
+    document.execCommand("hiliteColor", false, colorHex);
+    if (editorRef.current) {
+      editorRef.current.focus();
+      handleInput();
+    }
+  };
+
+  const applyFontSize = (val) => {
+    if (readOnly) return;
+    setFontSize(val);
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) {
+      document.execCommand("fontSize", false, "7");
+      if (editorRef.current) {
+        const fontElements =
+          editorRef.current.querySelectorAll('font[size="7"]');
+        fontElements.forEach((el) => {
+          el.removeAttribute("size");
+          el.style.fontSize = val;
+        });
+      }
+      handleInput();
+    } else if (editorRef.current) {
+      editorRef.current.style.fontSize = val;
+      handleInput();
+    }
+  };
+
+  const changeFontSizeStep = (delta) => {
+    const sizes = [
+      "9pt",
+      "10pt",
+      "10.5pt",
+      "11pt",
+      "12pt",
+      "14pt",
+      "16pt",
+      "18pt",
+      "20pt",
+      "24pt",
+    ];
+    const currIdx = sizes.indexOf(fontSize);
+    if (delta > 0 && currIdx < sizes.length - 1) {
+      applyFontSize(sizes[currIdx + 1]);
+    } else if (delta < 0 && currIdx > 0) {
+      applyFontSize(sizes[currIdx - 1]);
+    }
+  };
+
+  const applyLineSpacing = (val) => {
+    if (readOnly) return;
+    setLineSpacing(val);
+    if (editorRef.current) {
+      editorRef.current.style.lineHeight = val;
+      const selection = window.getSelection();
+      if (selection && !selection.isCollapsed) {
+        let node = selection.anchorNode;
+        if (node?.nodeType === 3) node = node.parentNode;
+        const block = node?.closest
+          ? node.closest("p, div, td, th, li, table")
+          : null;
+        if (block) {
+          block.style.lineHeight = val;
+        }
+      }
+      handleInput();
+    }
+  };
+
+  const applyParagraphSpacing = (spacing) => {
+    if (readOnly) return;
+    setParagraphSpacing(spacing);
+    if (editorRef.current) {
+      const paragraphs = editorRef.current.querySelectorAll("p");
+      paragraphs.forEach((p) => {
+        if (spacing === "tight") {
+          p.style.marginBottom = "4px";
+          p.style.marginTop = "0px";
+        } else if (spacing === "normal") {
+          p.style.marginBottom = "10px";
+          p.style.marginTop = "0px";
+        } else if (spacing === "loose") {
+          p.style.marginBottom = "18px";
+          p.style.marginTop = "0px";
+        }
+      });
+      handleInput();
+    }
+  };
+
+  // =========================================================================
+  // KEYDOWN HANDLER: PROTECT TABLES, CELLS & SHORTCUTS (Word-grade robustness)
+  // =========================================================================
+  const handleKeyDown = (e) => {
+    if (readOnly) return;
+
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+    // KEYBOARD SHORTCUTS (Ctrl+S, Ctrl+P, Ctrl+Z, Ctrl+Y, Ctrl+B, Ctrl+I, Ctrl+U, etc.)
+    if (isCtrlOrCmd) {
+      const key = e.key.toLowerCase();
+
+      // Ctrl + S: Simpan Draft
+      if (key === "s") {
+        e.preventDefault();
+        if (onSave) {
+          onSave();
+        }
+        return;
+      }
+
+      // Ctrl + P: Print Dokumen
+      if (key === "p") {
+        e.preventDefault();
+        window.print();
+        return;
+      }
+
+      // Ctrl + Z: Undo
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        customUndo();
+        return;
+      }
+
+      // Ctrl + Y / Ctrl + Shift + Z: Redo
+      if (key === "y" || (key === "z" && e.shiftKey)) {
+        e.preventDefault();
+        customRedo();
+        return;
+      }
+
+      // Ctrl + B: Bold
+      if (key === "b") {
+        e.preventDefault();
+        document.execCommand("bold");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + I: Italic
+      if (key === "i") {
+        e.preventDefault();
+        document.execCommand("italic");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + U: Underline
+      if (key === "u") {
+        e.preventDefault();
+        document.execCommand("underline");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + E: Center Alignment
+      if (key === "e") {
+        e.preventDefault();
+        document.execCommand("justifyCenter");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + L: Left Alignment
+      if (key === "l") {
+        e.preventDefault();
+        document.execCommand("justifyLeft");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + R: Right Alignment
+      if (key === "r") {
+        e.preventDefault();
+        document.execCommand("justifyRight");
+        handleInput();
+        return;
+      }
+
+      // Ctrl + J: Justify Alignment
+      if (key === "j") {
+        e.preventDefault();
+        document.execCommand("justifyFull");
+        handleInput();
+        return;
+      }
+    }
+
+    // Hapus isi sel kolom yang sedang dipilih jika tombol Backspace / Delete ditekan
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0 && (e.key === "Backspace" || e.key === "Delete")) {
+      e.preventDefault();
+      saveHistorySnapshot(); // Catat riwayat SEBELUM sel dikosongkan
+      selectedCells.forEach((c) => {
+        c.innerHTML = "<br>";
+      });
+      handleInput();
+      saveHistorySnapshot(); // Catat riwayat SETELAH sel dikosongkan
+      return;
+    }
+
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+
+    // 1. Protect locked letter number badge
+    const node = sel.anchorNode;
+    const element =
+      node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+
+    if (element?.closest(".locked-letter-number")) {
+      e.preventDefault();
+      return;
+    }
+
+    if (e.key === "Backspace" || e.key === "Delete") {
+      if (e.key === "Backspace" && range.collapsed) {
+        const prev =
+          range.startContainer?.previousSibling ||
+          element?.previousElementSibling;
+        if (
+          prev?.classList?.contains("locked-letter-number") ||
+          prev?.querySelector?.(".locked-letter-number")
+        ) {
+          e.preventDefault();
+          return;
+        }
+      }
+      if (e.key === "Delete" && range.collapsed) {
+        const next =
+          range.startContainer?.nextSibling || element?.nextElementSibling;
+        if (
+          next?.classList?.contains("locked-letter-number") ||
+          next?.querySelector?.(".locked-letter-number")
+        ) {
+          e.preventDefault();
+          return;
+        }
+      }
+    }
+
+    // 2. ROBUST TABLE CELL PROTECTION (Prevent accidental column deletion / jumping)
+    const startCell =
+      range.startContainer.nodeType === 1
+        ? range.startContainer.closest("td, th")
+        : range.startContainer.parentElement?.closest("td, th");
+    const endCell =
+      range.endContainer.nodeType === 1
+        ? range.endContainer.closest("td, th")
+        : range.endContainer.parentElement?.closest("td, th");
+
+    if (startCell || endCell) {
+      // Kasus A: Seleksi melintasi lebih dari 1 cell (Multi-cell selection)
+      // JANGAN biarkan browser menghapus elemen <td> itu sendiri!
+      if (
+        (e.key === "Backspace" || e.key === "Delete") &&
+        startCell &&
+        endCell &&
+        startCell !== endCell
+      ) {
+        e.preventDefault();
+        const table = startCell.closest("table");
+        if (table) {
+          const allCells = Array.from(table.querySelectorAll("td, th"));
+          const startIdx = allCells.indexOf(startCell);
+          const endIdx = allCells.indexOf(endCell);
+          const minIdx = Math.min(startIdx, endIdx);
+          const maxIdx = Math.max(startIdx, endIdx);
+          for (let i = minIdx; i <= maxIdx; i++) {
+            if (allCells[i]) allCells[i].innerHTML = "<br>";
+          }
+          focusCell(startCell, true);
+          handleInput();
+        }
+        return;
+      }
+
+      // Kasus B: Kursor di dalam 1 cell tunggal
+      if (startCell) {
+        if (e.key === "Backspace") {
+          const isCellEmpty =
+            !startCell.textContent || startCell.textContent.trim() === "";
+
+          let atStart = false;
+          if (range.collapsed) {
+            if (isCellEmpty) {
+              atStart = true;
+            } else {
+              const testRange = document.createRange();
+              testRange.selectNodeContents(startCell);
+              testRange.setEnd(range.startContainer, range.startOffset);
+              if (testRange.toString() === "") {
+                atStart = true;
+              }
+            }
+          }
+
+          if (atStart) {
+            // STOP browser dari menghapus <td> atau menggabungkan kolom ke kolom sebelah!
+            e.preventDefault();
+            if (startCell.innerHTML !== "<br>") {
+              startCell.innerHTML = "<br>";
+              focusCell(startCell, true);
+              handleInput();
+            }
+            return;
+          }
+        } else if (e.key === "Delete") {
+          let atEnd = false;
+          if (range.collapsed) {
+            const testRange = document.createRange();
+            testRange.selectNodeContents(startCell);
+            testRange.setStart(range.endContainer, range.endOffset);
+            if (testRange.toString() === "") {
+              atEnd = true;
+            }
+          }
+
+          if (atEnd) {
+            // STOP browser dari menghapus kolom berikutnya!
+            e.preventDefault();
+            return;
+          }
+        }
+      }
+    }
+
+    // 3. WORD TAB NAVIGATION IN TABLES (Tab: next cell, Shift+Tab: prev cell, Tab on last cell: add row)
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const currentCell =
+        range.startContainer.nodeType === 1
+          ? range.startContainer.closest("td, th")
+          : range.startContainer.parentElement?.closest("td, th");
+
+      if (currentCell) {
+        const table = currentCell.closest("table");
+        const allCells = Array.from(table.querySelectorAll("td, th"));
+        const currIdx = allCells.indexOf(currentCell);
+
+        if (e.shiftKey) {
+          // Mundur ke cell sebelumnya
+          if (currIdx > 0) {
+            focusCell(allCells[currIdx - 1], false);
+          }
+        } else {
+          // Maju ke cell berikutnya
+          if (currIdx < allCells.length - 1) {
+            focusCell(allCells[currIdx + 1], true);
+          } else {
+            // Di cell terakhir dari tabel: buat baris baru persis seperti di Word!
+            const lastRow = currentCell.closest("tr");
+            const colCount = lastRow.children.length;
+            const newRow = document.createElement("tr");
+            for (let i = 0; i < colCount; i++) {
+              const newCell = document.createElement("td");
+              newCell.style.cssText = lastRow.children[i].style.cssText;
+              newCell.innerHTML = "<br>";
+              newRow.appendChild(newCell);
+            }
+            lastRow.after(newRow);
+            handleInput();
+            updateOverlayPosition();
+            focusCell(newRow.children[0], true);
+          }
+        }
+        return;
+      }
+
+      // Tab di luar tabel: sisipkan 4 spasi standar Word tab stop
+      document.execCommand("insertHTML", false, "&nbsp;&nbsp;&nbsp;&nbsp;");
+      handleInput();
+    }
+  };
+
+  // =========================================================================
+  // MOUSE SELECTION HANDLING: Constrain selection to cell when dragging
+  // =========================================================================
+  const getCellBorderNearMouse = (e) => {
+    if (readOnly || !editorRef.current) return null;
+    const cell = e.target.closest ? e.target.closest("td, th") : null;
+    if (!cell || !editorRef.current.contains(cell)) return null;
+    const table = cell.closest("table");
+    if (!table || !editorRef.current.contains(table)) return null;
+
+    const rect = cell.getBoundingClientRect();
+    const mouseX = e.clientX;
+
+    if (Math.abs(mouseX - rect.right) <= 6) {
+      return { cell, table, colIndex: cell.cellIndex };
+    }
+    if (Math.abs(mouseX - rect.left) <= 6 && cell.previousElementSibling) {
+      return {
+        cell: cell.previousElementSibling,
+        table,
+        colIndex: cell.previousElementSibling.cellIndex,
+      };
+    }
+    return null;
+  };
+
+  const handleEditorMouseMove = (e) => {
+    if (readOnly || isDraggingColumnRef.current) return;
+
+    // Check if dragging across cell boundary inside table
+    if (e.buttons === 1 && dragStartCellRef.current) {
+      const currentCell = e.target.closest ? e.target.closest("td, th") : null;
+      const startCell = dragStartCellRef.current;
+      const table = startCell.closest("table");
+
+      if (currentCell && table && table.contains(currentCell)) {
+        const startCol = startCell.cellIndex;
+        const startRow = startCell.parentElement.rowIndex;
+        const currentRow = currentCell.parentElement.rowIndex;
+
+        // Jika drag ke bawah / atas di tabel: KUNCI seleksi HANYA pada kolom start!
+        if (startRow !== currentRow) {
+          window.getSelection()?.removeAllRanges();
+
+          const minRow = Math.min(startRow, currentRow);
+          const maxRow = Math.max(startRow, currentRow);
+
+          table.querySelectorAll(".table-cell-selected").forEach((el) => {
+            el.classList.remove("table-cell-selected");
+          });
+
+          const rows = Array.from(table.rows);
+          for (let r = minRow; r <= maxRow; r++) {
+            const targetCell = rows[r]?.cells[startCol];
+            if (targetCell) {
+              targetCell.classList.add("table-cell-selected");
+            }
+          }
+          return;
+        }
+      }
+    }
+
+    const border = getCellBorderNearMouse(e);
+    if (border) {
+      if (editorRef.current) editorRef.current.style.cursor = "col-resize";
+    } else if (
+      editorRef.current &&
+      editorRef.current.style.cursor === "col-resize"
+    ) {
+      editorRef.current.style.cursor = "text";
+    }
+  };
+
+  const handleEditorMouseDown = (e) => {
+    if (readOnly) return;
+    const cell = e.target.closest ? e.target.closest("td, th") : null;
+    if (cell && editorRef.current?.contains(cell)) {
+      dragStartCellRef.current = cell;
+      if (!e.shiftKey && editorRef.current) {
+        editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
+          el.classList.remove("table-cell-selected");
+        });
+      }
+    } else {
+      dragStartCellRef.current = null;
+      if (editorRef.current) {
+        editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
+          el.classList.remove("table-cell-selected");
+        });
+      }
+    }
+
+    const border = getCellBorderNearMouse(e);
+    if (!border) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const { cell: targetCell, table, colIndex } = border;
+    isDraggingColumnRef.current = true;
+
+    table.style.tableLayout = "fixed";
+
+    const rows = Array.from(table.querySelectorAll("tr"));
+    if (rows.length === 0) return;
+
+    const firstRowCells = Array.from(rows[0].children);
+    const initialWidths = firstRowCells.map((c) => c.offsetWidth);
+
+    rows.forEach((r) => {
+      Array.from(r.children).forEach((c, idx) => {
+        c.style.width = `${initialWidths[idx]}px`;
+        c.style.boxSizing = "border-box";
+      });
+    });
+
+    const nextCell = targetCell.nextElementSibling;
+    const startX = e.clientX;
+    const startCellWidth = initialWidths[colIndex] || 80;
+    const nextColIndex = nextCell ? colIndex + 1 : null;
+    const startNextWidth = nextCell ? initialWidths[nextColIndex] || 80 : null;
+    const startTableWidth = table.offsetWidth;
+
+    setResizeGuide({ x: e.clientX });
+
+    const onWindowMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+
+      if (nextCell && !moveEvent.shiftKey) {
+        const minW = 28;
+        let newColW = startCellWidth + deltaX;
+        let newNextW = startNextWidth - deltaX;
+
+        if (newColW < minW) {
+          newColW = minW;
+          newNextW = startCellWidth + startNextWidth - minW;
+        } else if (newNextW < minW) {
+          newNextW = minW;
+          newColW = startCellWidth + startNextWidth - minW;
+        }
+
+        rows.forEach((r) => {
+          const c1 = r.children[colIndex];
+          const c2 = r.children[nextColIndex];
+          if (c1) c1.style.width = `${newColW}px`;
+          if (c2) c2.style.width = `${newNextW}px`;
+        });
+      } else {
+        const minW = 28;
+        const newColW = Math.max(minW, startCellWidth + deltaX);
+        rows.forEach((r) => {
+          const c1 = r.children[colIndex];
+          if (c1) c1.style.width = `${newColW}px`;
+        });
+        const newTableW = Math.max(100, startTableWidth + deltaX);
+        table.style.width = `${newTableW}px`;
+      }
+
+      setResizeGuide({ x: moveEvent.clientX });
+    };
+
+    const onWindowMouseUp = () => {
+      window.removeEventListener("mousemove", onWindowMouseMove);
+      window.removeEventListener("mouseup", onWindowMouseUp);
+      isDraggingColumnRef.current = false;
+      setResizeGuide(null);
+      if (editorRef.current) {
+        editorRef.current.style.cursor = "text";
+      }
+      handleInput();
+      updateActiveTable();
+    };
+
+    window.addEventListener("mousemove", onWindowMouseMove);
+    window.addEventListener("mouseup", onWindowMouseUp);
+  };
+
+  const handleEditorMouseUp = () => {
+    dragStartCellRef.current = null;
+    updateActiveTable();
+  };
+
+  // --- TABLE MOVE / DRAG HANDLE LOGIC ---
+  const handleMoveHandleMouseDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!activeTableState?.table) return;
+
+    const table = activeTableState.table;
+    const startMargin = parseInt(table.style.marginLeft || "0", 10) || 0;
+    const startX = e.clientX;
+    const scale = (zoomLevel || 100) / 100;
+
+    const onMouseMove = (moveEvent) => {
+      const delta = (moveEvent.clientX - startX) / scale;
+      const newMargin = Math.max(0, Math.min(450, startMargin + delta));
+      table.style.marginLeft = `${newMargin}px`;
+      table.style.marginRight = "auto";
+      updateOverlayPosition();
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      handleInput();
+      updateOverlayPosition();
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  };
+
+  // =========================================================================
+  // TABLE MANIPULATION ACTIONS
+  // =========================================================================
+  const addRowAbove = () => {
+    if (!activeTableState) return;
+    saveHistorySnapshot();
+    const { table, cell } = activeTableState;
+    const row = cell.parentElement;
+    const colCount = row.children.length;
+    const newRow = document.createElement("tr");
+    for (let i = 0; i < colCount; i++) {
+      const isHeader = row.children[i].tagName.toLowerCase() === "th";
+      const newCell = document.createElement(isHeader ? "th" : "td");
+      newCell.style.cssText = row.children[i].style.cssText;
+      newCell.innerHTML = "<br>";
+      newRow.appendChild(newCell);
+    }
+    const tbody = table.querySelector("tbody");
+    if (tbody) {
+      tbody.insertBefore(newRow, row);
+    } else {
+      table.insertBefore(newRow, row);
+    }
+    handleInput();
+    saveHistorySnapshot();
+    updateOverlayPosition();
+    focusCell(newRow.children[0]);
+  };
+
+  const addRowBelow = () => {
+    if (!activeTableState) return;
+    saveHistorySnapshot();
+    const { cell } = activeTableState;
+    const row = cell.parentElement;
+    const colCount = row.children.length;
+    const newRow = document.createElement("tr");
+    for (let i = 0; i < colCount; i++) {
+      const newCell = document.createElement("td");
+      newCell.style.cssText = row.children[i].style.cssText;
+      newCell.innerHTML = "<br>";
+      newRow.appendChild(newCell);
+    }
+    row.after(newRow);
+    handleInput();
+    saveHistorySnapshot();
+    updateOverlayPosition();
+    focusCell(newRow.children[0]);
+  };
+
+  const addColLeft = () => {
+    if (!activeTableState) return;
+    saveHistorySnapshot();
+    const { table, colIndex } = activeTableState;
+    const rows = Array.from(table.querySelectorAll("tr"));
+    rows.forEach((r, idx) => {
+      const refCell = r.children[colIndex];
+      const isHeader = idx === 0 && refCell?.tagName.toLowerCase() === "th";
+      const newCell = document.createElement(isHeader ? "th" : "td");
+      if (refCell) newCell.style.cssText = refCell.style.cssText;
+      newCell.style.width = "100px";
+      newCell.innerHTML = isHeader ? `Kolom Baru` : `<br>`;
+      r.insertBefore(newCell, refCell);
+    });
+    handleInput();
+    saveHistorySnapshot();
+    updateOverlayPosition();
+  };
+
+  const addColRight = () => {
+    if (!activeTableState) return;
+    saveHistorySnapshot();
+    const { table, colIndex } = activeTableState;
+    const rows = Array.from(table.querySelectorAll("tr"));
+    rows.forEach((r, idx) => {
+      const refCell = r.children[colIndex];
+      const isHeader = idx === 0 && refCell?.tagName.toLowerCase() === "th";
+      const newCell = document.createElement(isHeader ? "th" : "td");
+      if (refCell) newCell.style.cssText = refCell.style.cssText;
+      newCell.style.width = "100px";
+      newCell.innerHTML = isHeader ? `Kolom Baru` : `<br>`;
+      if (refCell && refCell.nextSibling) {
+        r.insertBefore(newCell, refCell.nextSibling);
+      } else {
+        r.appendChild(newCell);
+      }
+    });
+    handleInput();
+    saveHistorySnapshot();
+    updateOverlayPosition();
+  };
+
+  // Pilih seluruh sel hanya di kolom aktif saat ini (tanpa menyentuh kolom lain)
+  const selectCurrentColumn = () => {
+    if (!activeTableState) return;
+    const { table, colIndex } = activeTableState;
+    window.getSelection()?.removeAllRanges();
+    if (editorRef.current) {
+      editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
+        el.classList.remove("table-cell-selected");
+      });
+    }
+    Array.from(table.rows).forEach((row) => {
+      const cell = row.cells[colIndex];
+      if (cell) cell.classList.add("table-cell-selected");
+    });
+  };
+
+  // Geser isi sel di kolom aktif saja ke baris bawahnya (kolom lain tidak bergeser)
+  const shiftColumnCellsDown = () => {
+    if (!activeTableState) return;
+    saveHistorySnapshot();
+    const { table, cell, colIndex, rowIndex } = activeTableState;
+    const rows = Array.from(table.rows);
+    for (let r = rows.length - 1; r > rowIndex; r--) {
+      const targetCell = rows[r]?.cells[colIndex];
+      const prevCell = rows[r - 1]?.cells[colIndex];
+      if (targetCell && prevCell) {
+        targetCell.innerHTML = prevCell.innerHTML;
+      }
+    }
+    cell.innerHTML = "<br>";
+    handleInput();
+    saveHistorySnapshot();
+    updateOverlayPosition();
+  };
+
+  const deleteCurrentRow = () => {
+    if (!activeTableState) return;
+    saveHistorySnapshot();
+    const { table, cell } = activeTableState;
+    const row = cell.parentElement;
+    if (table.querySelectorAll("tr").length <= 1) {
+      table.remove();
+      setActiveTableState(null);
+    } else {
+      row.remove();
+    }
+    handleInput();
+    saveHistorySnapshot();
+    updateOverlayPosition();
+  };
+
+  const deleteCurrentCol = () => {
+    if (!activeTableState) return;
+    saveHistorySnapshot();
+    const { table, colIndex } = activeTableState;
+    const rows = Array.from(table.querySelectorAll("tr"));
+    if (rows[0] && rows[0].children.length <= 1) {
+      table.remove();
+      setActiveTableState(null);
+    } else {
+      rows.forEach((r) => {
+        if (r.children[colIndex]) {
+          r.children[colIndex].remove();
+        }
+      });
+    }
+    handleInput();
+    saveHistorySnapshot();
+    updateOverlayPosition();
+  };
+
+  const deleteTable = () => {
+    if (!activeTableState) return;
+    saveHistorySnapshot();
+    activeTableState.table.remove();
+    setActiveTableState(null);
+    handleInput();
+    saveHistorySnapshot();
+  };
+
+  const distributeColumnsEvenly = () => {
+    if (!activeTableState) return;
+    const { table } = activeTableState;
+    const rows = Array.from(table.querySelectorAll("tr"));
+    if (rows.length === 0) return;
+    const colCount = rows[0].children.length;
+    const percent = (100 / colCount).toFixed(2);
+    table.style.width = "100%";
+    table.style.tableLayout = "fixed";
+    rows.forEach((r) => {
+      Array.from(r.children).forEach((c) => {
+        c.style.width = `${percent}%`;
+      });
+    });
+    handleInput();
+    updateOverlayPosition();
+  };
+
+  const setTableFullWidth = () => {
+    if (!activeTableState) return;
+    const { table } = activeTableState;
+    table.style.width = "100%";
+    table.style.marginLeft = "0";
+    table.style.marginRight = "auto";
+    handleInput();
+    updateOverlayPosition();
+  };
+
+  const indentTableRight = () => {
+    if (!activeTableState) return;
+    const { table } = activeTableState;
+    const currentMargin = parseInt(table.style.marginLeft || "0", 10) || 0;
+    table.style.marginLeft = `${currentMargin + 24}px`;
+    table.style.marginRight = "auto";
+    handleInput();
+    updateOverlayPosition();
+  };
+
+  const indentTableLeft = () => {
+    if (!activeTableState) return;
+    const { table } = activeTableState;
+    const currentMargin = parseInt(table.style.marginLeft || "0", 10) || 0;
+    table.style.marginLeft = `${Math.max(0, currentMargin - 24)}px`;
+    table.style.marginRight = "auto";
+    handleInput();
+    updateOverlayPosition();
+  };
+
+  const alignTableCenter = () => {
+    if (!activeTableState) return;
+    const { table } = activeTableState;
+    table.style.marginLeft = "auto";
+    table.style.marginRight = "auto";
+    handleInput();
+    updateOverlayPosition();
+  };
+
+  const alignTableLeft = () => {
+    if (!activeTableState) return;
+    const { table } = activeTableState;
+    table.style.marginLeft = "0";
+    table.style.marginRight = "auto";
+    handleInput();
+    updateOverlayPosition();
+  };
+
+  // =========================================================================
+  // INSERT TEMPLATES & VARIABLES
+  // =========================================================================
   const insertOfficialHeader = () => {
-    if (!editor || readOnly) return;
+    if (readOnly) return;
     const numDisplay = letterNumber || "{{nomor_surat}}";
-    const perihalDisplay =
-      perihal && perihal.trim() ? perihal.trim() : "Permohonan";
+    const perihalDisplay = perihal && perihal.trim() ? perihal.trim() : "Permohonan";
     const dariDisplay = submitterName || "[Nama Pemohon]";
 
     const html = `
-<table data-borderless="true" class="borderless-table" style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
-  <tbody>
-    <tr>
-      <td style="width: 15%; vertical-align: top; padding: 2px 4px; border: none;"><strong>Nomor</strong></td>
-      <td style="width: 3%; vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
-      <td style="vertical-align: top; padding: 2px 4px; border: none;"><span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f8fafc; padding: 1px 5px; border-radius: 3px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem (Terkunci)">${numDisplay}</span></td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Lampiran</strong></td>
-      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
-      <td style="vertical-align: top; padding: 2px 4px; border: none;">-</td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Perihal</strong></td>
-      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
-      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>${perihalDisplay}</strong></td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Dari</strong></td>
-      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
-      <td style="vertical-align: top; padding: 2px 4px; border: none;">${dariDisplay}</td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Kepada</strong></td>
-      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
-      <td style="vertical-align: top; padding: 2px 4px; border: none;">Yth. [Pimpinan / Manajer Terkait]</td>
-    </tr>
-  </tbody>
+<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
+  <tr>
+    <td style="width: 15%; vertical-align: top; padding: 2px 0;"><strong>Nomor</strong></td>
+    <td style="width: 3%; vertical-align: top; padding: 2px 0;">:</td>
+    <td style="vertical-align: top; padding: 2px 0;"><span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f8fafc; padding: 1px 5px; border-radius: 3px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem (Terkunci)">${numDisplay}</span></td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; padding: 2px 0;"><strong>Lampiran</strong></td>
+    <td style="vertical-align: top; padding: 2px 0;">:</td>
+    <td style="vertical-align: top; padding: 2px 0;">-</td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; padding: 2px 0;"><strong>Perihal</strong></td>
+    <td style="vertical-align: top; padding: 2px 0;">:</td>
+    <td style="vertical-align: top; padding: 2px 0;"><strong>${perihalDisplay}</strong></td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; padding: 2px 0;"><strong>Dari</strong></td>
+    <td style="vertical-align: top; padding: 2px 0;">:</td>
+    <td style="vertical-align: top; padding: 2px 0;">${dariDisplay}</td>
+  </tr>
+  <tr>
+    <td style="vertical-align: top; padding: 2px 0;"><strong>Kepada</strong></td>
+    <td style="vertical-align: top; padding: 2px 0;">:</td>
+    <td style="vertical-align: top; padding: 2px 0;">Yth. [Pimpinan / Manajer Terkait]</td>
+  </tr>
 </table>
-<p></p>`;
-    editor.chain().focus().insertContent(html).run();
+<p><br></p>`;
+    saveHistorySnapshot();
+    document.execCommand("insertHTML", false, html);
+    handleInput();
+    saveHistorySnapshot();
   };
 
   const insertFieldRowLayout = () => {
-    if (!editor || readOnly) return;
+    if (readOnly) return;
+    saveHistorySnapshot();
     const html = `
-<table data-borderless="true" class="borderless-table" style="width: 100%; border: none; border-collapse: collapse; margin: 12px 0; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; line-height: 1.6; table-layout: fixed;">
-  <tbody>
-    <tr>
-      <td style="width: 25%; padding: 2px 4px; border: none;">Nama Lengkap</td>
-      <td style="width: 3%; text-align: center; padding: 2px 4px; border: none;">:</td>
-      <td style="padding: 2px 4px; border: none;"><strong>[Isi Nama]</strong></td>
-    </tr>
-    <tr>
-      <td style="padding: 2px 4px; border: none;">Jabatan / Unit</td>
-      <td style="text-align: center; padding: 2px 4px; border: none;">:</td>
-      <td style="padding: 2px 4px; border: none;">[Isi Jabatan]</td>
-    </tr>
-    <tr>
-      <td style="padding: 2px 4px; border: none;">Unit Kerja / Cabang</td>
-      <td style="text-align: center; padding: 2px 4px; border: none;">:</td>
-      <td style="padding: 2px 4px; border: none;">{{nama_cabang}}</td>
-    </tr>
-    <tr>
-      <td style="padding: 2px 4px; vertical-align: top; border: none;">Keterangan / Keperluan</td>
-      <td style="text-align: center; padding: 2px 4px; vertical-align: top; border: none;">:</td>
-      <td style="padding: 2px 4px; vertical-align: top; border: none;">[Uraikan keperluan di sini...]</td>
-    </tr>
-  </tbody>
+<table style="width: 100%; border: none; border-collapse: collapse; margin: 12px 0; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; line-height: 1.6; table-layout: fixed;">
+  <tr>
+    <td style="width: 25%; padding: 3px 0;">Nama Lengkap</td>
+    <td style="width: 3%; text-align: center; padding: 3px 0;">:</td>
+    <td style="padding: 3px 0;"><strong>[Isi Nama]</strong></td>
+  </tr>
+  <tr>
+    <td style="padding: 3px 0;">Jabatan / Unit</td>
+    <td style="text-align: center; padding: 3px 0;">:</td>
+    <td style="padding: 3px 0;">[Isi Jabatan]</td>
+  </tr>
+  <tr>
+    <td style="padding: 3px 0;">Unit Kerja / Cabang</td>
+    <td style="text-align: center; padding: 3px 0;">:</td>
+    <td style="padding: 3px 0;">{{nama_cabang}}</td>
+  </tr>
+  <tr>
+    <td style="padding: 3px 0; vertical-align: top;">Keterangan / Keperluan</td>
+    <td style="text-align: center; padding: 3px 0; vertical-align: top;">:</td>
+    <td style="padding: 3px 0; vertical-align: top;">[Uraikan keperluan di sini...]</td>
+  </tr>
 </table>
-<p></p>`;
-    editor.chain().focus().insertContent(html).run();
+<p><br></p>`;
+    document.execCommand("insertHTML", false, html);
+    handleInput();
+    saveHistorySnapshot();
+  };
+
+  const insertTable = (customRows = 3, customCols = 3) => {
+    if (readOnly) return;
+    saveHistorySnapshot();
+    const rowNum = customRows || 3;
+    const colNum = customCols || 3;
+    const widthPct = (100 / colNum).toFixed(1);
+
+    let tableHtml =
+      '<table style="width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">';
+    for (let r = 0; r < rowNum; r++) {
+      tableHtml += "<tr>";
+      for (let c = 0; c < colNum; c++) {
+        if (r === 0) {
+          tableHtml += `<th style="width: ${widthPct}%; border: 1px solid #cbd5e1; padding: 6px 10px; background-color: #f1f5f9; text-align: left; font-weight: bold; font-size: 11pt;">Kolom ${c + 1}</th>`;
+        } else {
+          tableHtml += `<td style="width: ${widthPct}%; border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 11pt;"><br></td>`;
+        }
+      }
+      tableHtml += "</tr>";
+    }
+    tableHtml += "</table><p><br></p>";
+    document.execCommand("insertHTML", false, tableHtml);
+    handleInput();
+    saveHistorySnapshot();
   };
 
   const insertVariable = (varKey) => {
-    if (!editor || readOnly) return;
+    if (readOnly) return;
     if (varKey === "nomor_surat") {
       const numDisplay = letterNumber || "{{nomor_surat}}";
-      const badge = `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f8fafc; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi (Terkunci)">${numDisplay}</span>&nbsp;`;
-      editor.chain().focus().insertContent(badge).run();
+      const badge = `<span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi (Terkunci)">${numDisplay}</span>`;
+      document.execCommand("insertHTML", false, badge);
     } else {
-      editor.chain().focus().insertContent(`{{${varKey}}}`).run();
+      const tag = `{{${varKey}}}`;
+      document.execCommand("insertText", false, tag);
     }
+    handleInput();
   };
 
   const insertImage = () => {
-    if (!editor || readOnly) return;
+    if (readOnly) return;
     const url = prompt(
-      "Masukkan URL Gambar:",
-      "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&auto=format&fit=crop&q=80",
+      "Masukkan URL Gambar (atau paste link gambar):",
+      "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&auto=format&fit=crop&q=80"
     );
     if (url) {
-      editor
-        .chain()
-        .focus()
-        .insertContent(
-          `<p style="text-align:center;"><img src="${url}" alt="Lampiran" style="max-width:80%; border-radius:4px;" /></p><p></p>`,
-        )
-        .run();
+      const imgHtml = `<p style="text-align: center;"><img src="${url}" alt="Lampiran Foto" style="max-width: 80%; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin: 12px auto; display: inline-block;" /></p><p><br></p>`;
+      document.execCommand("insertHTML", false, imgHtml);
+      handleInput();
     }
   };
 
-  // Paste dari Excel TSV
-  const insertExcelTableFromModal = () => {
-    if (!excelPasteText.trim() || !editor) return;
-    const lines = excelPasteText.trim().split(/\r\n|\r|\n/);
-    if (lines.length === 0) return;
+  // =========================================================================
+  // EXCEL / SPREADSHEET TABLE IMPORT & PASTE LOGIC
+  // =========================================================================
+  const openExcelModal = () => {
+    if (readOnly) return;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    } else {
+      savedRangeRef.current = null;
+    }
+    setShowExcelModal(true);
+  };
+
+  const isTsvData = (text) => {
+    if (!text) return false;
+    const lines = text.trim().split(/\r\n|\r|\n/);
+    const tabLines = lines.filter((l) => l.includes("\t"));
+    return (
+      tabLines.length >= 1 &&
+      (lines.length > 1 || lines[0].split("\t").length >= 2)
+    );
+  };
+
+  const formatTsvToTable = (tsvText, firstRowIsHeader = true, autoAlign = true) => {
+    if (!tsvText) return "";
+    const lines = tsvText.trim().split(/\r\n|\r|\n/);
+    if (lines.length === 0) return "";
 
     const matrix = lines.map((line) => line.split("\t"));
     const maxCols = Math.max(...matrix.map((r) => r.length));
-    const widthPct = (100 / maxCols).toFixed(1);
+    if (maxCols <= 1 && matrix.length <= 1) return "";
 
-    let html = `<table style="width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: inherit; font-size: 11pt; table-layout: fixed;"><tbody>`;
+    const widthPct = (100 / maxCols).toFixed(1);
+    let html = `<table style="width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: inherit; font-size: 11pt; table-layout: auto;">`;
+
     matrix.forEach((row, rowIdx) => {
       html += `<tr>`;
       for (let c = 0; c < maxCols; c++) {
-        const val = row[c] !== undefined ? row[c].trim() : "";
-        const cleanVal = val
-          ? val.replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        const rawVal = row[c] !== undefined ? row[c].trim() : "";
+        const cellContent = rawVal
+          ? rawVal.replace(/</g, "&lt;").replace(/>/g, "&gt;")
           : "<br>";
+        
         let align = "text-align: left;";
-        if (
-          val &&
-          !isNaN(val.replace(/[.,%Rp\s]/g, "")) &&
-          !/[a-zA-Z]/.test(val)
-        ) {
-          align = "text-align: right;";
+        if (autoAlign && rawVal) {
+          const cleanNum = rawVal.replace(/[.,%Rp\s]/g, "");
+          if (cleanNum && !isNaN(cleanNum) && !/[a-zA-Z]/.test(rawVal)) {
+            align = "text-align: right;";
+          }
         }
-        if (rowIdx === 0 && excelHeaderFirstRow) {
-          html += `<th style="width:${widthPct}%; border:1px solid #cbd5e1; padding:6px 10px; background-color:#f1f5f9; font-weight:bold; ${align}">${cleanVal}</th>`;
+
+        if (rowIdx === 0 && firstRowIsHeader) {
+          html += `<th style="width: ${widthPct}%; border: 1px solid #cbd5e1; padding: 6px 10px; background-color: #f1f5f9; font-weight: bold; font-size: 11pt; ${align} vertical-align: middle;">${cellContent}</th>`;
         } else {
-          html += `<td style="width:${widthPct}%; border:1px solid #cbd5e1; padding:6px 10px; ${align}">${cleanVal}</td>`;
+          html += `<td style="width: ${widthPct}%; border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 11pt; ${align} vertical-align: middle;">${cellContent}</td>`;
         }
       }
       html += `</tr>`;
     });
-    html += `</tbody></table><p></p>`;
+    html += `</table><p><br></p>`;
+    return html;
+  };
 
-    editor.chain().focus().insertContent(html).run();
-    setShowExcelModal(false);
-    setExcelPasteText("");
+  const formatExcelHtmlTable = (htmlText) => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, "text/html");
+      const tables = doc.querySelectorAll("table");
+      if (!tables || tables.length === 0) return null;
+
+      tables.forEach((table) => {
+        table.removeAttribute("width");
+        table.removeAttribute("height");
+        table.removeAttribute("border");
+        table.removeAttribute("cellspacing");
+        table.removeAttribute("cellpadding");
+        table.className = "w-full my-3";
+        table.setAttribute(
+          "style",
+          "width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: inherit; font-size: 11pt; table-layout: auto;"
+        );
+
+        // Remove colgroup/col
+        table.querySelectorAll("colgroup, col").forEach((el) => el.remove());
+
+        const rows = table.querySelectorAll("tr");
+        rows.forEach((tr, rIdx) => {
+          tr.removeAttribute("height");
+          tr.removeAttribute("style");
+
+          const cells = tr.querySelectorAll("td, th");
+          cells.forEach((cell) => {
+            let textAlign = "left";
+            const styleAlign = cell.style.textAlign;
+            const alignAttr = cell.getAttribute("align");
+            if (styleAlign) textAlign = styleAlign;
+            else if (alignAttr) textAlign = alignAttr;
+            else {
+              const text = cell.innerText.trim();
+              if (
+                text &&
+                !isNaN(text.replace(/[.,%Rp\s]/g, "")) &&
+                !/[a-zA-Z]/.test(text)
+              ) {
+                textAlign = "right";
+              }
+            }
+
+            const isHeader = rIdx === 0;
+            const bg = isHeader
+              ? "background-color: #f1f5f9; font-weight: bold;"
+              : "";
+
+            cell.removeAttribute("class");
+            cell.removeAttribute("width");
+            cell.removeAttribute("height");
+            cell.setAttribute(
+              "style",
+              `border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 11pt; text-align: ${textAlign}; vertical-align: middle; ${bg}`
+            );
+
+            if (!cell.innerHTML.trim()) {
+              cell.innerHTML = "<br>";
+            }
+          });
+        });
+      });
+
+      return (
+        Array.from(tables)
+          .map((t) => t.outerHTML)
+          .join("<p><br></p>") + "<p><br></p>"
+      );
+    } catch (err) {
+      console.error("Failed to parse Excel HTML:", err);
+      return null;
+    }
+  };
+
+  const handlePaste = (e) => {
+    if (readOnly) return;
+    const clipboardData = e.clipboardData || window.clipboardData;
+    if (!clipboardData) return;
+
+    const htmlData = clipboardData.getData("text/html");
+    const textData = clipboardData.getData("text/plain");
+
+    // Case 1: Copied from Excel / Word / web as HTML table
+    if (htmlData && htmlData.includes("<table")) {
+      const cleanTable = formatExcelHtmlTable(htmlData);
+      if (cleanTable) {
+        e.preventDefault();
+        document.execCommand("insertHTML", false, cleanTable);
+        handleInput();
+        return;
+      }
+    }
+
+    // Case 2: Copied as TSV (tab separated rows/columns from Excel)
+    if (textData && isTsvData(textData)) {
+      const cleanTable = formatTsvToTable(textData, true, true);
+      if (cleanTable) {
+        e.preventDefault();
+        document.execCommand("insertHTML", false, cleanTable);
+        handleInput();
+        return;
+      }
+    }
+
+    // Case 3: Copied plain text (Ctrl+V teks bersih tanpa style luar yang merusak tata letak)
+    if (textData && (!htmlData || !htmlData.includes("<table"))) {
+      e.preventDefault();
+      document.execCommand("insertText", false, textData.replace(/\r\n/g, "\n"));
+      handleInput();
+      return;
+    }
+
+    // Fallback sync input
+    setTimeout(() => {
+      handleInput();
+    }, 20);
   };
 
   const handleRibbonPaste = async () => {
-    if (readOnly || !editor) return;
+    if (readOnly) return;
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
     try {
       if (navigator.clipboard && navigator.clipboard.readText) {
         const text = await navigator.clipboard.readText();
         if (text) {
-          if (text.includes("\t")) {
-            setExcelPasteText(text);
-            setShowExcelModal(true);
-            return;
+          if (isTsvData(text)) {
+            const cleanTable = formatTsvToTable(text, true, true);
+            if (cleanTable) {
+              document.execCommand("insertHTML", false, cleanTable);
+              handleInput();
+              return;
+            }
           }
-          editor
-            .chain()
-            .focus()
-            .insertContent(text.replace(/\r\n/g, "\n"))
-            .run();
+          document.execCommand("insertText", false, text.replace(/\r\n/g, "\n"));
+          handleInput();
           return;
         }
       }
     } catch (err) {
-      console.warn("Clipboard access:", err);
+      console.warn("Clipboard access warning:", err);
     }
+    document.execCommand("paste");
+    handleInput();
   };
 
-  const isTableActive = Boolean(editor?.isActive("table"));
+  const insertExcelTableFromModal = () => {
+    if (!excelPasteText.trim() || !editorRef.current) return;
+    let tableHtml = "";
+
+    if (excelPasteText.includes("<table")) {
+      tableHtml = formatExcelHtmlTable(excelPasteText);
+    } else {
+      tableHtml = formatTsvToTable(
+        excelPasteText,
+        excelHeaderFirstRow,
+        excelAutoAlign
+      );
+    }
+
+    if (!tableHtml) {
+      alert("Format data tidak terbaca sebagai tabel. Pastikan Anda meng-copy sel dari Excel atau spreadsheet.");
+      return;
+    }
+
+    editorRef.current.focus();
+    const sel = window.getSelection();
+    if (savedRangeRef.current && sel) {
+      try {
+        sel.removeAllRanges();
+        sel.addRange(savedRangeRef.current);
+      } catch (e) {
+        // Range expired
+      }
+    }
+
+    saveHistorySnapshot();
+    const inserted = document.execCommand("insertHTML", false, tableHtml);
+    if (!inserted) {
+      editorRef.current.innerHTML += tableHtml;
+    }
+
+    handleInput();
+    saveHistorySnapshot();
+    setShowExcelModal(false);
+    setExcelPasteText("");
+  };
+
+  const readClipboardDirectly = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          setExcelPasteText(text);
+        }
+      }
+    } catch (err) {
+      alert("Akses clipboard langsung dibatasi browser. Silakan tekan Ctrl+V pada kotak teks di bawah.");
+    }
+  };
 
   const containerClasses = isFullscreen
     ? "fixed inset-0 z-50 bg-[#e9ecef] flex flex-col h-screen w-screen overflow-hidden animate-fadeIn select-none font-sans"
@@ -493,8 +1562,11 @@ export default function RichEditor({
 
   return (
     <div className={containerClasses}>
-      {/* 1. TITLE BAR MICROSOFT WORD (#2b579a) */}
+      {/* ========================================================================= */}
+      {/* 1. MICROSOFT WORD CLASSIC TITLE BAR (#2b579a)                             */}
+      {/* ========================================================================= */}
       <div className="bg-[#2b579a] text-white px-3 py-1.5 flex items-center justify-between text-xs shadow-xs shrink-0 select-none">
+        {/* Sisi Kiri: Word Icon & Quick Access Toolbar */}
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 bg-[#185abd] text-white rounded flex items-center justify-center font-bold text-[11px] shadow-2xs border border-white/20">
             W
@@ -502,18 +1574,16 @@ export default function RichEditor({
           <div className="flex items-center gap-1 border-r border-white/20 pr-2">
             <button
               type="button"
-              onClick={handleUndo}
-              disabled={!editor?.can().undo()}
-              className="p-1 hover:bg-white/15 disabled:opacity-40 rounded text-white transition"
+              onClick={customUndo}
+              className="p-1 hover:bg-white/15 rounded text-white/90 hover:text-white transition"
               title="Undo (Ctrl+Z)"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
             <button
               type="button"
-              onClick={handleRedo}
-              disabled={!editor?.can().redo()}
-              className="p-1 hover:bg-white/15 disabled:opacity-40 rounded text-white transition"
+              onClick={customRedo}
+              className="p-1 hover:bg-white/15 rounded text-white/90 hover:text-white transition"
               title="Redo (Ctrl+Y)"
             >
               <RotateCw className="w-3.5 h-3.5" />
@@ -530,18 +1600,18 @@ export default function RichEditor({
             )}
           </div>
           <span className="font-semibold text-xs tracking-wide truncate max-w-sm">
-            {letterNumber || perihal || "Dokumen1"} - Microsoft Word (TipTap
-            Engine)
+            {letterNumber || perihal || "Dokumen1"} - Microsoft Word
           </span>
         </div>
 
+        {/* Sisi Kanan: Action Controls (Simpan, Tutup/Minimize) */}
         <div className="flex items-center gap-2 text-xs">
           {onSave && (
             <button
               type="button"
               onClick={onSave}
               className="px-2.5 py-1 bg-white/15 hover:bg-white/25 active:bg-white/30 text-white rounded text-[11px] font-semibold flex items-center gap-1 transition border border-white/20 shadow-xs"
-              title="Simpan draft surat"
+              title="Simpan draft"
             >
               <Save className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Simpan Draft</span>
@@ -553,7 +1623,7 @@ export default function RichEditor({
               type="button"
               onClick={onClose}
               className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded text-[11px] font-bold flex items-center gap-1.5 transition shadow-xs"
-              title="Selesai & kembali ke review surat"
+              title="Tutup & kembali ke review surat"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Selesai &amp; Review</span>
@@ -562,7 +1632,9 @@ export default function RichEditor({
         </div>
       </div>
 
-      {/* 2. RIBBON TABS */}
+      {/* ========================================================================= */}
+      {/* 2. WORD RIBBON TAB HEADERS (File, Home, Insert, Layout, Table Tools)     */}
+      {/* ========================================================================= */}
       <div className="bg-[#2b579a] text-white px-3 flex items-center gap-0.5 text-xs select-none border-t border-[#185abd]">
         <button
           type="button"
@@ -598,7 +1670,8 @@ export default function RichEditor({
           Tata Letak (Layout)
         </button>
 
-        {isTableActive && (
+        {/* Tab Otomatis: Alat Tabel (Word Contextual Table Tools) */}
+        {activeTableState && (
           <button
             type="button"
             onClick={() => setActiveTab("table")}
@@ -614,9 +1687,12 @@ export default function RichEditor({
         )}
       </div>
 
-      {/* 3. RIBBON COMMAND TOOLBAR */}
+      {/* ========================================================================= */}
+      {/* 3. WORD RIBBON TOOLBAR AREA                                               */}
+      {/* ========================================================================= */}
       {!readOnly && (
         <div className="bg-[#f3f4f6] border-b border-slate-300 p-2 select-none shadow-2xs">
+          {/* TAB: BERANDA (HOME) */}
           {activeTab === "home" && (
             <div className="flex flex-wrap items-center gap-2">
               {/* GROUP: CLIPBOARD */}
@@ -626,20 +1702,38 @@ export default function RichEditor({
                     type="button"
                     onClick={handleRibbonPaste}
                     className="p-1 text-slate-700 hover:bg-slate-200 rounded flex flex-col items-center gap-0.5 text-[10px]"
-                    title="Paste dari Clipboard"
+                    title="Tempel Teks (Ctrl+V)"
                   >
                     <Clipboard className="w-4 h-4 text-amber-600" />
                     <span>Paste</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowExcelModal(true)}
+                    onClick={openExcelModal}
                     className="p-1 text-emerald-800 hover:bg-emerald-100 rounded flex flex-col items-center gap-0.5 text-[10px] font-semibold border border-emerald-300 bg-emerald-50"
-                    title="Paste Tabel Excel"
+                    title="Paste Tabel dari Microsoft Excel / Spreadsheet"
                   >
                     <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                     <span>Excel</span>
                   </button>
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => format("cut")}
+                      className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                      title="Potong (Cut)"
+                    >
+                      <Scissors className="w-3 h-3 text-slate-600" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("copy")}
+                      className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                      title="Salin (Copy)"
+                    >
+                      <Copy className="w-3 h-3 text-slate-600" />
+                    </button>
+                  </div>
                 </div>
                 <span className="text-[9px] text-slate-400 font-medium mt-1">
                   Papan Klip
@@ -648,92 +1742,119 @@ export default function RichEditor({
 
               {/* GROUP: FONT */}
               <div className="flex flex-col items-center border-r border-slate-300 pr-2">
+                {/* Baris 1: Font Family, Size, Grow/Shrink */}
                 <div className="flex items-center gap-1">
                   <select
                     value={fontFamily}
                     onChange={(e) => applyFontFamily(e.target.value)}
-                    className="text-xs bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-800 font-medium w-28"
+                    className="text-xs bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-800 font-medium w-28 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
                     <option value="Calibri">Calibri</option>
                     <option value="Arial">Arial</option>
                     <option value="Tahoma">Tahoma</option>
                     <option value="Times New Roman">Times New Roman</option>
                     <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Courier New">Courier New</option>
                   </select>
 
                   <select
                     value={fontSize}
-                    onChange={(e) => setFontSize(e.target.value)}
-                    className="text-xs bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800 font-medium w-16"
+                    onChange={(e) => applyFontSize(e.target.value)}
+                    className="text-xs bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800 font-medium w-16 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
                     <option value="9pt">9</option>
                     <option value="10pt">10</option>
+                    <option value="10.5pt">10.5</option>
                     <option value="11pt">11</option>
                     <option value="12pt">12</option>
                     <option value="14pt">14</option>
                     <option value="16pt">16</option>
+                    <option value="18pt">18</option>
+                    <option value="20pt">20</option>
+                    <option value="24pt">24</option>
                   </select>
+
+                  <button
+                    type="button"
+                    onClick={() => changeFontSizeStep(1)}
+                    className="px-1.5 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded border border-slate-200 bg-white"
+                    title="Perbesar Huruf (Grow Font)"
+                  >
+                    A<span className="text-[9px]">▲</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => changeFontSizeStep(-1)}
+                    className="px-1.5 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded border border-slate-200 bg-white"
+                    title="Perkecil Huruf (Shrink Font)"
+                  >
+                    A<span className="text-[9px]">▼</span>
+                  </button>
                 </div>
 
+                {/* Baris 2: B, I, U, Strike, Highlight, Color */}
                 <div className="flex items-center gap-0.5 mt-1">
                   <button
                     type="button"
-                    onClick={toggleBold}
-                    className={`p-1 rounded ${editor?.isActive("bold") ? "bg-slate-300 text-blue-700 font-bold" : "hover:bg-slate-200 text-slate-700"}`}
+                    onClick={() => format("bold")}
+                    className="px-2 py-0.5 font-black text-xs text-slate-800 hover:bg-slate-200 rounded"
                     title="Tebal (Ctrl+B)"
                   >
-                    <Bold className="w-3.5 h-3.5" />
+                    B
                   </button>
                   <button
                     type="button"
-                    onClick={toggleItalic}
-                    className={`p-1 rounded ${editor?.isActive("italic") ? "bg-slate-300 text-blue-700 font-bold" : "hover:bg-slate-200 text-slate-700"}`}
+                    onClick={() => format("italic")}
+                    className="px-2 py-0.5 italic font-serif text-xs text-slate-800 hover:bg-slate-200 rounded"
                     title="Miring (Ctrl+I)"
                   >
-                    <Italic className="w-3.5 h-3.5" />
+                    I
                   </button>
                   <button
                     type="button"
-                    onClick={toggleUnderline}
-                    className={`p-1 rounded ${editor?.isActive("underline") ? "bg-slate-300 text-blue-700 font-bold" : "hover:bg-slate-200 text-slate-700"}`}
+                    onClick={() => format("underline")}
+                    className="px-2 py-0.5 underline text-xs text-slate-800 hover:bg-slate-200 rounded"
                     title="Garis Bawah (Ctrl+U)"
                   >
-                    <UnderlineIcon className="w-3.5 h-3.5" />
+                    U
                   </button>
                   <button
                     type="button"
-                    onClick={toggleStrike}
-                    className={`p-1 rounded ${editor?.isActive("strike") ? "bg-slate-300 text-blue-700" : "hover:bg-slate-200 text-slate-700"}`}
-                    title="Coret"
+                    onClick={() => format("strikeThrough")}
+                    className="px-1.5 py-0.5 line-through text-xs text-slate-800 hover:bg-slate-200 rounded"
+                    title="Coret (Strikethrough)"
                   >
-                    <Strikethrough className="w-3.5 h-3.5" />
+                    ab
                   </button>
 
                   <span className="text-slate-300 mx-0.5">|</span>
 
+                  {/* Highlight Color */}
                   <label
                     className="p-1 hover:bg-slate-200 rounded cursor-pointer flex items-center gap-0.5"
-                    title="Highlight"
+                    title="Warna Sorotan Teks (Highlight)"
                   >
                     <Highlighter className="w-3.5 h-3.5 text-amber-500" />
                     <input
                       type="color"
                       defaultValue="#fef08a"
-                      onChange={(e) => applyHighlight(e.target.value)}
+                      onChange={(e) => applyHighlightColor(e.target.value)}
                       className="w-3 h-3 p-0 border-0 rounded cursor-pointer bg-transparent"
                     />
                   </label>
 
+                  {/* Font Color */}
                   <label
                     className="p-1 hover:bg-slate-200 rounded cursor-pointer flex items-center gap-0.5"
-                    title="Warna Font"
+                    title="Warna Huruf (Font Color)"
                   >
                     <span className="text-xs font-bold text-red-600 underline">
                       A
                     </span>
                     <input
                       type="color"
-                      defaultValue="#000000"
+                      defaultValue="#0f172a"
                       onChange={(e) => applyFontColor(e.target.value)}
                       className="w-3 h-3 p-0 border-0 rounded cursor-pointer bg-transparent"
                     />
@@ -746,81 +1867,109 @@ export default function RichEditor({
 
               {/* GROUP: PARAGRAPH */}
               <div className="flex flex-col items-center border-r border-slate-300 pr-2">
+                {/* Baris 1: Alignment & Lists */}
                 <div className="flex items-center gap-0.5">
                   <button
                     type="button"
-                    onClick={() => setAlign("left")}
-                    className={`p-1 rounded ${editor?.isActive({ textAlign: "left" }) ? "bg-slate-300" : "hover:bg-slate-200"}`}
+                    onClick={() => format("justifyLeft")}
+                    className="p-1 text-slate-700 hover:bg-slate-200 rounded"
                     title="Rata Kiri"
                   >
-                    <AlignLeft className="w-3.5 h-3.5 text-slate-700" />
+                    <AlignLeft className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAlign("center")}
-                    className={`p-1 rounded ${editor?.isActive({ textAlign: "center" }) ? "bg-slate-300" : "hover:bg-slate-200"}`}
+                    onClick={() => format("justifyCenter")}
+                    className="p-1 text-slate-700 hover:bg-slate-200 rounded"
                     title="Rata Tengah"
                   >
-                    <AlignCenter className="w-3.5 h-3.5 text-slate-700" />
+                    <AlignCenter className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAlign("right")}
-                    className={`p-1 rounded ${editor?.isActive({ textAlign: "right" }) ? "bg-slate-300" : "hover:bg-slate-200"}`}
+                    onClick={() => format("justifyRight")}
+                    className="p-1 text-slate-700 hover:bg-slate-200 rounded"
                     title="Rata Kanan"
                   >
-                    <AlignRight className="w-3.5 h-3.5 text-slate-700" />
+                    <AlignRight className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAlign("justify")}
-                    className={`p-1 rounded ${editor?.isActive({ textAlign: "justify" }) ? "bg-slate-300" : "hover:bg-slate-200"}`}
-                    title="Rata Kanan Kiri"
+                    onClick={() => format("justifyFull")}
+                    className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                    title="Rata Kanan-Kiri (Justify)"
                   >
-                    <AlignJustify className="w-3.5 h-3.5 text-slate-700" />
+                    <AlignJustify className="w-3.5 h-3.5" />
                   </button>
 
                   <span className="text-slate-300 mx-0.5">|</span>
 
                   <button
                     type="button"
-                    onClick={toggleBulletList}
-                    className={`p-1 rounded ${editor?.isActive("bulletList") ? "bg-slate-300" : "hover:bg-slate-200"}`}
-                    title="Bullet"
+                    onClick={() => format("insertUnorderedList")}
+                    className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                    title="Daftar Bullet"
                   >
-                    <List className="w-3.5 h-3.5 text-slate-700" />
+                    <List className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
-                    onClick={toggleOrderedList}
-                    className={`p-1 rounded ${editor?.isActive("orderedList") ? "bg-slate-300" : "hover:bg-slate-200"}`}
-                    title="Nomor"
+                    onClick={() => format("insertOrderedList")}
+                    className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                    title="Daftar Nomor"
                   >
-                    <ListOrdered className="w-3.5 h-3.5 text-slate-700" />
+                    <ListOrdered className="w-3.5 h-3.5" />
                   </button>
+                </div>
+
+                {/* Baris 2: Line Spacing & Paragraph Spacing */}
+                <div className="flex items-center gap-1.5 mt-1 text-[11px]">
+                  <span className="text-slate-500 font-medium">Spasi:</span>
+                  <select
+                    value={lineSpacing}
+                    onChange={(e) => applyLineSpacing(e.target.value)}
+                    className="text-[11px] bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800"
+                  >
+                    <option value="1.0">1.0</option>
+                    <option value="1.15">1.15</option>
+                    <option value="1.3">1.3 (Surat)</option>
+                    <option value="1.5">1.5</option>
+                    <option value="2.0">2.0</option>
+                  </select>
+
+                  <select
+                    value={paragraphSpacing}
+                    onChange={(e) => applyParagraphSpacing(e.target.value)}
+                    className="text-[11px] bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800"
+                  >
+                    <option value="tight">Rapat (4px)</option>
+                    <option value="normal">Normal (10px)</option>
+                    <option value="loose">Renggang (18px)</option>
+                  </select>
                 </div>
                 <span className="text-[9px] text-slate-400 font-medium mt-1">
                   Paragraf
                 </span>
               </div>
 
-              {/* GROUP: TEMPLATE RESMI */}
+              {/* GROUP: STYLES / TEMPLATE SNIPPETS */}
               <div className="flex flex-col items-center">
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={insertOfficialHeader}
                     className="px-2.5 py-1 bg-white border border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs transition"
-                    title="Sisipkan Kop Header Resmi"
+                    title="Sisipkan Header Lengkap: No, Lamp, Perihal, Dari, Kepada, Tembusan"
                   >
                     <Layout className="w-3.5 h-3.5 text-blue-600" />
                     <span>Header Surat</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={insertFieldRowLayout}
                     className="px-2.5 py-1 bg-white border border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs transition"
-                    title="Sisipkan Kolom Biodata Rapi"
+                    title="Sisipkan Kolom Biodata Rapi (Titik dua sejajar otomatis)"
                   >
                     <Columns className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Kolom Rapi (Tab)</span>
@@ -833,17 +1982,27 @@ export default function RichEditor({
             </div>
           )}
 
+          {/* TAB: SISIPKAN (INSERT) */}
           {activeTab === "insert" && (
             <div className="flex flex-wrap items-center gap-3">
+              {/* Insert Table Quick */}
               <div className="flex items-center gap-1.5 border-r border-slate-300 pr-3">
                 <button
                   type="button"
                   onClick={() => insertTable(3, 3)}
                   className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-semibold text-slate-800 flex items-center gap-1.5 shadow-2xs"
-                  title="Sisipkan Tabel 3x3"
+                  title="Sisipkan Tabel 3x3 Standar"
                 >
                   <TableIcon className="w-4 h-4 text-emerald-600" />
                   <span>Tabel (3x3)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertTable(4, 4)}
+                  className="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs"
+                  title="Sisipkan Tabel 4x4"
+                >
+                  <span>4x4</span>
                 </button>
                 <button
                   type="button"
@@ -852,35 +2011,40 @@ export default function RichEditor({
                     const c = prompt("Jumlah Kolom:", "3");
                     if (r && c) insertTable(parseInt(r, 10), parseInt(c, 10));
                   }}
-                  className="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-semibold text-slate-800 shadow-2xs"
+                  className="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs"
+                  title="Kustom Baris & Kolom"
                 >
-                  Kustom...
+                  <span>Kustom...</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowExcelModal(true)}
+                  onClick={openExcelModal}
                   className="px-3 py-1.5 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 rounded text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition"
+                  title="Paste / Impor Tabel dari Microsoft Excel atau Google Sheets"
                 >
                   <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                   <span>Paste Excel</span>
                 </button>
               </div>
 
+              {/* Insert Image */}
               <div className="flex items-center gap-1.5 border-r border-slate-300 pr-3">
                 <button
                   type="button"
                   onClick={insertImage}
                   className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-semibold text-slate-800 flex items-center gap-1.5 shadow-2xs"
+                  title="Sisipkan Gambar dari URL"
                 >
                   <ImageIcon className="w-4 h-4 text-sky-600" />
-                  <span>Gambar</span>
+                  <span>Gambar (Picture)</span>
                 </button>
               </div>
 
+              {/* Insert Variables */}
               {availableVariables.length > 0 && (
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold text-slate-600">
-                    Variabel:
+                    Variabel Sistem:
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {availableVariables.slice(0, 5).map((v) => (
@@ -899,35 +2063,43 @@ export default function RichEditor({
             </div>
           )}
 
+          {/* TAB: TATA LETAK (LAYOUT) */}
           {activeTab === "layout" && (
-            <div className="flex items-center gap-4 text-xs">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <div className="flex items-center gap-2 border-r border-slate-300 pr-3">
                 <span className="font-bold text-slate-700">Ukuran Kertas:</span>
                 <span className="bg-white border border-slate-300 px-2.5 py-1 rounded font-semibold text-slate-800">
-                  A4 (210 x 297 mm)
+                  A4 (210 × 297 mm)
+                </span>
+              </div>
+              <div className="flex items-center gap-2 border-r border-slate-300 pr-3">
+                <span className="font-bold text-slate-700">Margin:</span>
+                <span className="bg-white border border-slate-300 px-2.5 py-1 rounded font-semibold text-slate-800">
+                  Normal (2.5 cm / 1 inch)
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-700">Batas Margin:</span>
+                <span className="font-bold text-slate-700">Orientasi:</span>
                 <span className="bg-white border border-slate-300 px-2.5 py-1 rounded font-semibold text-slate-800">
-                  Normal (2.5 cm)
+                  Potret (Portrait)
                 </span>
               </div>
             </div>
           )}
 
-          {/* TAB KONTEKSTUAL ALAT TABEL (TIPTAP ENGINE) */}
-          {(activeTab === "table" || isTableActive) && (
-            <div className="bg-indigo-50/90 -m-2 mt-1.5 p-2 border-t border-indigo-200 flex flex-wrap items-center gap-2 text-xs animate-fadeIn">
+          {/* TAB KONTEKSTUAL: ALAT TABEL (TABLE TOOLS) */}
+          {(activeTab === "table" || activeTableState) && (
+            <div className="bg-indigo-50/80 -m-2 mt-1.5 p-2 border-t border-indigo-200 flex flex-wrap items-center gap-2 text-xs animate-fadeIn">
               <div className="flex items-center gap-1 font-bold text-indigo-900 pr-2 border-r border-indigo-200">
                 <Grid className="w-4 h-4 text-indigo-600" />
                 <span>Alat Tabel:</span>
               </div>
 
-              {/* Baris & Kolom */}
+              {/* Sisip Baris / Kolom */}
               <div className="flex items-center gap-1 bg-white border border-indigo-200 rounded p-0.5 shadow-2xs">
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={addRowAbove}
                   className="px-2 py-0.5 hover:bg-indigo-50 text-slate-700 rounded text-[11px] font-medium"
                   title="Tambah baris di atas kursor"
@@ -936,6 +2108,7 @@ export default function RichEditor({
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={addRowBelow}
                   className="px-2 py-0.5 hover:bg-indigo-50 text-slate-700 rounded text-[11px] font-medium"
                   title="Tambah baris di bawah kursor"
@@ -944,75 +2117,131 @@ export default function RichEditor({
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={addColLeft}
                   className="px-2 py-0.5 hover:bg-indigo-50 text-slate-700 rounded text-[11px] font-medium"
-                  title="Tambah kolom di kiri"
+                  title="Tambah kolom di sebelah kiri"
                 >
                   + Kolom Kiri
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={addColRight}
                   className="px-2 py-0.5 hover:bg-indigo-50 text-slate-700 rounded text-[11px] font-medium"
-                  title="Tambah kolom di kanan"
+                  title="Tambah kolom di sebelah kanan"
                 >
                   + Kolom Kanan
                 </button>
               </div>
 
-              {/* Sel Gabung / Pecah */}
-              <div className="flex items-center gap-1 bg-white border border-indigo-200 rounded p-0.5 shadow-2xs">
+              {/* Opsi Kolom Khusus (Pilih Kolom & Geser Sel) */}
+              <div className="flex items-center gap-1 bg-white border border-blue-200 rounded p-0.5 shadow-2xs">
                 <button
                   type="button"
-                  onClick={mergeOrSplit}
-                  className="px-2 py-0.5 hover:bg-indigo-50 text-slate-700 rounded text-[11px] font-medium"
-                  title="Gabung / Pecah Sel"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={selectCurrentColumn}
+                  className="px-2.5 py-0.5 hover:bg-blue-100 text-blue-700 rounded text-[11px] font-bold bg-blue-50 border border-blue-200"
+                  title="Pilih seluruh sel hanya pada kolom ini saja (tanpa menyentuh kolom lain)"
                 >
-                  Gabung / Pecah Sel
+                  Pilih Kolom Ini
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={shiftColumnCellsDown}
+                  className="px-2 py-0.5 hover:bg-slate-100 text-slate-700 rounded text-[11px] font-medium"
+                  title="Sisipkan sel kosong & geser isi kolom ini ke bawah (kolom lain tidak bergeser)"
+                >
+                  ↓ Geser Kolom ke Bawah
                 </button>
               </div>
 
-              {/* Mode Garis Tabel (Bergaris vs Tanpa Garis) */}
+              {/* Pengaturan Lebar */}
               <div className="flex items-center gap-1 bg-white border border-indigo-200 rounded p-0.5 shadow-2xs">
                 <button
                   type="button"
-                  onClick={toggleTableBorder}
-                  className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 transition ${
-                    editor?.getAttributes("table")?.borderless
-                      ? "bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs"
-                      : "hover:bg-indigo-50 text-slate-700"
-                  }`}
-                  title="Ubah garis tabel: Bergaris (Tabel Data) atau Tanpa Garis (Kop Surat & Formulir Rapi)"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={distributeColumnsEvenly}
+                  className="px-2 py-0.5 text-indigo-700 hover:bg-indigo-50 rounded text-[11px] font-semibold"
+                  title="Bagi rata lebar semua kolom"
                 >
-                  <Grid className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>
-                    {editor?.getAttributes("table")?.borderless
-                      ? "Garis: Tanpa Garis (Rapi)"
-                      : "Garis: Bergaris (Kotak)"}
-                  </span>
+                  Bagi Rata Kolom
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={setTableFullWidth}
+                  className="px-2 py-0.5 text-slate-700 hover:bg-indigo-50 rounded text-[11px] font-medium"
+                  title="Set lebar 100% selebar halaman"
+                >
+                  100% Penuh
                 </button>
               </div>
 
-              {/* Hapus Baris / Kolom / Tabel */}
+              {/* Posisi & Alignment */}
+              <div className="flex items-center gap-1 bg-white border border-indigo-200 rounded p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={indentTableLeft}
+                  className="px-1.5 py-0.5 text-slate-700 hover:bg-indigo-50 rounded text-[11px]"
+                  title="Kurangi Indentasi Kiri"
+                >
+                  <ArrowLeft className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={alignTableLeft}
+                  className="px-2 py-0.5 text-slate-700 hover:bg-indigo-50 rounded text-[11px]"
+                  title="Rata Kiri"
+                >
+                  Kiri
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={alignTableCenter}
+                  className="px-2 py-0.5 text-slate-700 hover:bg-indigo-50 rounded text-[11px]"
+                  title="Rata Tengah"
+                >
+                  Tengah
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={indentTableRight}
+                  className="px-1.5 py-0.5 text-slate-700 hover:bg-indigo-50 rounded text-[11px]"
+                  title="Tambah Indentasi Kanan"
+                >
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Hapus Baris, Kolom, Tabel */}
               <div className="flex items-center gap-1 bg-white border border-rose-200 rounded p-0.5 shadow-2xs ml-auto">
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={deleteCurrentRow}
                   className="px-2 py-0.5 text-rose-600 hover:bg-rose-50 rounded text-[11px] font-medium"
-                  title="Hapus baris kursor"
+                  title="Hapus baris ini"
                 >
                   Hapus Baris
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={deleteCurrentCol}
                   className="px-2 py-0.5 text-rose-600 hover:bg-rose-50 rounded text-[11px] font-medium"
-                  title="Hapus kolom kursor"
+                  title="Hapus kolom ini"
                 >
                   Hapus Kolom
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={deleteTable}
                   className="px-2 py-0.5 text-rose-700 hover:bg-rose-100 rounded text-[11px] font-bold flex items-center gap-1"
                   title="Hapus seluruh tabel"
@@ -1026,7 +2255,21 @@ export default function RichEditor({
         </div>
       )}
 
-      {/* 4. PENGGARIS WORD (RULER) */}
+      {/* Visual Guide Line during column resize */}
+      {resizeGuide && (
+        <div
+          style={{ left: `${resizeGuide.x}px` }}
+          className="fixed top-0 bottom-0 w-0.5 bg-blue-600 z-50 pointer-events-none shadow-md flex items-center justify-center"
+        >
+          <div className="bg-blue-700 text-white text-[11px] font-medium px-2 py-1 rounded shadow-lg absolute top-1/3 -translate-y-1/2 flex items-center gap-1 select-none">
+            <span>↔ Atur Lebar Kolom</span>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. MICROSOFT WORD HORIZONTAL RULER (PENGGARIS WORD)                       */}
+      {/* ========================================================================= */}
       <div className="bg-[#e9ecef] border-b border-slate-300 flex justify-center overflow-x-hidden select-none py-0.5 shrink-0">
         <div
           style={{
@@ -1035,41 +2278,80 @@ export default function RichEditor({
           }}
           className="h-5 bg-white border-x border-slate-300 relative flex items-center justify-between text-[9px] font-mono text-slate-500 shadow-2xs"
         >
+          {/* Left margin shaded area */}
           <div className="w-12 h-full bg-slate-200 border-r border-slate-300 flex items-center justify-center text-[8px] text-slate-400">
             2.5 cm
           </div>
+
+          {/* Centimeter ticks */}
           <div className="flex-1 flex justify-between px-3 text-slate-400 font-sans tracking-widest text-[9px]">
+            <span>·</span>
             <span>1</span>
+            <span>·</span>
             <span>2</span>
+            <span>·</span>
             <span>3</span>
+            <span>·</span>
             <span>4</span>
+            <span>·</span>
             <span>5</span>
+            <span>·</span>
             <span>6</span>
+            <span>·</span>
             <span>7</span>
+            <span>·</span>
             <span>8</span>
+            <span>·</span>
             <span>9</span>
+            <span>·</span>
             <span>10</span>
+            <span>·</span>
             <span>11</span>
+            <span>·</span>
             <span>12</span>
+            <span>·</span>
             <span>13</span>
+            <span>·</span>
             <span>14</span>
+            <span>·</span>
             <span>15</span>
+            <span>·</span>
             <span>16</span>
+            <span>·</span>
             <span>17</span>
+            <span>·</span>
             <span>18</span>
+            <span>·</span>
           </div>
+
+          {/* Right margin shaded area */}
           <div className="w-12 h-full bg-slate-200 border-l border-slate-300 flex items-center justify-center text-[8px] text-slate-400">
             2.5 cm
+          </div>
+
+          {/* Draggable Indent Markers (Visual Word Look) */}
+          <div
+            className="absolute left-12 top-0 bottom-0 flex flex-col justify-between -translate-x-1/2 pointer-events-none"
+            title="Indentasi Kiri"
+          >
+            <div className="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[5px] border-t-slate-700" />
+            <div className="w-2 h-1 bg-slate-700" />
+          </div>
+          <div
+            className="absolute right-12 bottom-0 flex flex-col justify-end translate-x-1/2 pointer-events-none"
+            title="Indentasi Kanan"
+          >
+            <div className="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[5px] border-b-slate-700" />
           </div>
         </div>
       </div>
 
-      {/* 5. A4 PAPER SHEET WORKSPACE */}
+      {/* ========================================================================= */}
+      {/* 5. A4 PAPER WORKSPACE (REALISTIC WORD DESK BACKGROUND)                    */}
+      {/* ========================================================================= */}
       <div
         className={`bg-[#e9ecef] p-4 sm:p-8 flex justify-center relative ${
-          isFullscreen
-            ? "flex-1 overflow-y-auto"
-            : "min-h-[580px] overflow-x-auto"
+          isFullscreen ? "flex-1 overflow-y-auto" : "min-h-[580px] overflow-x-auto"
         }`}
       >
         <div
@@ -1083,136 +2365,126 @@ export default function RichEditor({
           }}
           className="bg-white w-full max-w-[820px] min-h-[1050px] p-10 sm:p-14 shadow-2xl rounded-xs border border-slate-300/80 relative text-black"
         >
+          {/* Subtle Page Margin Indicator for Word look */}
           <div className="absolute top-3 right-4 text-[10px] text-slate-400 font-mono select-none">
-            Lembar Surat Resmi &bull; TipTap Document Engine
+            Lembar Surat Resmi &bull; Tab untuk pindah cell &bull; Drag garis
+            untuk atur lebar kolom
           </div>
 
+          {/* Floating Table Move Handle (Word ✥ icon di luar tabel) */}
+          {!readOnly && activeTableState && overlayPos && (
+            <div
+              style={{
+                top: `${overlayPos.top}px`,
+                left: `${overlayPos.left}px`,
+              }}
+              onMouseDown={handleMoveHandleMouseDown}
+              className="absolute z-20 flex items-center justify-center w-6 h-6 bg-blue-600 hover:bg-blue-700 text-white rounded shadow-md cursor-grab active:cursor-grabbing select-none border border-blue-400 transition-colors"
+              title="Tahan & geser untuk memindahkan posisi tabel di kertas (Atau gunakan tombol Geser di toolbar)"
+            >
+              <Move className="w-3.5 h-3.5" />
+            </div>
+          )}
+
+          {/* Scoped CSS for Word-like table formatting and smooth selection */}
           <style>{`
-            .tiptap-paper {
+            .rich-editor-sheet {
               font-family: ${fontFamily}, Calibri, Tahoma, Arial, sans-serif;
+              color: #000000 !important;
+            }
+            .rich-editor-sheet,
+            .rich-editor-sheet p,
+            .rich-editor-sheet span,
+            .rich-editor-sheet td,
+            .rich-editor-sheet th,
+            .rich-editor-sheet strong,
+            .rich-editor-sheet li {
               font-size: ${fontSize};
+              line-height: ${lineSpacing};
+              color: #000000;
+            }
+            .rich-editor-sheet .locked-letter-number {
               color: #000000 !important;
             }
-            .tiptap-paper .ProseMirror {
-              outline: none;
-              min-height: 900px;
-              color: #000000 !important;
+            ${
+              paragraphSpacing === "tight"
+                ? `
+              .rich-editor-sheet p {
+                margin-top: 0 !important;
+                margin-bottom: 4px !important;
+              }
+            `
+                : paragraphSpacing === "loose"
+                  ? `
+              .rich-editor-sheet p {
+                margin-top: 0 !important;
+                margin-bottom: 18px !important;
+              }
+            `
+                  : `
+              .rich-editor-sheet p {
+                margin-top: 0 !important;
+                margin-bottom: 10px !important;
+              }
+            `
             }
-            .tiptap-paper .ProseMirror p {
-              margin-top: 0;
-              margin-bottom: 6px;
-              line-height: 1.4;
-              color: #000000 !important;
-            }
-            /* Table ProseMirror Styles */
-            .tiptap-paper .ProseMirror table {
+
+            /* Smooth Word Table Styling */
+            .rich-editor-sheet table {
               border-collapse: collapse;
-              width: 100%;
-              table-layout: fixed;
+              margin: 10px 0;
             }
-
-            /* 1. DATA TABLES (BERGARIS): Tabel data biasa, matriks nominal, tabel excel */
-            .tiptap-paper .ProseMirror table:not([data-borderless="true"]) {
-              margin: 12px 0;
-              border: 1px solid #94a3b8;
-            }
-            .tiptap-paper .ProseMirror table:not([data-borderless="true"]) td,
-            .tiptap-paper .ProseMirror table:not([data-borderless="true"]) th {
-              min-width: 28px;
-              border: 1px solid #94a3b8;
-              padding: 6px 10px;
-              vertical-align: top;
-              box-sizing: border-box;
+            .rich-editor-sheet td,
+            .rich-editor-sheet th {
+              min-width: 24px;
+              min-height: 24px;
+              word-break: break-word;
               position: relative;
-              color: #000000;
             }
-            .tiptap-paper .ProseMirror table:not([data-borderless="true"]) th {
-              font-weight: bold;
-              background-color: #f1f5f9;
+            /* Visual feedback when editing cell without distorting text */
+            .rich-editor-sheet td:focus,
+            .rich-editor-sheet th:focus {
+              outline: 1.5px solid #3b82f6 !important;
+              outline-offset: -1px;
+              background-color: rgba(239, 246, 255, 0.35);
             }
-
-            /* 2. LAYOUT & HEADER SURAT TABLES (TANPA GARIS / BORDERLESS): Rapi, rapat, sejajar, tanpa kotak */
-            .tiptap-paper .ProseMirror table[data-borderless="true"],
-            .tiptap-paper .ProseMirror table.borderless-table {
-              border: none !important;
-              margin: 4px 0 14px 0 !important;
-            }
-            .tiptap-paper .ProseMirror table[data-borderless="true"] td,
-            .tiptap-paper .ProseMirror table[data-borderless="true"] th,
-            .tiptap-paper .ProseMirror table.borderless-table td,
-            .tiptap-paper .ProseMirror table.borderless-table th {
-              border: none !important;
-              outline: none !important;
-              padding: 2px 4px !important;
-              vertical-align: top !important;
-              box-sizing: border-box;
-              position: relative;
-              color: #000000;
-              background-color: transparent !important;
-            }
-            .tiptap-paper .ProseMirror table[data-borderless="true"] p,
-            .tiptap-paper .ProseMirror table.borderless-table p {
-              margin: 0 !important;
-              padding: 0 !important;
-              line-height: 1.4 !important;
-              color: #000000 !important;
-            }
-
-            /* Kunci proporsionalitas kolom Header Surat agar tanda titik dua (:) rapat dan rapi */
-            .tiptap-paper .ProseMirror table[data-borderless="true"] tr td:first-child,
-            .tiptap-paper .ProseMirror table.borderless-table tr td:first-child {
-              width: 130px !important;
-              max-width: 150px !important;
-              white-space: nowrap !important;
-            }
-            .tiptap-paper .ProseMirror table[data-borderless="true"] tr td:nth-child(2),
-            .tiptap-paper .ProseMirror table.borderless-table tr td:nth-child(2) {
-              width: 25px !important;
-              max-width: 30px !important;
-              text-align: center !important;
-              padding: 2px 2px !important;
-            }
-            .tiptap-paper .ProseMirror table[data-borderless="true"] tr td:last-child,
-            .tiptap-paper .ProseMirror table.borderless-table tr td:last-child {
-              width: auto !important;
-            }
-
-            /* Panduan garis titik sangat halus hanya saat cursor diarahkan ke tabel agar tahu batas sel saat mengetik */
-            .tiptap-paper .ProseMirror table[data-borderless="true"]:hover td {
-              outline: 1px dashed rgba(203, 213, 225, 0.7);
-            }
-
-            /* ProseMirror Rectangular Cell Selection - Solves cross-column bleeding! */
-            .tiptap-paper .ProseMirror .selectedCell:after {
-              z-index: 2;
-              position: absolute;
-              content: "";
-              left: 0; right: 0; top: 0; bottom: 0;
-              background: rgba(59, 130, 246, 0.22);
-              pointer-events: none;
-            }
-            .tiptap-paper .ProseMirror .column-resize-handle {
-              position: absolute;
-              right: -2px;
-              top: 0;
-              bottom: 0;
-              width: 4px;
-              background-color: #3b82f6;
-              pointer-events: none;
-            }
-            .tiptap-paper .locked-letter-number {
-              color: #000000 !important;
+            /* Highlight khusus sel kolom yang dipilih (tanpa merembet ke kolom lain) */
+            .rich-editor-sheet .table-cell-selected {
+              background-color: #bfdbfe !important;
+              color: #1e3a8a !important;
+              outline: 2px solid #2563eb !important;
+              outline-offset: -1px;
             }
           `}</style>
 
-          <div className="tiptap-paper select-text">
-            <EditorContent editor={editor} />
-          </div>
+          {/* Content Editable Area */}
+          <div
+            ref={editorRef}
+            contentEditable={!readOnly}
+            onKeyDown={handleKeyDown}
+            onInput={handleInput}
+            onBlur={handleInput}
+            onPaste={handlePaste}
+            onMouseUp={handleEditorMouseUp}
+            onKeyUp={updateActiveTable}
+            onMouseMove={handleEditorMouseMove}
+            onMouseDown={handleEditorMouseDown}
+            className={`rich-editor-sheet outline-none leading-relaxed prose prose-slate max-w-none min-h-[900px] text-[11pt] focus:ring-0 ${
+              readOnly ? "cursor-default select-text" : "cursor-text select-text"
+            }`}
+            style={{
+              fontFamily: `${fontFamily}, Calibri, Tahoma, Arial, sans-serif`,
+              fontSize: fontSize,
+            }}
+          />
         </div>
       </div>
 
-      {/* 6. STATUS BAR */}
+      {/* ========================================================================= */}
+      {/* 6. MICROSOFT WORD STATUS BAR (#2b579a)                                    */}
+      {/* ========================================================================= */}
       <div className="bg-[#2b579a] text-white px-4 py-1 text-xs flex items-center justify-between shadow-inner shrink-0 select-none">
+        {/* Left: Page count, word count, language */}
         <div className="flex items-center gap-3 text-[11px] text-white/90">
           <span>Halaman 1 dari 1</span>
           <span>&bull;</span>
@@ -1221,20 +2493,21 @@ export default function RichEditor({
           <span>Indonesia</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right: View mode & Zoom Slider */}
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={handleZoomOut}
             className="p-1 hover:bg-white/15 rounded text-white transition"
             title="Zoom Out (-10%)"
           >
-            <ZoomOut className="w-3 h-3" />
+            <Minus className="w-3 h-3" />
           </button>
 
           <input
             type="range"
-            min="60"
-            max="160"
+            min="50"
+            max="180"
             step="5"
             value={zoomLevel}
             onChange={(e) => setZoomLevel(Number(e.target.value))}
@@ -1262,17 +2535,20 @@ export default function RichEditor({
         </div>
       </div>
 
-      {/* MODAL PASTE EXCEL */}
+      {/* ========================================================================= */}
+      {/* MODAL: PASTE TABEL EXCEL / SPREADSHEET                                    */}
+      {/* ========================================================================= */}
       {showExcelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn select-text">
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header */}
             <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-emerald-600 rounded-lg text-white">
                   <FileSpreadsheet className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-white">
+                  <h3 className="font-bold text-base text-white flex items-center gap-2">
                     Paste Tabel dari Excel / Spreadsheet
                   </h3>
                   <p className="text-xs text-slate-300">
@@ -1292,29 +2568,118 @@ export default function RichEditor({
               </button>
             </div>
 
+            {/* Body */}
             <div className="p-5 overflow-y-auto space-y-4 text-xs">
-              <textarea
-                value={excelPasteText}
-                onChange={(e) => setExcelPasteText(e.target.value)}
-                placeholder="Paste (Ctrl+V) data sel Excel Anda di sini..."
-                rows={6}
-                className="w-full font-mono text-[11px] p-3 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
-                autoFocus
-              />
+              {/* Petunjuk Cepat */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-emerald-900 flex items-start gap-3">
+                <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-emerald-950">Cara Penggunaan:</p>
+                  <ol className="list-decimal list-inside space-y-0.5 text-emerald-800">
+                    <li>Buka file Microsoft Excel atau Google Sheets Anda.</li>
+                    <li>Blok sel tabel yang diinginkan, lalu tekan <b>Ctrl + C</b> (Copy).</li>
+                    <li>Klik tombol <b>"Ambil dari Clipboard"</b> di bawah atau tekan <b>Ctrl + V</b> di dalam kotak teks.</li>
+                  </ol>
+                  <p className="text-[11px] text-emerald-700 italic pt-1">
+                    *Tip: Anda juga bisa langsung menekan <b>Ctrl + V</b> langsung di lembar kerja Word tanpa membuka menu ini!
+                  </p>
+                </div>
+              </div>
 
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={excelHeaderFirstRow}
-                  onChange={(e) => setExcelHeaderFirstRow(e.target.checked)}
-                  className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+              {/* Action Toolbar for Paste Box */}
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-700 flex items-center gap-1.5">
+                  <span>Data Tabel Excel / TSV:</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={readClipboardDirectly}
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium flex items-center gap-1 transition shadow-xs"
+                    title="Baca teks dari clipboard"
+                  >
+                    <Clipboard className="w-3.5 h-3.5" />
+                    <span>Ambil dari Clipboard</span>
+                  </button>
+                  {excelPasteText && (
+                    <button
+                      type="button"
+                      onClick={() => setExcelPasteText("")}
+                      className="px-2 py-1 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded"
+                    >
+                      Bersihkan
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Textarea */}
+              <div className="relative">
+                <textarea
+                  value={excelPasteText}
+                  onChange={(e) => setExcelPasteText(e.target.value)}
+                  placeholder="Paste (Ctrl+V) sel Excel Anda di sini..."
+                  rows={5}
+                  className="w-full font-mono text-[11px] p-3 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
+                  autoFocus
                 />
-                <span className="font-semibold text-slate-700">
-                  Jadikan baris pertama sebagai Header (Judul Kolom)
-                </span>
-              </label>
+              </div>
+
+              {/* Opsi Tabel */}
+              <div className="flex flex-wrap items-center gap-5 pt-1 border-t border-slate-200">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={excelHeaderFirstRow}
+                    onChange={(e) => setExcelHeaderFirstRow(e.target.checked)}
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                  />
+                  <span className="font-semibold text-slate-700">
+                    Jadikan baris pertama sebagai Header (Judul Kolom)
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={excelAutoAlign}
+                    onChange={(e) => setExcelAutoAlign(e.target.checked)}
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                  />
+                  <span className="font-semibold text-slate-700">
+                    Rata kanan otomatis untuk kolom angka/nilai
+                  </span>
+                </label>
+              </div>
+
+              {/* Live Preview */}
+              {excelPasteText.trim() && (
+                <div className="space-y-2 pt-2 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-700">
+                      Pratinjau Tampilan Tabel:
+                    </span>
+                    <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
+                      {excelPasteText.trim().split(/\r\n|\r|\n/).length} baris terdeteksi
+                    </span>
+                  </div>
+                  <div
+                    className="max-h-48 overflow-auto border border-slate-200 rounded-lg p-2.5 bg-white shadow-inner"
+                    dangerouslySetInnerHTML={{
+                      __html: excelPasteText.includes("<table")
+                        ? formatExcelHtmlTable(excelPasteText)
+                        : formatTsvToTable(
+                            excelPasteText,
+                            excelHeaderFirstRow,
+                            excelAutoAlign
+                          ),
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
+            {/* Footer Buttons */}
             <div className="px-5 py-3.5 bg-slate-100 border-t border-slate-200 flex items-center justify-end gap-2.5">
               <button
                 type="button"
@@ -1322,7 +2687,7 @@ export default function RichEditor({
                   setShowExcelModal(false);
                   setExcelPasteText("");
                 }}
-                className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold"
+                className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition"
               >
                 Batal
               </button>
@@ -1330,7 +2695,7 @@ export default function RichEditor({
                 type="button"
                 onClick={insertExcelTableFromModal}
                 disabled={!excelPasteText.trim()}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center gap-2"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition"
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 <span>Sisipkan ke Lembar Surat</span>

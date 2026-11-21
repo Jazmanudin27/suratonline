@@ -1211,6 +1211,20 @@ export const sanitizeLetterHeaderHtml = (htmlContent) => {
     "$1color: #000000",
   );
 
+  // 4. Pastikan tabel header surat memiliki atribut data-borderless="true" dan class="borderless-table"
+  res = res.replace(
+    /<table(?![^>]*data-borderless)([^>]*>[\s\S]*?(?:Nomor|NOMOR)[\s\S]*?(?:Perihal|PERIHAL|Kepada)[\s\S]*?<\/table>)/gi,
+    (match) => {
+      if (!match.includes('border="1"') && !match.includes("border: 1px")) {
+        return match.replace(
+          "<table",
+          '<table data-borderless="true" class="borderless-table" border="0"',
+        );
+      }
+      return match;
+    },
+  );
+
   return res;
 };
 

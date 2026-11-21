@@ -152,32 +152,32 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
         { id: `f_${Date.now()}_2`, label: 'Keperluan / Perihal', name: 'perihal', type: 'text', required: true },
       ],
       letterTemplate: `
-<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
+<table data-borderless="true" class="borderless-table" style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
   <tbody>
     <tr>
-      <td style="width: 15%; vertical-align: top; padding: 2px 0;"><strong>Nomor</strong></td>
-      <td style="width: 3%; vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;">{{nomor_surat}}</td>
+      <td style="width: 15%; vertical-align: top; padding: 2px 4px; border: none;"><strong>Nomor</strong></td>
+      <td style="width: 3%; vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;">{{nomor_surat}}</td>
     </tr>
     <tr>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>Lampiran</strong></td>
-      <td style="vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;">-</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Lampiran</strong></td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;">-</td>
     </tr>
     <tr>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>Perihal</strong></td>
-      <td style="vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>{{perihal}}</strong></td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Perihal</strong></td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>{{perihal}}</strong></td>
     </tr>
     <tr>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>Dari</strong></td>
-      <td style="vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;">{{nama_pemohon}}</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Dari</strong></td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;">{{nama_pemohon}}</td>
     </tr>
     <tr>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>Kepada</strong></td>
-      <td style="vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;">Yth. [Pimpinan / Manajer Terkait]</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Kepada</strong></td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;">Yth. [Pimpinan / Manajer Terkait]</td>
     </tr>
   </tbody>
 </table>

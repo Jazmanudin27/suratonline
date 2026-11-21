@@ -11,6 +11,116 @@ import TextStyle from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import FontFamily from "@tiptap/extension-font-family";
+
+// Custom TipTap Table: Mendukung Tabel Bergaris (Data) dan Tanpa Garis (Kop/Layout Surat)
+const CustomTable = Table.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      borderless: {
+        default: false,
+        parseHTML: (element) => {
+          const style = element.getAttribute("style") || "";
+          const border = element.getAttribute("border");
+          const cls = element.getAttribute("class") || "";
+          const dataBorderless = element.getAttribute("data-borderless");
+          if (
+            dataBorderless === "true" ||
+            cls.includes("borderless") ||
+            cls.includes("header-table") ||
+            border === "0" ||
+            style.includes("border: none") ||
+            style.includes("border:none") ||
+            style.includes("border: 0")
+          ) {
+            return true;
+          }
+          // Deteksi otomatis tabel header surat resmi (ada Nomor dan Perihal/Kepada/Lampiran)
+          const text = element.textContent || "";
+          if (
+            (text.includes("Nomor") && text.includes("Perihal")) ||
+            (text.includes("Nomor") && text.includes("Kepada")) ||
+            (text.includes("Nomor") && text.includes("Lampiran"))
+          ) {
+            if (border !== "1" && !style.includes("border: 1px")) {
+              return true;
+            }
+          }
+          return false;
+        },
+        renderHTML: (attributes) => {
+          if (!attributes.borderless) {
+            return {
+              border: "1",
+              "data-borderless": "false",
+              class: "data-table",
+              style: "width: 100%; border-collapse: collapse; margin: 12px 0;",
+            };
+          }
+          return {
+            "data-borderless": "true",
+            class: "borderless-table",
+            border: "0",
+            style:
+              "width: 100%; border: none; border-collapse: collapse; margin: 4px 0 14px 0;",
+          };
+        },
+      },
+    };
+  },
+});
+
+const CustomTableCell = TableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      colwidth: {
+        default: null,
+        parseHTML: (element) => {
+          const colwidth = element.getAttribute("colwidth");
+          if (colwidth) {
+            return colwidth.split(",").map((item) => parseInt(item, 10));
+          }
+          const text = (element.textContent || "").trim();
+          if (text === ":") {
+            return [28];
+          }
+          return null;
+        },
+        renderHTML: (attributes) => {
+          if (!attributes.colwidth) return {};
+          return {
+            colwidth: attributes.colwidth.join(","),
+          };
+        },
+      },
+    };
+  },
+});
+
+const CustomTableHeader = TableHeader.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      colwidth: {
+        default: null,
+        parseHTML: (element) => {
+          const colwidth = element.getAttribute("colwidth");
+          if (colwidth) {
+            return colwidth.split(",").map((item) => parseInt(item, 10));
+          }
+          return null;
+        },
+        renderHTML: (attributes) => {
+          if (!attributes.colwidth) return {};
+          return {
+            colwidth: attributes.colwidth.join(","),
+          };
+        },
+      },
+    };
+  },
+});
 import {
   Bold,
   Italic,
@@ -77,13 +187,13 @@ export default function RichEditor({
       StarterKit.configure({
         history: true,
       }),
-      Table.configure({
+      CustomTable.configure({
         resizable: true,
         lastColumnResizable: false,
       }),
       TableRow,
-      TableHeader,
-      TableCell,
+      CustomTableHeader,
+      CustomTableCell,
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
@@ -189,6 +299,17 @@ export default function RichEditor({
   const deleteCurrentCol = () => editor?.chain().focus().deleteColumn().run();
 
   const deleteTable = () => editor?.chain().focus().deleteTable().run();
+  const toggleTableBorder = () => {
+    if (!editor) return;
+    const isCurrentBorderless = Boolean(
+      editor.getAttributes("table")?.borderless,
+    );
+    editor
+      .chain()
+      .focus()
+      .updateAttributes("table", { borderless: !isCurrentBorderless })
+      .run();
+  };
   const mergeOrSplit = () => {
     if (!editor) return;
     if (editor.can().mergeCells()) {
@@ -207,32 +328,32 @@ export default function RichEditor({
     const dariDisplay = submitterName || "[Nama Pemohon]";
 
     const html = `
-<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
+<table data-borderless="true" class="borderless-table" style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
   <tbody>
     <tr>
-      <td style="width: 15%; vertical-align: top; padding: 2px 0;"><strong>Nomor</strong></td>
-      <td style="width: 3%; vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;"><span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f8fafc; padding: 1px 5px; border-radius: 3px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem (Terkunci)">${numDisplay}</span></td>
+      <td style="width: 15%; vertical-align: top; padding: 2px 4px; border: none;"><strong>Nomor</strong></td>
+      <td style="width: 3%; vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><span class="locked-letter-number" contenteditable="false" style="user-select: none; font-weight: bold; color: #000000; background-color: #f8fafc; padding: 1px 5px; border-radius: 3px; border: 1px solid #cbd5e1; cursor: not-allowed; display: inline-block;" title="Nomor surat resmi otomatis dari sistem (Terkunci)">${numDisplay}</span></td>
     </tr>
     <tr>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>Lampiran</strong></td>
-      <td style="vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;">-</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Lampiran</strong></td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;">-</td>
     </tr>
     <tr>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>Perihal</strong></td>
-      <td style="vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>${perihalDisplay}</strong></td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Perihal</strong></td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>${perihalDisplay}</strong></td>
     </tr>
     <tr>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>Dari</strong></td>
-      <td style="vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;">${dariDisplay}</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Dari</strong></td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;">${dariDisplay}</td>
     </tr>
     <tr>
-      <td style="vertical-align: top; padding: 2px 0;"><strong>Kepada</strong></td>
-      <td style="vertical-align: top; padding: 2px 0;">:</td>
-      <td style="vertical-align: top; padding: 2px 0;">Yth. [Pimpinan / Manajer Terkait]</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;"><strong>Kepada</strong></td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none; text-align: center;">:</td>
+      <td style="vertical-align: top; padding: 2px 4px; border: none;">Yth. [Pimpinan / Manajer Terkait]</td>
     </tr>
   </tbody>
 </table>
@@ -243,27 +364,27 @@ export default function RichEditor({
   const insertFieldRowLayout = () => {
     if (!editor || readOnly) return;
     const html = `
-<table style="width: 100%; border: none; border-collapse: collapse; margin: 12px 0; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; line-height: 1.6; table-layout: fixed;">
+<table data-borderless="true" class="borderless-table" style="width: 100%; border: none; border-collapse: collapse; margin: 12px 0; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; line-height: 1.6; table-layout: fixed;">
   <tbody>
     <tr>
-      <td style="width: 25%; padding: 3px 0;">Nama Lengkap</td>
-      <td style="width: 3%; text-align: center; padding: 3px 0;">:</td>
-      <td style="padding: 3px 0;"><strong>[Isi Nama]</strong></td>
+      <td style="width: 25%; padding: 2px 4px; border: none;">Nama Lengkap</td>
+      <td style="width: 3%; text-align: center; padding: 2px 4px; border: none;">:</td>
+      <td style="padding: 2px 4px; border: none;"><strong>[Isi Nama]</strong></td>
     </tr>
     <tr>
-      <td style="padding: 3px 0;">Jabatan / Unit</td>
-      <td style="text-align: center; padding: 3px 0;">:</td>
-      <td style="padding: 3px 0;">[Isi Jabatan]</td>
+      <td style="padding: 2px 4px; border: none;">Jabatan / Unit</td>
+      <td style="text-align: center; padding: 2px 4px; border: none;">:</td>
+      <td style="padding: 2px 4px; border: none;">[Isi Jabatan]</td>
     </tr>
     <tr>
-      <td style="padding: 3px 0;">Unit Kerja / Cabang</td>
-      <td style="text-align: center; padding: 3px 0;">:</td>
-      <td style="padding: 3px 0;">{{nama_cabang}}</td>
+      <td style="padding: 2px 4px; border: none;">Unit Kerja / Cabang</td>
+      <td style="text-align: center; padding: 2px 4px; border: none;">:</td>
+      <td style="padding: 2px 4px; border: none;">{{nama_cabang}}</td>
     </tr>
     <tr>
-      <td style="padding: 3px 0; vertical-align: top;">Keterangan / Keperluan</td>
-      <td style="text-align: center; padding: 3px 0; vertical-align: top;">:</td>
-      <td style="padding: 3px 0; vertical-align: top;">[Uraikan keperluan di sini...]</td>
+      <td style="padding: 2px 4px; vertical-align: top; border: none;">Keterangan / Keperluan</td>
+      <td style="text-align: center; padding: 2px 4px; vertical-align: top; border: none;">:</td>
+      <td style="padding: 2px 4px; vertical-align: top; border: none;">[Uraikan keperluan di sini...]</td>
     </tr>
   </tbody>
 </table>
@@ -851,6 +972,27 @@ export default function RichEditor({
                 </button>
               </div>
 
+              {/* Mode Garis Tabel (Bergaris vs Tanpa Garis) */}
+              <div className="flex items-center gap-1 bg-white border border-indigo-200 rounded p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={toggleTableBorder}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 transition ${
+                    editor?.getAttributes("table")?.borderless
+                      ? "bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs"
+                      : "hover:bg-indigo-50 text-slate-700"
+                  }`}
+                  title="Ubah garis tabel: Bergaris (Tabel Data) atau Tanpa Garis (Kop Surat & Formulir Rapi)"
+                >
+                  <Grid className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>
+                    {editor?.getAttributes("table")?.borderless
+                      ? "Garis: Tanpa Garis (Rapi)"
+                      : "Garis: Bergaris (Kotak)"}
+                  </span>
+                </button>
+              </div>
+
               {/* Hapus Baris / Kolom / Tabel */}
               <div className="flex items-center gap-1 bg-white border border-rose-200 rounded p-0.5 shadow-2xs ml-auto">
                 <button
@@ -965,25 +1107,81 @@ export default function RichEditor({
             /* Table ProseMirror Styles */
             .tiptap-paper .ProseMirror table {
               border-collapse: collapse;
-              margin: 12px 0;
               width: 100%;
               table-layout: fixed;
-              overflow: hidden;
             }
-            .tiptap-paper .ProseMirror td,
-            .tiptap-paper .ProseMirror th {
+
+            /* 1. DATA TABLES (BERGARIS): Tabel data biasa, matriks nominal, tabel excel */
+            .tiptap-paper .ProseMirror table:not([data-borderless="true"]) {
+              margin: 12px 0;
+              border: 1px solid #94a3b8;
+            }
+            .tiptap-paper .ProseMirror table:not([data-borderless="true"]) td,
+            .tiptap-paper .ProseMirror table:not([data-borderless="true"]) th {
               min-width: 28px;
-              border: 1px solid #cbd5e1;
+              border: 1px solid #94a3b8;
               padding: 6px 10px;
               vertical-align: top;
               box-sizing: border-box;
               position: relative;
               color: #000000;
             }
-            .tiptap-paper .ProseMirror th {
+            .tiptap-paper .ProseMirror table:not([data-borderless="true"]) th {
               font-weight: bold;
               background-color: #f1f5f9;
             }
+
+            /* 2. LAYOUT & HEADER SURAT TABLES (TANPA GARIS / BORDERLESS): Rapi, rapat, sejajar, tanpa kotak */
+            .tiptap-paper .ProseMirror table[data-borderless="true"],
+            .tiptap-paper .ProseMirror table.borderless-table {
+              border: none !important;
+              margin: 4px 0 14px 0 !important;
+            }
+            .tiptap-paper .ProseMirror table[data-borderless="true"] td,
+            .tiptap-paper .ProseMirror table[data-borderless="true"] th,
+            .tiptap-paper .ProseMirror table.borderless-table td,
+            .tiptap-paper .ProseMirror table.borderless-table th {
+              border: none !important;
+              outline: none !important;
+              padding: 2px 4px !important;
+              vertical-align: top !important;
+              box-sizing: border-box;
+              position: relative;
+              color: #000000;
+              background-color: transparent !important;
+            }
+            .tiptap-paper .ProseMirror table[data-borderless="true"] p,
+            .tiptap-paper .ProseMirror table.borderless-table p {
+              margin: 0 !important;
+              padding: 0 !important;
+              line-height: 1.4 !important;
+              color: #000000 !important;
+            }
+
+            /* Kunci proporsionalitas kolom Header Surat agar tanda titik dua (:) rapat dan rapi */
+            .tiptap-paper .ProseMirror table[data-borderless="true"] tr td:first-child,
+            .tiptap-paper .ProseMirror table.borderless-table tr td:first-child {
+              width: 130px !important;
+              max-width: 150px !important;
+              white-space: nowrap !important;
+            }
+            .tiptap-paper .ProseMirror table[data-borderless="true"] tr td:nth-child(2),
+            .tiptap-paper .ProseMirror table.borderless-table tr td:nth-child(2) {
+              width: 25px !important;
+              max-width: 30px !important;
+              text-align: center !important;
+              padding: 2px 2px !important;
+            }
+            .tiptap-paper .ProseMirror table[data-borderless="true"] tr td:last-child,
+            .tiptap-paper .ProseMirror table.borderless-table tr td:last-child {
+              width: auto !important;
+            }
+
+            /* Panduan garis titik sangat halus hanya saat cursor diarahkan ke tabel agar tahu batas sel saat mengetik */
+            .tiptap-paper .ProseMirror table[data-borderless="true"]:hover td {
+              outline: 1px dashed rgba(203, 213, 225, 0.7);
+            }
+
             /* ProseMirror Rectangular Cell Selection - Solves cross-column bleeding! */
             .tiptap-paper .ProseMirror .selectedCell:after {
               z-index: 2;

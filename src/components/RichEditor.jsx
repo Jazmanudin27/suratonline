@@ -84,6 +84,13 @@ export default function RichEditor({
   const [fontSize, setFontSize] = useState("11pt");
   const [wordCount, setWordCount] = useState(0);
 
+  // Formatting states for active Word toolbar buttons & selection sync
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
+  const [isStrike, setIsStrike] = useState(false);
+  const [textAlign, setTextAlign] = useState("left");
+
   const handleZoomIn = () => {
     setZoomLevel((prev) => Math.min(200, prev + 10));
   };
@@ -179,6 +186,110 @@ export default function RichEditor({
       setActiveTableState(null);
     }
   }, []);
+
+  // Track formatting at current caret / selection (Word-like dynamic toolbar sync)
+  const updateSelectionFormat = useCallback(() => {
+    if (!editorRef.current) return;
+    const selection = window.getSelection();
+    if (!selection || !selection.anchorNode) return;
+
+    let node = selection.anchorNode;
+    if (node.nodeType === 3) node = node.parentNode;
+    if (!node || !editorRef.current.contains(node)) return;
+
+    // 1. Detect Font Size at caret / selection
+    try {
+      const computedStyle = window.getComputedStyle(node);
+      const computedPx = parseFloat(computedStyle.fontSize);
+      if (computedPx && !isNaN(computedPx)) {
+        // 1pt = 4/3 px => pt = px * 0.75
+        const ptVal = computedPx * 0.75;
+        const standardSizes = [
+          { label: "9pt", val: 9 },
+          { label: "10pt", val: 10 },
+          { label: "10.5pt", val: 10.5 },
+          { label: "11pt", val: 11 },
+          { label: "12pt", val: 12 },
+          { label: "14pt", val: 14 },
+          { label: "16pt", val: 16 },
+          { label: "18pt", val: 18 },
+          { label: "20pt", val: 20 },
+          { label: "24pt", val: 24 },
+        ];
+        let closest = "11pt";
+        let minDiff = Infinity;
+        for (const item of standardSizes) {
+          const diff = Math.abs(ptVal - item.val);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closest = item.label;
+          }
+        }
+        setFontSize(closest);
+      }
+    } catch (e) {}
+
+    // 2. Detect Font Family at caret
+    try {
+      const computedStyle = window.getComputedStyle(node);
+      const fam = (computedStyle.fontFamily || "").toLowerCase();
+      const standardFonts = [
+        "Calibri",
+        "Arial",
+        "Tahoma",
+        "Times New Roman",
+        "Plus Jakarta Sans",
+        "Georgia",
+        "Courier New",
+      ];
+      for (const f of standardFonts) {
+        if (fam.includes(f.toLowerCase())) {
+          setFontFamily(f);
+          break;
+        }
+      }
+    } catch (e) {}
+
+    // 3. Detect Bold, Italic, Underline, Strike, Alignment
+    try {
+      setIsBold(Boolean(document.queryCommandState("bold")));
+      setIsItalic(Boolean(document.queryCommandState("italic")));
+      setIsUnderline(Boolean(document.queryCommandState("underline")));
+      setIsStrike(Boolean(document.queryCommandState("strikeThrough")));
+
+      if (document.queryCommandState("justifyCenter")) {
+        setTextAlign("center");
+      } else if (document.queryCommandState("justifyRight")) {
+        setTextAlign("right");
+      } else if (document.queryCommandState("justifyFull")) {
+        setTextAlign("justify");
+      } else {
+        setTextAlign("left");
+      }
+    } catch (e) {}
+  }, []);
+
+  // Listen to selectionchange on document to sync Word toolbar formatting with caret
+  useEffect(() => {
+    let rafId = null;
+    const handleSelectionChange = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const sel = window.getSelection();
+        if (!sel || !sel.anchorNode || !editorRef.current) return;
+        if (editorRef.current.contains(sel.anchorNode)) {
+          updateSelectionFormat();
+          updateActiveTable();
+        }
+      });
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, [updateSelectionFormat, updateActiveTable]);
 
   const customUndo = useCallback(() => {
     if (readOnly) return;
@@ -469,6 +580,7 @@ export default function RichEditor({
       });
       handleInput();
       saveHistorySnapshot();
+      updateSelectionFormat();
       return;
     }
 
@@ -477,6 +589,7 @@ export default function RichEditor({
     if (editorRef.current) {
       editorRef.current.focus();
       handleInput();
+      updateSelectionFormat();
     }
   };
 
@@ -527,6 +640,7 @@ export default function RichEditor({
       editorRef.current.style.fontFamily = fontName;
       handleInput();
     }
+    updateSelectionFormat();
   };
 
   const applyFontColor = (colorHex) => {
@@ -640,10 +754,20 @@ export default function RichEditor({
         });
       }
       handleInput();
+      saveHistorySnapshot();
     } else if (editorRef.current) {
-      editorRef.current.style.fontSize = val;
+      let node = selection?.anchorNode;
+      if (node && node.nodeType === 3) node = node.parentNode;
+      const block = node?.closest ? node.closest("p, div, td, th, li") : null;
+      if (block && editorRef.current.contains(block)) {
+        block.style.fontSize = val;
+      } else {
+        editorRef.current.style.fontSize = val;
+      }
       handleInput();
+      saveHistorySnapshot();
     }
+    updateSelectionFormat();
   };
 
   const changeFontSizeStep = (delta) => {
@@ -1183,6 +1307,7 @@ export default function RichEditor({
   const handleEditorMouseUp = () => {
     dragStartCellRef.current = null;
     updateActiveTable();
+    updateSelectionFormat();
   };
 
   // --- TABLE MOVE / DRAG HANDLE LOGIC ---
@@ -1515,7 +1640,7 @@ export default function RichEditor({
     const dariDisplay = submitterName || "[Nama Pemohon]";
 
     const html = `
-<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">
+<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: inherit; font-size: 11pt; table-layout: fixed;">
   <tr>
     <td style="width: 15%; vertical-align: top; padding: 2px 0;"><strong>Nomor</strong></td>
     <td style="width: 3%; vertical-align: top; padding: 2px 0;">:</td>
@@ -1553,7 +1678,7 @@ export default function RichEditor({
     if (readOnly) return;
     saveHistorySnapshot();
     const html = `
-<table style="width: 100%; border: none; border-collapse: collapse; margin: 12px 0; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; line-height: 1.6; table-layout: fixed;">
+<table style="width: 100%; border: none; border-collapse: collapse; margin: 12px 0; font-family: inherit; font-size: 11pt; line-height: 1.6; table-layout: fixed;">
   <tr>
     <td style="width: 25%; padding: 3px 0;">Nama Lengkap</td>
     <td style="width: 3%; text-align: center; padding: 3px 0;">:</td>
@@ -1589,7 +1714,7 @@ export default function RichEditor({
     const widthPct = (100 / colNum).toFixed(1);
 
     let tableHtml =
-      '<table style="width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: Tahoma, Arial, sans-serif; font-size: 11pt; table-layout: fixed;">';
+      '<table style="width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: inherit; font-size: 11pt; table-layout: fixed;">';
     for (let r = 0; r < rowNum; r++) {
       tableHtml += "<tr>";
       for (let c = 0; c < colNum; c++) {
@@ -2160,7 +2285,11 @@ export default function RichEditor({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("bold")}
-                    className="px-2 py-0.5 font-black text-xs text-slate-800 hover:bg-slate-200 rounded"
+                    className={`px-2 py-0.5 font-black text-xs rounded transition ${
+                      isBold
+                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-black shadow-inner"
+                        : "text-slate-800 hover:bg-slate-200"
+                    }`}
                     title="Tebal (Ctrl+B)"
                   >
                     B
@@ -2169,7 +2298,11 @@ export default function RichEditor({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("italic")}
-                    className="px-2 py-0.5 italic font-serif text-xs text-slate-800 hover:bg-slate-200 rounded"
+                    className={`px-2 py-0.5 italic font-serif text-xs rounded transition ${
+                      isItalic
+                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-bold shadow-inner"
+                        : "text-slate-800 hover:bg-slate-200"
+                    }`}
                     title="Miring (Ctrl+I)"
                   >
                     I
@@ -2178,7 +2311,11 @@ export default function RichEditor({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("underline")}
-                    className="px-2 py-0.5 underline text-xs text-slate-800 hover:bg-slate-200 rounded"
+                    className={`px-2 py-0.5 underline text-xs rounded transition ${
+                      isUnderline
+                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-bold shadow-inner"
+                        : "text-slate-800 hover:bg-slate-200"
+                    }`}
                     title="Garis Bawah (Ctrl+U)"
                   >
                     U
@@ -2187,7 +2324,11 @@ export default function RichEditor({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("strikeThrough")}
-                    className="px-1.5 py-0.5 line-through text-xs text-slate-800 hover:bg-slate-200 rounded"
+                    className={`px-1.5 py-0.5 line-through text-xs rounded transition ${
+                      isStrike
+                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-bold shadow-inner"
+                        : "text-slate-800 hover:bg-slate-200"
+                    }`}
                     title="Coret (Strikethrough)"
                   >
                     ab
@@ -2238,7 +2379,11 @@ export default function RichEditor({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("justifyLeft")}
-                    className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                    className={`p-1 rounded transition ${
+                      textAlign === "left"
+                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
+                        : "text-slate-700 hover:bg-slate-200"
+                    }`}
                     title="Rata Kiri"
                   >
                     <AlignLeft className="w-3.5 h-3.5" />
@@ -2247,7 +2392,11 @@ export default function RichEditor({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("justifyCenter")}
-                    className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                    className={`p-1 rounded transition ${
+                      textAlign === "center"
+                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
+                        : "text-slate-700 hover:bg-slate-200"
+                    }`}
                     title="Rata Tengah"
                   >
                     <AlignCenter className="w-3.5 h-3.5" />
@@ -2256,7 +2405,11 @@ export default function RichEditor({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("justifyRight")}
-                    className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                    className={`p-1 rounded transition ${
+                      textAlign === "right"
+                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
+                        : "text-slate-700 hover:bg-slate-200"
+                    }`}
                     title="Rata Kanan"
                   >
                     <AlignRight className="w-3.5 h-3.5" />
@@ -2265,7 +2418,11 @@ export default function RichEditor({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("justifyFull")}
-                    className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                    className={`p-1 rounded transition ${
+                      textAlign === "justify"
+                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
+                        : "text-slate-700 hover:bg-slate-200"
+                    }`}
                     title="Rata Kanan-Kiri (Justify)"
                   >
                     <AlignJustify className="w-3.5 h-3.5" />
@@ -2832,7 +2989,6 @@ export default function RichEditor({
             .rich-editor-sheet table td,
             .rich-editor-sheet table th {
               font-family: ${fontFamily}, Calibri, Tahoma, Arial, sans-serif !important;
-              font-size: ${fontSize};
               line-height: ${lineSpacing};
               color: #000000;
             }
@@ -2909,7 +3065,10 @@ export default function RichEditor({
             onBlur={handleInput}
             onPaste={handlePaste}
             onMouseUp={handleEditorMouseUp}
-            onKeyUp={updateActiveTable}
+            onKeyUp={() => {
+              updateActiveTable();
+              updateSelectionFormat();
+            }}
             onMouseMove={handleEditorMouseMove}
             onMouseDown={handleEditorMouseDown}
             className={`rich-editor-sheet outline-none leading-relaxed prose prose-slate max-w-none min-h-[900px] text-[11pt] focus:ring-0 ${
@@ -2919,7 +3078,6 @@ export default function RichEditor({
             }`}
             style={{
               fontFamily: `${fontFamily}, Calibri, Tahoma, Arial, sans-serif`,
-              fontSize: fontSize,
             }}
           />
         </div>

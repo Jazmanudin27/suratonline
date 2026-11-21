@@ -394,7 +394,7 @@ export const syncWithDatabase = async (options = {}) => {
 
   try {
     if (lettersOnly) {
-      const lettersData = await api.getLetters();
+      const lettersData = await api.getLetters(getCurrentUser());
       if (Array.isArray(lettersData)) {
         processLettersSync(lettersData);
       }
@@ -413,7 +413,7 @@ export const syncWithDatabase = async (options = {}) => {
       api.getCabang(),
       api.getUsers(),
       api.getTemplates(),
-      api.getLetters(),
+      api.getLetters(getCurrentUser()),
       api.getSetting("global_default_viewers"),
       api.getJabatan(),
       api.getCategories(),

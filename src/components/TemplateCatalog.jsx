@@ -14,14 +14,30 @@ import {
   Laptop,
   Mail,
   Coins,
+  RotateCw,
+  CheckCircle2,
+  ShieldCheck,
+  Tag,
+  Eye,
+  Check,
 } from 'lucide-react'
-import { BLANK_TEMPLATE, getCategories, getTemplates, syncWithDatabase } from '../services/storage'
+import {
+  BLANK_TEMPLATE,
+  getCategories,
+  getTemplates,
+  syncWithDatabase,
+  compileTemplateContent,
+  formatDateId,
+} from '../services/storage'
+import LetterDocumentView from './LetterDocumentView'
 
 export default function TemplateCatalog({ templates: propTemplates = [], onSelectTemplate }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [storedCategories, setStoredCategories] = useState(getCategories())
   const [templates, setTemplates] = useState(() => (propTemplates && propTemplates.length > 0 ? propTemplates : getTemplates()))
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [previewTemplate, setPreviewTemplate] = useState(null)
 
   React.useEffect(() => {
     if (propTemplates && propTemplates.length > 0) {
@@ -43,6 +59,19 @@ export default function TemplateCatalog({ templates: propTemplates = [], onSelec
       window.removeEventListener('templates_change', handleTplChange)
     }
   }, [])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await syncWithDatabase()
+      setTemplates(getTemplates())
+      setStoredCategories(getCategories())
+    } catch (err) {
+      console.warn('Refresh error:', err)
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 300)
+    }
+  }
 
   // Build unified categories list
   const categories = useMemo(() => {
@@ -130,126 +159,269 @@ export default function TemplateCatalog({ templates: propTemplates = [], onSelec
     }
   }
 
+  // Generate Sample Document Object for Live LetterDocumentView Preview
+  const generatePreviewLetter = (tpl) => {
+    if (!tpl) return null
+    const sampleValues = {
+      nama_pemohon: 'Jazmanudin',
+      jabatan: 'IT & Administrator Sistem',
+      nama_cabang: 'Cabang Tasikmalaya',
+      cabang: 'Cabang Tasikmalaya',
+      perihal: tpl.name || 'Permohonan Operasional',
+      ringkasan: 'Sehubungan dengan kebutuhan peningkatan efisiensi operasional, bersama ini kami mengajukan permohonan persetujuan resmi sesuai format template.',
+    }
+
+    ;(tpl.fields || []).forEach((f) => {
+      if (!sampleValues[f.name]) {
+        if (f.type === 'number') sampleValues[f.name] = '1500000'
+        else if (f.type === 'date') sampleValues[f.name] = formatDateId(new Date())
+        else sampleValues[f.name] = `[${f.label}]`
+      }
+    })
+
+    const sampleNumber = tpl.numberFormat
+      ? tpl.numberFormat
+          .replace('{{seq}}', '001')
+          .replace('{{code}}', tpl.code || 'SP')
+          .replace('{{branch_code}}', 'TSM')
+          .replace('{{roman_month}}', 'XI')
+          .replace('{{year}}', new Date().getFullYear())
+      : '001/SP/TSM/XI/2026'
+
+    const compiledContent = compileTemplateContent(tpl, sampleValues, {
+      nomor_surat: sampleNumber,
+      nama_cabang: 'Cabang Tasikmalaya',
+      tanggal_surat: formatDateId(new Date()),
+    })
+
+    const approvalHistory = (tpl.approvalSteps || []).map((step, idx) => ({
+      step: step.step || idx + 1,
+      title: step.title || `Persetujuan Tahap ${idx + 1}`,
+      approverRole: step.approverRole || 'Pejabat Berwenang',
+      approverName: `Pejabat (${step.approverRole || 'Approver'})`,
+      status: 'approved',
+      date: new Date().toISOString(),
+      notes: 'Disetujui untuk pratinjau format surat resmi.',
+    }))
+
+    return {
+      id: `prev-${tpl.id || 'draft'}`,
+      letterNumber: sampleNumber,
+      templateId: tpl.id,
+      templateName: tpl.name,
+      title: tpl.name || 'Pratinjau Surat Resmi',
+      userName: 'Jazmanudin',
+      userPosition: 'IT & Administrator Sistem',
+      branchName: 'Cabang Tasikmalaya',
+      branchId: 'TSM',
+      status: 'approved',
+      createdAt: new Date().toISOString(),
+      attachments: tpl.attachments || [],
+      includeKnownBy: true,
+      knownByName: 'Drs. H. Maman Suratman',
+      knownByPosition: 'Kepala Cabang Tasikmalaya',
+      content: compiledContent,
+      approvalHistory,
+    }
+  }
+
+  const activeTemplatesCount = templates.filter((t) => t.isActive !== false).length
+
   return (
-    <div className="space-y-2.5">
-      {/* Top Header Banner Berwarna - Ringkas & Padat */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 text-white border border-blue-900/40 rounded-xl p-3 sm:p-3.5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-xs flex items-center justify-center border border-white/20 text-white shadow-xs shrink-0">
-              <Layers className="w-4.5 h-4.5 text-sky-300" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">Katalog Template Surat Pengajuan</h2>
-                <span className="inline-flex items-center px-2 py-0.2 rounded-full text-[10px] font-semibold bg-white/15 text-sky-200 border border-white/20">
-                  {categoryCounts.all || 0} Template
-                </span>
-              </div>
-              <p className="text-[11px] text-blue-100/80">
-                Pilih template resmi di bawah ini untuk memulai pengisian form surat otomatis.
-              </p>
-            </div>
+    <div className="space-y-3.5">
+      {/* ========================================================================= */}
+      {/* 1. TOP STATS / KPI CARDS (Persis Desain Simple Elegan Referensi)           */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Card 1: Total Template (Sky Blue) */}
+        <div className="bg-[#0284c7] text-white rounded-xl p-3.5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
+              TOTAL TEMPLATE
+            </span>
+            <span className="text-2xl font-black mt-0.5 block">{templates.length}</span>
           </div>
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+            <Layers className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Card 2: Siap Digunakan (Emerald Green) */}
+        <div className="bg-[#059669] text-white rounded-xl p-3.5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
+              SIAP DIGUNAKAN
+            </span>
+            <span className="text-2xl font-black mt-0.5 block">{activeTemplatesCount}</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Card 3: Kategori Format (Amber / Orange) */}
+        <div className="bg-[#d97706] text-white rounded-xl p-3.5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
+              KATEGORI FORMAT
+            </span>
+            <span className="text-2xl font-black mt-0.5 block">
+              {categories.filter((c) => c !== 'all').length}
+            </span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+            <Tag className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Card 4: Alur Persetujuan (Purple) */}
+        <div className="bg-[#7c3aed] text-white rounded-xl p-3.5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
+              ALUR VERIFIKASI
+            </span>
+            <span className="text-2xl font-black mt-0.5 block">1 - 3 Tahap</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. PAGE TITLE BAR DENGAN TOMBOL AKSI BERSIH                                */}
+      {/* ========================================================================= */}
+      <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs shrink-0">
+            <Layers className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight leading-tight">
+              Katalog Template Surat Pengajuan
+            </h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Pilih format baku resmi untuk memulai penyusunan surat dinas dan operasional.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Refresh Button */}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-50"
+            title="Muat ulang data template"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : 'text-slate-500'}`} />
+            <span>Refresh</span>
+          </button>
+
+          {/* Buat Surat Bebas */}
           <button
             type="button"
             id="btn-custom-blank-letter"
             onClick={() => onSelectTemplate(BLANK_TEMPLATE)}
-            className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-black text-white font-bold text-xs shadow-md shadow-black/40 hover:shadow-black/60 active:scale-95 transition-all duration-200 border border-slate-700/80 hover:border-slate-500 cursor-pointer"
-            title="Buat surat ajuan baru secara mandiri tanpa template baku"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-lg shadow-sm transition-all duration-150 cursor-pointer"
+            title="Tulis surat ajuan bebas secara mandiri tanpa template"
           >
-            <Mail className="w-3.5 h-3.5 text-white" />
-            <span className="tracking-wide">Buat Surat Bebas</span>
+            <Mail className="w-3.5 h-3.5" />
+            <span>Buat Surat Bebas</span>
           </button>
         </div>
       </div>
 
-      {/* Filter & Search Toolbar Card - Rapat & Bersih */}
-      <div className="bg-white border border-slate-300 rounded-xl p-2.5 sm:p-3 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          {/* Category Select Dropdown */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 shrink-0">
-              <Filter className="w-3.5 h-3.5 text-blue-600" />
-              <span>Filter Kategori:</span>
-            </div>
-            <select
-              id="select-template-category"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="py-1.5 pl-3 pr-8 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:bg-white transition cursor-pointer"
+      {/* ========================================================================= */}
+      {/* 3. FILTER & SEARCH TOOLBAR (Rapi, Sejajar & Compact)                       */}
+      {/* ========================================================================= */}
+      <div className="bg-white border border-slate-200/90 rounded-xl p-3 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari nama template, perihal, atau deskripsi..."
+            className="w-full pl-8 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
             >
-              {categories.map((cat) => {
-                const count = categoryCounts[cat] || (cat === 'all' ? categoryCounts.all : 0) || 0
-                const label = cat === 'all' ? 'Semua Kategori' : cat
-                return (
-                  <option key={cat} value={cat}>
-                    {label} ({count})
-                  </option>
-                )
-              })}
-            </select>
-            {selectedCategory !== 'all' && (
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('all')}
-                className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer underline ml-1"
-              >
-                Reset Filter
-              </button>
-            )}
-          </div>
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
 
-          {/* Search Input */}
-          <div className="relative w-full sm:w-60 md:w-64 shrink-0">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari template surat..."
-              className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:bg-white transition"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                title="Hapus pencarian"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+        {/* Filter Kategori Select Dropdown */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+            <Filter className="w-3.5 h-3.5 text-blue-600" />
+            <span>Kategori:</span>
           </div>
+          <select
+            id="select-template-category"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="py-1.5 pl-3 pr-8 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition cursor-pointer"
+          >
+            {categories.map((cat) => {
+              const count = categoryCounts[cat] || (cat === 'all' ? categoryCounts.all : 0) || 0
+              const label = cat === 'all' ? 'Semua Kategori' : cat
+              return (
+                <option key={cat} value={cat}>
+                  {label} ({count})
+                </option>
+              )
+            })}
+          </select>
+          {selectedCategory !== 'all' && (
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('all')}
+              className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer underline ml-1"
+            >
+              Reset
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Templates Table / List View (Simple, Elegan & Rapat) */}
-      <div className="bg-white border border-slate-300 rounded-xl shadow-xs overflow-hidden">
+      {/* ========================================================================= */}
+      {/* 4. DATA TABLE ELEGAN (Header Gelap / Charcoal Mirip Screenshot Referensi)  */}
+      {/* ========================================================================= */}
+      <div className="bg-white border border-slate-200/90 rounded-xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
-            <thead className="bg-blue-600 text-white font-bold border-b-2 border-blue-700 text-xs">
-              <tr>
-                <th className="py-2.5 px-3 w-12 text-center border-r border-blue-500/50">No</th>
-                <th className="py-2.5 px-3.5 border-r border-blue-500/50">Perihal & Template Surat</th>
-                <th className="py-2.5 px-3.5 border-r border-blue-500/50">Alur Persetujuan</th>
-                <th className="py-2.5 px-3 w-28 text-center border-r border-blue-500/50">Status</th>
-                <th className="py-2.5 px-3.5 w-32 text-center">Aksi</th>
+            {/* Header Gelap Slate-900 / Charcoal seperti di Gambar Referensi */}
+            <thead className="bg-[#1e293b] text-white">
+              <tr className="border-b border-slate-800 text-[11px] font-extrabold uppercase tracking-wider">
+                <th className="py-3 px-3 w-12 text-center border-r border-slate-700/60">NO</th>
+                <th className="py-3 px-4 border-r border-slate-700/60">PERIHAL &amp; TEMPLATE SURAT</th>
+                <th className="py-3 px-3.5 w-36 border-r border-slate-700/60">KATEGORI</th>
+                <th className="py-3 px-4 border-r border-slate-700/60">ALUR PERSETUJUAN</th>
+                <th className="py-3 px-3 w-28 text-center border-r border-slate-700/60">STATUS</th>
+                <th className="py-3 px-3.5 w-40 text-center">AKSI</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {filteredTemplates.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-slate-500">
+                  <td colSpan="6" className="py-12 text-center text-slate-500">
                     <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="font-semibold text-slate-700">Tidak ada template pada kategori ini</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Gunakan tombol "Buat Surat Bebas" untuk membuat surat tanpa template.
+                    <p className="font-bold text-slate-700 text-sm">Tidak ada template ditemukan</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Coba ganti kata kunci pencarian atau gunakan tombol "Buat Surat Bebas".
                     </p>
                   </td>
                 </tr>
               ) : (
                 filteredTemplates.map((tpl, idx) => {
-                  const stepsCount = tpl.approvalSteps?.length || 1
                   const meta = getCategoryMeta(tpl.category)
                   const CategoryIcon = meta.icon
 
@@ -257,56 +429,53 @@ export default function TemplateCatalog({ templates: propTemplates = [], onSelec
                     <tr
                       key={tpl.id}
                       id={`template-row-${idx}`}
-                      className="hover:bg-blue-50/60 transition-colors group"
+                      className="hover:bg-slate-50/90 transition-colors"
                     >
-                      {/* No */}
-                      <td className="py-2.5 px-3 text-center font-bold text-slate-400 border-r border-slate-200">
+                      {/* NO */}
+                      <td className="py-3 px-3 text-center font-bold text-slate-500 border-r border-slate-200">
                         {idx + 1}
                       </td>
 
-                      {/* Perihal & Template Surat (Kategori di atas, Nama Perihal di bawah) */}
-                      <td className="py-2 px-3.5 border-r border-slate-200">
-                        <div className="space-y-1">
-                          {/* Kategori Badge di atas */}
-                          <div>
-                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${meta.badge}`}>
-                              <CategoryIcon className="w-3 h-3 shrink-0" />
-                              <span>{tpl.category || 'Umum'}</span>
+                      {/* PERIHAL & TEMPLATE SURAT */}
+                      <td className="py-3 px-4 border-r border-slate-200">
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm block leading-snug">
+                            {tpl.name}
+                          </span>
+                          {tpl.code && (
+                            <span className="text-[10px] font-mono text-slate-400 block">
+                              Kode Format: {tpl.code}
                             </span>
-                          </div>
-
-                          {/* Nama / Perihal Surat di bawah */}
-                          <div>
-                            <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-xs sm:text-sm block leading-snug">
-                              {tpl.name}
-                            </span>
-                            {tpl.description && (
-                              <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                                {tpl.description}
-                              </p>
-                            )}
-                          </div>
+                          )}
+                          {tpl.description && (
+                            <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                              {tpl.description}
+                            </p>
+                          )}
                         </div>
                       </td>
 
-                      {/* Alur Persetujuan */}
-                      <td className="py-2.5 px-3.5 border-r border-slate-200">
+                      {/* KATEGORI */}
+                      <td className="py-3 px-3.5 border-r border-slate-200 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border shadow-2xs ${meta.badge}`}>
+                          <CategoryIcon className="w-3.5 h-3.5 shrink-0" />
+                          <span>{tpl.category || 'Umum'}</span>
+                        </span>
+                      </td>
+
+                      {/* ALUR PERSETUJUAN */}
+                      <td className="py-3 px-4 border-r border-slate-200">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {tpl.approvalSteps && tpl.approvalSteps.length > 0 ? (
                             tpl.approvalSteps.map((step, sIdx) => (
                               <React.Fragment key={sIdx}>
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-slate-50 text-slate-700 px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
-                                  <span className="w-3.5 h-3.5 rounded-full bg-slate-800 text-white flex items-center justify-center text-[9px] font-bold shrink-0">
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-slate-50 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs">
+                                  <span className="w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
                                     {step.step || sIdx + 1}
                                   </span>
                                   <span className="truncate max-w-[120px]">
                                     {step.specificUserName || step.approverRole || step.title}
                                   </span>
-                                  {step.maxAmount && (
-                                    <span className="text-[9px] bg-amber-100 text-amber-900 border border-amber-300 font-mono px-1 rounded font-bold">
-                                      &le;{step.maxAmount >= 1000000 ? `${step.maxAmount / 1000000}Jt` : `${step.maxAmount / 1000}Rb`}
-                                    </span>
-                                  )}
                                 </span>
                                 {sIdx < tpl.approvalSteps.length - 1 && (
                                   <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />
@@ -319,25 +488,38 @@ export default function TemplateCatalog({ templates: propTemplates = [], onSelec
                         </div>
                       </td>
 
-                      {/* Status */}
-                      <td className="py-2.5 px-3 text-center border-r border-slate-200 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      {/* STATUS */}
+                      <td className="py-3 px-3 text-center border-r border-slate-200 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full shadow-2xs">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                           <span>Siap Pakai</span>
                         </span>
                       </td>
 
-                      {/* Aksi */}
-                      <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                        <button
-                          id={idx === 0 ? 'btn-use-template-first' : `btn-use-template-${idx}`}
-                          onClick={() => onSelectTemplate(tpl)}
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer w-full"
-                          title={`Gunakan template ${tpl.name}`}
-                        >
-                          <span>Gunakan</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
+                      {/* AKSI */}
+                      <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Tombol Preview Mata (Hijau Seperti di Referensi) */}
+                          <button
+                            type="button"
+                            onClick={() => setPreviewTemplate(tpl)}
+                            className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-300 rounded-lg transition shadow-2xs cursor-pointer"
+                            title="Pratinjau Lembar Surat Resmi"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+
+                          {/* Tombol Gunakan Template (Biru Kuat) */}
+                          <button
+                            id={idx === 0 ? 'btn-use-template-first' : `btn-use-template-${idx}`}
+                            onClick={() => onSelectTemplate(tpl)}
+                            className="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
+                            title={`Gunakan template ${tpl.name}`}
+                          >
+                            <span>Gunakan</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -347,6 +529,70 @@ export default function TemplateCatalog({ templates: propTemplates = [], onSelec
           </table>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 5. MODAL PRATINJAU LEMBAR RESMI (KETIKA KLIK ICON MATA)                    */}
+      {/* ========================================================================= */}
+      {previewTemplate && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+            {/* Header Modal */}
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-blue-600 text-white">
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">{previewTemplate.name}</h3>
+                  <p className="text-[11px] text-slate-400">Pratinjau lembar surat baku resmi</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewTemplate(null)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Document Viewer Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto bg-slate-100 flex-1 flex justify-center">
+              <div className="bg-white shadow-lg p-6 sm:p-10 rounded-xs border border-slate-200 max-w-2xl w-full">
+                <LetterDocumentView letter={generatePreviewLetter(previewTemplate)} />
+              </div>
+            </div>
+
+            {/* Footer Modal */}
+            <div className="p-3 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
+              <span className="text-xs text-slate-500 font-medium">
+                Kategori: <strong className="text-slate-800">{previewTemplate.category || 'Umum'}</strong>
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreviewTemplate(null)}
+                  className="px-4 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const t = previewTemplate
+                    setPreviewTemplate(null)
+                    onSelectTemplate(t)
+                  }}
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Gunakan Template Ini</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -415,43 +415,99 @@ export default function LetterList({
   })
 
   return (
-    <div className="space-y-3">
-      {/* Top Header Banner Berwarna */}
-      <div className={`text-white rounded-xl p-3.5 sm:p-4 pb-2 sm:pb-2 shadow-md shadow-slate-900/10 border ${
-        isInboxView
-          ? 'bg-gradient-to-r from-violet-800 via-indigo-800 to-slate-900 border-violet-900/40'
-          : 'bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 border-blue-900/40'
-      }`}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-xs flex items-center justify-center border border-white/20 text-white shadow-xs shrink-0">
-              {isInboxView ? <Inbox className="w-4.5 h-4.5 text-violet-300" /> : <FileText className="w-4.5 h-4.5 text-sky-300" />}
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">
-                {isInboxView ? 'Kotak Masuk Surat (Dibagikan ke Saya)' : 'Daftar Arsip & Pengajuan Surat'}
-              </h2>
-              <p className="text-xs text-blue-100/80">
-                {isInboxView
-                  ? 'Daftar surat dinas dan dokumen pengajuan yang dibagikan oleh rekan kerja kepada Anda.'
-                  : 'Pantau status, otorisasi persetujuan surat, atau unduh dokumen PDF resmi.'}
-              </p>
-            </div>
+    <div className="space-y-3.5">
+      {/* 1. TOP STATS / KPI CARDS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Sky Blue */}
+        <div className="bg-[#0284c7] text-white rounded-xl p-3.5 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
+              TOTAL {isInboxView ? 'MASUK' : 'SURAT'}
+            </span>
+            <span className="text-2xl font-black mt-0.5 block">{statusCounts.all}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => exportLettersToExcel(filteredLetters, { status: statusFilter, branch: branchFilter, category: categoryFilter })}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 shadow-sm border border-emerald-400/40"
-              title="Ekspor seluruh data surat terfilter ke file Excel (.xlsx)"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Ekspor Excel (.xlsx)</span>
-            </button>
-            <span className="text-xs font-semibold px-2.5 py-1 bg-white/15 text-white border border-white/20 backdrop-blur-xs rounded-lg">
-              Total: {filteredLetters.length} Dokumen
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+            {isInboxView ? <Inbox className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+          </div>
+        </div>
+
+        {/* Emerald Green */}
+        <div className="bg-[#059669] text-white rounded-xl p-3.5 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
+              {isInboxView ? 'SUDAH DIBACA' : 'DISETUJUI'}
+            </span>
+            <span className="text-2xl font-black mt-0.5 block">
+              {isInboxView ? statusCounts.read : statusCounts.approved}
             </span>
           </div>
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Amber / Orange */}
+        <div className="bg-[#d97706] text-white rounded-xl p-3.5 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
+              {isInboxView ? 'BELUM DIBACA' : 'MENUNGGU ACC'}
+            </span>
+            <span className="text-2xl font-black mt-0.5 block">
+              {isInboxView ? statusCounts.unread : statusCounts.pending}
+            </span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+            <Clock className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Purple */}
+        <div className="bg-[#7c3aed] text-white rounded-xl p-3.5 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-black tracking-wider uppercase opacity-90 block">
+              {isInboxView ? 'DRAF' : (statusCounts.myAction > 0 ? 'GILIRAN SAYA ACC' : 'DITOLAK')}
+            </span>
+            <span className="text-2xl font-black mt-0.5 block">
+              {isInboxView ? statusCounts.draft : (statusCounts.myAction > 0 ? statusCounts.myAction : statusCounts.rejected)}
+            </span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* 2. PAGE TITLE BAR */}
+      <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-200/80 flex items-center justify-center shadow-2xs shrink-0">
+            {isInboxView ? <Inbox className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+          </div>
+          <div>
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight leading-tight">
+              {isInboxView ? 'Kotak Masuk Surat (Dibagikan ke Saya)' : 'Daftar Arsip & Pengajuan Surat'}
+            </h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              {isInboxView
+                ? 'Daftar surat dinas dan dokumen pengajuan yang dibagikan oleh rekan kerja kepada Anda.'
+                : 'Pantau status, otorisasi persetujuan surat, atau unduh dokumen resmi.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => exportLettersToExcel(filteredLetters, { status: statusFilter, branch: branchFilter, category: categoryFilter })}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 shadow-xs"
+            title="Ekspor seluruh data surat terfilter ke file Excel (.xlsx)"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Ekspor Excel (.xlsx)</span>
+          </button>
+          <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg">
+            Total: {filteredLetters.length} Dokumen
+          </span>
         </div>
       </div>
 
@@ -722,16 +778,16 @@ export default function LetterList({
       </div>
 
       {/* Letters Table */}
-      <div className="bg-white border border-slate-300 rounded-xl shadow-md shadow-slate-400/20 overflow-hidden">
+      <div className="bg-white border border-slate-200/90 rounded-xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border-collapse border border-slate-300">
-            <thead className="bg-blue-600 text-white font-bold border-b-2 border-blue-700 text-xs shadow-xs">
+          <table className="w-full text-xs text-left border-collapse border border-slate-200">
+            <thead className="bg-[#1e293b] text-white font-bold border-b border-slate-700 text-[11px] uppercase tracking-wider shadow-xs">
               <tr>
-                <th className="py-2.5 px-3.5 font-bold tracking-wide border-r border-blue-500/50">Nomor & Tanggal</th>
-                <th className="py-2.5 px-3.5 font-bold tracking-wide border-r border-blue-500/50">Perihal / Judul Surat</th>
-                <th className="py-2.5 px-3.5 font-bold tracking-wide border-r border-blue-500/50">Pemohon & Cabang</th>
-                <th className="py-2.5 px-3.5 font-bold tracking-wide border-r border-blue-500/50">Status & Alur</th>
-                <th className="py-2.5 px-3.5 font-bold tracking-wide text-center">Aksi</th>
+                <th className="py-2.5 px-3.5 font-bold tracking-wider border-r border-slate-700/60 text-white">Nomor & Tanggal</th>
+                <th className="py-2.5 px-3.5 font-bold tracking-wider border-r border-slate-700/60 text-white">Perihal / Judul Surat</th>
+                <th className="py-2.5 px-3.5 font-bold tracking-wider border-r border-slate-700/60 text-white">Pemohon & Cabang</th>
+                <th className="py-2.5 px-3.5 font-bold tracking-wider border-r border-slate-700/60 text-white">Status & Alur</th>
+                <th className="py-2.5 px-3.5 font-bold tracking-wider text-center text-white">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -860,7 +916,7 @@ export default function LetterList({
 
                       <td className="py-2 px-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Tombol Lihat (Biru - Icon Only) */}
+                          {/* Tombol Lihat (Emerald Hijau seperti di Referensi - Icon Only) */}
                           <button
                             onClick={() => {
                               if (isInboxView) {
@@ -868,7 +924,7 @@ export default function LetterList({
                               }
                               onOpenLetter(l)
                             }}
-                            className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition shadow-xs flex items-center justify-center"
+                            className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-xs flex items-center justify-center"
                             title="Lihat Dokumen Surat"
                           >
                             <Eye className="w-4 h-4" />

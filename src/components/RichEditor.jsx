@@ -142,7 +142,9 @@ export default function RichEditor({
     if (isDraggingColumnRef.current) return;
 
     // Prioritaskan sel yang sedang di-blok / dipilih dengan drag (.table-cell-selected)
-    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    const selectedCells = editorRef.current?.querySelectorAll(
+      ".table-cell-selected",
+    );
     if (selectedCells && selectedCells.length > 0) {
       const firstCell = selectedCells[0];
       const table = firstCell.closest("table");
@@ -314,7 +316,9 @@ export default function RichEditor({
     if (readOnly) return;
 
     // 1. Cek apakah ada sel tabel yang sedang di-blok / dipilih dengan drag (.table-cell-selected)
-    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    const selectedCells = editorRef.current?.querySelectorAll(
+      ".table-cell-selected",
+    );
     if (selectedCells && selectedCells.length > 0) {
       saveHistorySnapshot();
 
@@ -335,7 +339,7 @@ export default function RichEditor({
         selectedCells.forEach((cell) => {
           cell.style.textAlign = align;
           Array.from(
-            cell.querySelectorAll("p, span, div, font, b, strong, i, u, a")
+            cell.querySelectorAll("p, span, div, font, b, strong, i, u, a"),
           ).forEach((el) => {
             el.style.textAlign = align;
           });
@@ -351,13 +355,15 @@ export default function RichEditor({
           (c) =>
             c.style.fontWeight !== "bold" &&
             c.style.fontWeight !== "700" &&
-            c.tagName.toLowerCase() !== "th"
+            c.tagName.toLowerCase() !== "th",
         );
         selectedCells.forEach((cell) => {
           cell.style.fontWeight = anyNormal ? "bold" : "normal";
-          Array.from(cell.querySelectorAll("p, span, div, font")).forEach((el) => {
-            el.style.fontWeight = anyNormal ? "bold" : "normal";
-          });
+          Array.from(cell.querySelectorAll("p, span, div, font")).forEach(
+            (el) => {
+              el.style.fontWeight = anyNormal ? "bold" : "normal";
+            },
+          );
         });
         handleInput();
         saveHistorySnapshot();
@@ -367,13 +373,15 @@ export default function RichEditor({
       // Format Huruf: Italic
       if (command === "italic") {
         const anyNonItalic = Array.from(selectedCells).some(
-          (c) => c.style.fontStyle !== "italic"
+          (c) => c.style.fontStyle !== "italic",
         );
         selectedCells.forEach((cell) => {
           cell.style.fontStyle = anyNonItalic ? "italic" : "normal";
-          Array.from(cell.querySelectorAll("p, span, div, font")).forEach((el) => {
-            el.style.fontStyle = anyNonItalic ? "italic" : "normal";
-          });
+          Array.from(cell.querySelectorAll("p, span, div, font")).forEach(
+            (el) => {
+              el.style.fontStyle = anyNonItalic ? "italic" : "normal";
+            },
+          );
         });
         handleInput();
         saveHistorySnapshot();
@@ -383,13 +391,15 @@ export default function RichEditor({
       // Format Huruf: Underline
       if (command === "underline") {
         const anyNonUnderline = Array.from(selectedCells).some(
-          (c) => !c.style.textDecoration?.includes("underline")
+          (c) => !c.style.textDecoration?.includes("underline"),
         );
         selectedCells.forEach((cell) => {
           cell.style.textDecoration = anyNonUnderline ? "underline" : "none";
-          Array.from(cell.querySelectorAll("p, span, div, font")).forEach((el) => {
-            el.style.textDecoration = anyNonUnderline ? "underline" : "none";
-          });
+          Array.from(cell.querySelectorAll("p, span, div, font")).forEach(
+            (el) => {
+              el.style.textDecoration = anyNonUnderline ? "underline" : "none";
+            },
+          );
         });
         handleInput();
         saveHistorySnapshot();
@@ -399,7 +409,7 @@ export default function RichEditor({
       // Format Huruf: Coret (StrikeThrough)
       if (command === "strikeThrough") {
         const anyNonStrike = Array.from(selectedCells).some(
-          (c) => !c.style.textDecoration?.includes("line-through")
+          (c) => !c.style.textDecoration?.includes("line-through"),
         );
         selectedCells.forEach((cell) => {
           cell.style.textDecoration = anyNonStrike ? "line-through" : "none";
@@ -413,7 +423,9 @@ export default function RichEditor({
       if (command === "foreColor" && val) {
         selectedCells.forEach((cell) => {
           cell.style.color = val;
-          Array.from(cell.querySelectorAll("*")).forEach((el) => (el.style.color = val));
+          Array.from(cell.querySelectorAll("*")).forEach(
+            (el) => (el.style.color = val),
+          );
         });
         handleInput();
         saveHistorySnapshot();
@@ -449,7 +461,9 @@ export default function RichEditor({
       saveHistorySnapshot();
       activeTableState.cell.style.textAlign = align;
       Array.from(
-        activeTableState.cell.querySelectorAll("p, span, div, font, b, strong, i, u, a")
+        activeTableState.cell.querySelectorAll(
+          "p, span, div, font, b, strong, i, u, a",
+        ),
       ).forEach((el) => {
         el.style.textAlign = align;
       });
@@ -470,7 +484,9 @@ export default function RichEditor({
     if (readOnly) return;
     setFontFamily(fontName);
 
-    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    const selectedCells = editorRef.current?.querySelectorAll(
+      ".table-cell-selected",
+    );
     if (selectedCells && selectedCells.length > 0) {
       saveHistorySnapshot();
       selectedCells.forEach((c) => {
@@ -500,7 +516,7 @@ export default function RichEditor({
       document.execCommand("fontName", false, fontName);
       if (editorRef.current) {
         const fontElements = editorRef.current.querySelectorAll(
-          `font[face="${fontName}"]`
+          `font[face="${fontName}"]`,
         );
         fontElements.forEach((el) => {
           el.style.fontFamily = fontName;
@@ -516,7 +532,9 @@ export default function RichEditor({
   const applyFontColor = (colorHex) => {
     if (readOnly || !colorHex) return;
 
-    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    const selectedCells = editorRef.current?.querySelectorAll(
+      ".table-cell-selected",
+    );
     if (selectedCells && selectedCells.length > 0) {
       saveHistorySnapshot();
       selectedCells.forEach((c) => {
@@ -551,7 +569,9 @@ export default function RichEditor({
   const applyHighlightColor = (colorHex) => {
     if (readOnly || !colorHex) return;
 
-    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    const selectedCells = editorRef.current?.querySelectorAll(
+      ".table-cell-selected",
+    );
     if (selectedCells && selectedCells.length > 0) {
       saveHistorySnapshot();
       selectedCells.forEach((c) => {
@@ -581,7 +601,9 @@ export default function RichEditor({
     if (readOnly) return;
     setFontSize(val);
 
-    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    const selectedCells = editorRef.current?.querySelectorAll(
+      ".table-cell-selected",
+    );
     if (selectedCells && selectedCells.length > 0) {
       saveHistorySnapshot();
       selectedCells.forEach((c) => {
@@ -779,8 +801,14 @@ export default function RichEditor({
     }
 
     // Hapus isi sel kolom yang sedang dipilih jika tombol Backspace / Delete ditekan
-    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
-    if (selectedCells && selectedCells.length > 0 && (e.key === "Backspace" || e.key === "Delete")) {
+    const selectedCells = editorRef.current?.querySelectorAll(
+      ".table-cell-selected",
+    );
+    if (
+      selectedCells &&
+      selectedCells.length > 0 &&
+      (e.key === "Backspace" || e.key === "Delete")
+    ) {
       e.preventDefault();
       saveHistorySnapshot(); // Catat riwayat SEBELUM sel dikosongkan
       selectedCells.forEach((c) => {
@@ -1050,16 +1078,20 @@ export default function RichEditor({
     if (cell && editorRef.current?.contains(cell)) {
       dragStartCellRef.current = cell;
       if (!e.shiftKey && editorRef.current) {
-        editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
-          el.classList.remove("table-cell-selected");
-        });
+        editorRef.current
+          .querySelectorAll(".table-cell-selected")
+          .forEach((el) => {
+            el.classList.remove("table-cell-selected");
+          });
       }
     } else {
       dragStartCellRef.current = null;
       if (editorRef.current) {
-        editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
-          el.classList.remove("table-cell-selected");
-        });
+        editorRef.current
+          .querySelectorAll(".table-cell-selected")
+          .forEach((el) => {
+            el.classList.remove("table-cell-selected");
+          });
       }
     }
 
@@ -1280,9 +1312,11 @@ export default function RichEditor({
     const { table, colIndex } = activeTableState;
     window.getSelection()?.removeAllRanges();
     if (editorRef.current) {
-      editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
-        el.classList.remove("table-cell-selected");
-      });
+      editorRef.current
+        .querySelectorAll(".table-cell-selected")
+        .forEach((el) => {
+          el.classList.remove("table-cell-selected");
+        });
     }
     Array.from(table.rows).forEach((row) => {
       const cell = row.cells[colIndex];
@@ -1296,13 +1330,17 @@ export default function RichEditor({
     const { table, rowIndex } = activeTableState;
     window.getSelection()?.removeAllRanges();
     if (editorRef.current) {
-      editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
-        el.classList.remove("table-cell-selected");
-      });
+      editorRef.current
+        .querySelectorAll(".table-cell-selected")
+        .forEach((el) => {
+          el.classList.remove("table-cell-selected");
+        });
     }
     const row = table.rows[rowIndex];
     if (row) {
-      Array.from(row.cells).forEach((cell) => cell.classList.add("table-cell-selected"));
+      Array.from(row.cells).forEach((cell) =>
+        cell.classList.add("table-cell-selected"),
+      );
     }
   };
 
@@ -1420,7 +1458,9 @@ export default function RichEditor({
 
   const alignTableCenter = () => {
     if (!activeTableState) return;
-    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    const selectedCells = editorRef.current?.querySelectorAll(
+      ".table-cell-selected",
+    );
     if (selectedCells && selectedCells.length > 0) {
       format("justifyCenter");
       return;
@@ -1434,7 +1474,9 @@ export default function RichEditor({
 
   const alignTableLeft = () => {
     if (!activeTableState) return;
-    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    const selectedCells = editorRef.current?.querySelectorAll(
+      ".table-cell-selected",
+    );
     if (selectedCells && selectedCells.length > 0) {
       format("justifyLeft");
       return;
@@ -1448,7 +1490,9 @@ export default function RichEditor({
 
   const alignTableRight = () => {
     if (!activeTableState) return;
-    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    const selectedCells = editorRef.current?.querySelectorAll(
+      ".table-cell-selected",
+    );
     if (selectedCells && selectedCells.length > 0) {
       format("justifyRight");
       return;
@@ -1466,7 +1510,8 @@ export default function RichEditor({
   const insertOfficialHeader = () => {
     if (readOnly) return;
     const numDisplay = letterNumber || "{{nomor_surat}}";
-    const perihalDisplay = perihal && perihal.trim() ? perihal.trim() : "Permohonan";
+    const perihalDisplay =
+      perihal && perihal.trim() ? perihal.trim() : "Permohonan";
     const dariDisplay = submitterName || "[Nama Pemohon]";
 
     const html = `
@@ -1579,7 +1624,7 @@ export default function RichEditor({
     if (readOnly) return;
     const url = prompt(
       "Masukkan URL Gambar (atau paste link gambar):",
-      "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&auto=format&fit=crop&q=80"
+      "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&auto=format&fit=crop&q=80",
     );
     if (url) {
       const imgHtml = `<p style="text-align: center;"><img src="${url}" alt="Lampiran Foto" style="max-width: 80%; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin: 12px auto; display: inline-block;" /></p><p><br></p>`;
@@ -1612,7 +1657,11 @@ export default function RichEditor({
     );
   };
 
-  const formatTsvToTable = (tsvText, firstRowIsHeader = true, autoAlign = true) => {
+  const formatTsvToTable = (
+    tsvText,
+    firstRowIsHeader = true,
+    autoAlign = true,
+  ) => {
     if (!tsvText) return "";
     const lines = tsvText.trim().split(/\r\n|\r|\n/);
     if (lines.length === 0) return "";
@@ -1631,7 +1680,7 @@ export default function RichEditor({
         const cellContent = rawVal
           ? rawVal.replace(/</g, "&lt;").replace(/>/g, "&gt;")
           : "<br>";
-        
+
         let align = "text-align: left;";
         if (autoAlign && rawVal) {
           const cleanNum = rawVal.replace(/[.,%Rp\s]/g, "");
@@ -1668,7 +1717,7 @@ export default function RichEditor({
         table.className = "w-full my-3";
         table.setAttribute(
           "style",
-          "width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: inherit; font-size: 11pt; table-layout: auto;"
+          "width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: inherit; font-size: 11pt; table-layout: auto;",
         );
 
         // Remove colgroup/col
@@ -1707,7 +1756,7 @@ export default function RichEditor({
             cell.removeAttribute("height");
             cell.setAttribute(
               "style",
-              `border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 11pt; text-align: ${textAlign}; vertical-align: middle; ${bg}`
+              `border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 11pt; text-align: ${textAlign}; vertical-align: middle; ${bg}`,
             );
 
             if (!cell.innerHTML.trim()) {
@@ -1761,7 +1810,11 @@ export default function RichEditor({
     // Case 3: Copied plain text (Ctrl+V teks bersih tanpa style luar yang merusak tata letak)
     if (textData && (!htmlData || !htmlData.includes("<table"))) {
       e.preventDefault();
-      document.execCommand("insertText", false, textData.replace(/\r\n/g, "\n"));
+      document.execCommand(
+        "insertText",
+        false,
+        textData.replace(/\r\n/g, "\n"),
+      );
       handleInput();
       return;
     }
@@ -1789,7 +1842,11 @@ export default function RichEditor({
               return;
             }
           }
-          document.execCommand("insertText", false, text.replace(/\r\n/g, "\n"));
+          document.execCommand(
+            "insertText",
+            false,
+            text.replace(/\r\n/g, "\n"),
+          );
           handleInput();
           return;
         }
@@ -1811,12 +1868,14 @@ export default function RichEditor({
       tableHtml = formatTsvToTable(
         excelPasteText,
         excelHeaderFirstRow,
-        excelAutoAlign
+        excelAutoAlign,
       );
     }
 
     if (!tableHtml) {
-      alert("Format data tidak terbaca sebagai tabel. Pastikan Anda meng-copy sel dari Excel atau spreadsheet.");
+      alert(
+        "Format data tidak terbaca sebagai tabel. Pastikan Anda meng-copy sel dari Excel atau spreadsheet.",
+      );
       return;
     }
 
@@ -1852,7 +1911,9 @@ export default function RichEditor({
         }
       }
     } catch (err) {
-      alert("Akses clipboard langsung dibatasi browser. Silakan tekan Ctrl+V pada kotak teks di bawah.");
+      alert(
+        "Akses clipboard langsung dibatasi browser. Silakan tekan Ctrl+V pada kotak teks di bawah.",
+      );
     }
   };
 
@@ -2500,7 +2561,9 @@ export default function RichEditor({
 
               {/* Perataan Teks Sel (Rata Kiri, Rata Tengah, Rata Kanan) */}
               <div className="flex items-center gap-1 bg-white border border-indigo-200 rounded p-0.5 shadow-2xs">
-                <span className="text-[10px] text-indigo-900 font-semibold px-1">Teks Sel:</span>
+                <span className="text-[10px] text-indigo-900 font-semibold px-1">
+                  Teks Sel:
+                </span>
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
@@ -2532,7 +2595,9 @@ export default function RichEditor({
 
               {/* Posisi Tabel di Kertas */}
               <div className="flex items-center gap-1 bg-white border border-indigo-200 rounded p-0.5 shadow-2xs">
-                <span className="text-[10px] text-slate-500 font-medium px-1">Posisi Tabel:</span>
+                <span className="text-[10px] text-slate-500 font-medium px-1">
+                  Posisi Tabel:
+                </span>
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
@@ -2712,7 +2777,9 @@ export default function RichEditor({
       {/* ========================================================================= */}
       <div
         className={`bg-[#e9ecef] p-4 sm:p-8 flex justify-center relative ${
-          isFullscreen ? "flex-1 overflow-y-auto" : "min-h-[580px] overflow-x-auto"
+          isFullscreen
+            ? "flex-1 overflow-y-auto"
+            : "min-h-[580px] overflow-x-auto"
         }`}
       >
         <div
@@ -2831,7 +2898,9 @@ export default function RichEditor({
             onMouseMove={handleEditorMouseMove}
             onMouseDown={handleEditorMouseDown}
             className={`rich-editor-sheet outline-none leading-relaxed prose prose-slate max-w-none min-h-[900px] text-[11pt] focus:ring-0 ${
-              readOnly ? "cursor-default select-text" : "cursor-text select-text"
+              readOnly
+                ? "cursor-default select-text"
+                : "cursor-text select-text"
             }`}
             style={{
               fontFamily: `${fontFamily}, Calibri, Tahoma, Arial, sans-serif`,
@@ -2935,14 +3004,23 @@ export default function RichEditor({
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-emerald-900 flex items-start gap-3">
                 <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="font-semibold text-emerald-950">Cara Penggunaan:</p>
+                  <p className="font-semibold text-emerald-950">
+                    Cara Penggunaan:
+                  </p>
                   <ol className="list-decimal list-inside space-y-0.5 text-emerald-800">
                     <li>Buka file Microsoft Excel atau Google Sheets Anda.</li>
-                    <li>Blok sel tabel yang diinginkan, lalu tekan <b>Ctrl + C</b> (Copy).</li>
-                    <li>Klik tombol <b>"Ambil dari Clipboard"</b> di bawah atau tekan <b>Ctrl + V</b> di dalam kotak teks.</li>
+                    <li>
+                      Blok sel tabel yang diinginkan, lalu tekan <b>Ctrl + C</b>{" "}
+                      (Copy).
+                    </li>
+                    <li>
+                      Klik tombol <b>"Ambil dari Clipboard"</b> di bawah atau
+                      tekan <b>Ctrl + V</b> di dalam kotak teks.
+                    </li>
                   </ol>
                   <p className="text-[11px] text-emerald-700 italic pt-1">
-                    *Tip: Anda juga bisa langsung menekan <b>Ctrl + V</b> langsung di lembar kerja Word tanpa membuka menu ini!
+                    *Tip: Anda juga bisa langsung menekan <b>Ctrl + V</b>{" "}
+                    langsung di lembar kerja Word tanpa membuka menu ini!
                   </p>
                 </div>
               </div>
@@ -3021,7 +3099,8 @@ export default function RichEditor({
                       Pratinjau Tampilan Tabel:
                     </span>
                     <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
-                      {excelPasteText.trim().split(/\r\n|\r|\n/).length} baris terdeteksi
+                      {excelPasteText.trim().split(/\r\n|\r|\n/).length} baris
+                      terdeteksi
                     </span>
                   </div>
                   <div
@@ -3032,7 +3111,7 @@ export default function RichEditor({
                         : formatTsvToTable(
                             excelPasteText,
                             excelHeaderFirstRow,
-                            excelAutoAlign
+                            excelAutoAlign,
                           ),
                     }}
                   />

@@ -804,13 +804,13 @@ export default function AdminLayout({
                   onClick={() => onMenuChange(item.id)}
                   className={`group relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all duration-200 shrink-0 cursor-pointer border ${
                     item.isActive
-                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white border-blue-400/60 shadow-md shadow-blue-500/25 ring-2 ring-blue-500/30'
-                      : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800/90 border-slate-700/80 hover:border-slate-500 shadow-xs hover:shadow-sm'
+                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white border-blue-400/80 shadow-md shadow-blue-500/30 ring-2 ring-blue-500/30'
+                      : 'bg-white text-slate-900 hover:text-black hover:bg-slate-100 border-slate-200 shadow-2xs'
                   }`}
                 >
                   <Icon
                     className={`w-3.5 h-3.5 shrink-0 transition-colors ${
-                      item.isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'
+                      item.isActive ? 'text-white' : 'text-slate-700 group-hover:text-blue-600'
                     }`}
                   />
                   <span className="whitespace-nowrap tracking-wide">{item.label}</span>
@@ -820,8 +820,8 @@ export default function AdminLayout({
                         item.isActive
                           ? 'bg-white/20 text-white border border-white/30'
                           : item.badge === 'BARU'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-2xs'
-                          : 'bg-amber-500 text-slate-950 shadow-2xs'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs font-bold'
+                          : 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs font-black'
                       }`}
                     >
                       {item.badge}
@@ -847,12 +847,12 @@ export default function AdminLayout({
                   }}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs transition duration-200 border ${
                     item.isActive
-                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white border-blue-400/60 shadow-md shadow-blue-500/25 ring-1 ring-blue-400/30'
-                      : 'bg-slate-900/90 text-slate-300 hover:text-white hover:bg-slate-800 border-slate-700/80'
+                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white border-blue-400/80 shadow-md shadow-blue-500/25 ring-1 ring-blue-400/30'
+                      : 'bg-white text-slate-900 hover:text-black hover:bg-slate-100 border-slate-200 shadow-2xs'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 shrink-0 ${item.isActive ? 'text-white' : 'text-slate-400'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${item.isActive ? 'text-white' : 'text-slate-700'}`} />
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
@@ -861,8 +861,8 @@ export default function AdminLayout({
                         item.isActive
                           ? 'bg-white/20 text-white border border-white/30'
                           : item.badge === 'BARU'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
-                          : 'bg-amber-500 text-slate-950'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-amber-100 text-amber-900 border border-amber-300'
                       }`}
                     >
                       {item.badge}

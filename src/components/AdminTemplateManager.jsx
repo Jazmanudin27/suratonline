@@ -61,7 +61,7 @@ import {
   getJabatan,
   HRD_JABATAN,
 } from '../services/storage'
-import { notify } from '../utils/alert'
+import Swal, { notify } from '../utils/alert'
 
 export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
   const [templates, setTemplates] = useState(getTemplates())
@@ -220,12 +220,78 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
     )
   }
 
-  const handleDeleteTemplate = (tpl) => {
+  const handleDeleteTemplate = async (tpl) => {
+    if (!tpl) return
+
+    // 1. Validasi jika template sudah pernah digunakan dalam surat
+    const usageCount = lettersList.filter((l) => l.templateId === tpl.id).length
+    if (usageCount > 0) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Template Tidak Dapat Dihapus',
+        html: `
+          <div class="text-left text-xs text-slate-600 space-y-2 mt-2">
+            <p>Template surat <b>"${tpl.name}"</b> sudah digunakan dalam <b>${usageCount} surat ajuan</b> resmi.</p>
+            <p class="text-slate-500">Untuk menjaga arsip dan riwayat surat yang sudah terbit, template ini tidak dapat dihapus. Anda dapat <b>menonaktifkan</b> statusnya agar tidak lagi dipilih saat membuat surat baru.</p>
+          </div>
+        `,
+        confirmButtonText: 'Mengerti',
+        confirmButtonColor: '#3b82f6',
+        customClass: {
+          popup: 'rounded-2xl font-sans p-6 shadow-2xl border border-slate-100',
+          title: 'text-base font-bold text-slate-900',
+          confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-md',
+        },
+      })
+      return
+    }
+
+    // 2. SweetAlert Konfirmasi Hapus dengan Tombol Berwarna Jelas
+    const result = await Swal.fire({
+      title: 'Hapus Template Surat?',
+      html: `
+        <div class="text-left text-xs text-slate-600 space-y-2.5 mt-2">
+          <p>Apakah Anda yakin ingin menghapus template surat ini secara permanen?</p>
+          <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-1 shadow-2xs">
+            <div class="font-extrabold text-sm text-rose-950">${tpl.name}</div>
+            <div class="text-rose-700 font-mono text-[11px] flex flex-wrap gap-x-2">
+              <span>Kode: <b>${tpl.code || '-'}</b></span>
+              <span>&bull;</span>
+              <span>Kategori: <b>${tpl.category || 'Umum'}</b></span>
+            </div>
+          </div>
+          <p class="text-[11px] text-rose-600 font-medium">⚠️ Template yang sudah dihapus tidak dapat dipulihkan kembali.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Hapus Sekarang',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#e11d48', // Merah / Rose tegas
+      cancelButtonColor: '#64748b',  // Abu-abu Slate
+      reverseButtons: true,
+      focusCancel: true,
+      buttonsStyling: true,
+      customClass: {
+        popup: 'rounded-3xl font-sans p-6 shadow-2xl border border-slate-100',
+        title: 'text-lg font-black text-slate-900',
+        confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-xs shadow-md bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white cursor-pointer transition',
+        cancelButton: 'px-4 py-2.5 rounded-xl font-bold text-xs bg-slate-500 hover:bg-slate-600 text-white cursor-pointer transition',
+      },
+    })
+
+    if (!result.isConfirmed) return
+
     const res = deleteTemplate(tpl.id)
     if (!res.success) {
       notify.warning('Gagal Menghapus', res.message)
     } else {
-      notify.success('Template Dihapus', `Template ${tpl.name} telah berhasil dihapus.`)
+      notify.success('Template Dihapus', `Template "${tpl.name}" telah berhasil dihapus.`)
+      if (editingTemplate && editingTemplate.id === tpl.id) {
+        setEditingTemplate(null)
+        setIsWordFullscreen(false)
+        setShowAttachmentManager(false)
+      }
       refreshList()
     }
   }
@@ -500,33 +566,34 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
               <button
                 type="button"
                 onClick={() => setSelectedCategory('ALL')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap border ${
                   selectedCategory === 'ALL'
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-400/80 shadow-md shadow-blue-500/25 ring-2 ring-blue-500/20'
+                    : 'bg-white hover:bg-slate-100 text-slate-900 border-slate-200 shadow-2xs'
                 }`}
               >
                 <span>Semua</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-800 border border-slate-200'}`}>
                   {templates.length}
                 </span>
               </button>
 
               {categories.map((cat) => {
                 const count = templates.filter((t) => t.category === cat).length
+                const isSelected = selectedCategory === cat
                 return (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
-                      selectedCategory === cat
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap border ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-400/80 shadow-md shadow-blue-500/25 ring-2 ring-blue-500/20'
+                        : 'bg-white hover:bg-slate-100 text-slate-900 border-slate-200 shadow-2xs'
                     }`}
                   >
                     <span>{cat}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${selectedCategory === cat ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-800 border border-slate-200'}`}>
                       {count}
                     </span>
                   </button>
@@ -671,12 +738,12 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
 
                   {/* Tombol Aksi Bawah */}
                   <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       {/* Pratinjau Cepat Lembar Surat */}
                       <button
                         type="button"
                         onClick={() => setReviewModalTemplate(tpl)}
-                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition border border-transparent hover:border-blue-200"
+                        className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 rounded-xl transition border border-blue-200 shadow-2xs"
                         title="Pratinjau Lembar Surat Resmi"
                       >
                         <Eye className="w-4 h-4" />
@@ -686,7 +753,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                       <button
                         type="button"
                         onClick={() => setApproverModalTemplate(tpl)}
-                        className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition border border-transparent hover:border-purple-200"
+                        className="p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 rounded-xl transition border border-purple-200 shadow-2xs"
                         title="Atur Urutan Pejabat Approver"
                       >
                         <Settings className="w-4 h-4" />
@@ -696,18 +763,18 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                       <button
                         type="button"
                         onClick={() => handleDuplicateTemplate(tpl)}
-                        className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition border border-transparent hover:border-sky-200"
+                        className="p-2 text-sky-600 bg-sky-50 hover:bg-sky-100 active:bg-sky-200 rounded-xl transition border border-sky-200 shadow-2xs"
                         title="Duplikat Template"
                       >
                         <Copy className="w-4 h-4" />
                       </button>
 
-                      {/* Hapus */}
+                      {/* Hapus Template (Tombol Berwarna Merah Terang) */}
                       <button
                         type="button"
                         onClick={() => handleDeleteTemplate(tpl)}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition border border-transparent hover:border-rose-200"
-                        title="Hapus Template"
+                        className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 hover:text-rose-700 rounded-xl transition border border-rose-200 hover:border-rose-300 shadow-2xs cursor-pointer"
+                        title="Hapus Template Surat"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -805,6 +872,18 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
 
               {/* Action Buttons Top */}
               <div className="flex items-center gap-2">
+                {editingTemplate?.id && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTemplate(editingTemplate)}
+                    className="px-3 py-1.5 text-xs font-bold text-rose-100 hover:text-white bg-rose-600/80 hover:bg-rose-600 active:bg-rose-700 border border-rose-400/50 rounded-lg transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    title="Hapus template surat ini"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Hapus Template</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
@@ -812,7 +891,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                     setIsWordFullscreen(false)
                     setShowAttachmentManager(false)
                   }}
-                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-500/90 hover:bg-rose-600 active:bg-rose-700 border border-rose-400/40 rounded-lg transition shadow-xs"
+                  className="px-3.5 py-1.5 text-xs font-bold text-slate-200 hover:text-white bg-slate-700/80 hover:bg-slate-600 active:bg-slate-800 border border-slate-500/40 rounded-lg transition shadow-xs cursor-pointer"
                 >
                   Batal
                 </button>
@@ -820,7 +899,7 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                 <button
                   type="button"
                   onClick={handleSaveTemplate}
-                  className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 rounded-lg transition flex items-center gap-1.5 shadow-md shadow-emerald-950/30 border border-emerald-400/40"
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 rounded-lg transition flex items-center gap-1.5 shadow-md shadow-emerald-950/30 border border-emerald-400/40 cursor-pointer"
                 >
                   <CheckCircle className="w-3.5 h-3.5" />
                   <span>Simpan Template</span>
@@ -1706,12 +1785,19 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
                                 )
                                 return
                               }
+                              const confirmed = await notify.confirm({
+                                title: 'Hapus Kategori?',
+                                text: `Apakah Anda yakin ingin menghapus kategori "${cat}"?`,
+                                confirmText: 'Ya, Hapus Kategori',
+                                confirmColor: '#e11d48',
+                              })
+                              if (!confirmed) return
                               const updated = await deleteCategory(cat)
                               setCategories(updated)
                               refreshList()
                               notify.success('Kategori Dihapus', 'Kategori berhasil dihapus dari database.')
                             }}
-                            className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition"
+                            className="p-1 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded transition"
                             title="Hapus kategori"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

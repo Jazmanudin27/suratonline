@@ -77,6 +77,7 @@ export default function LetterFormBuilder({
     initialLetter ? "preview" : "form",
   );
   const [showAttachmentManager, setShowAttachmentManager] = useState(false);
+  const [showNominalMatrixModal, setShowNominalMatrixModal] = useState(false);
   const [fieldValues, setFieldValues] = useState(() => {
     const base = initialLetter?.fieldValues ? { ...initialLetter.fieldValues } : {};
     if (!isMandiri && template?.name) {
@@ -1684,7 +1685,18 @@ export default function LetterFormBuilder({
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isMandiri && (
+                    <button
+                      type="button"
+                      onClick={() => setShowNominalMatrixModal(true)}
+                      className="px-2.5 py-1 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:bg-amber-300 rounded-lg border border-amber-300 transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                      title="Lihat Pedoman Batas Nominal Otorisasi Persetujuan"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Limit Nominal</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -2489,6 +2501,98 @@ export default function LetterFormBuilder({
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Selesai Memilih</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Matriks Batas Nominal Persetujuan (Khusus Surat Ajuan Mandiri) */}
+      {showNominalMatrixModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-scaleUp">
+            {/* Modal Header */}
+            <div className="bg-[#1e293b] text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-400/30 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm sm:text-base leading-tight">
+                    Matriks Batas Nominal Persetujuan
+                  </h3>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Standar Otorisasi &amp; Strata Pejabat Penyetuju
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNominalMatrixModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-5 space-y-3.5 bg-slate-50">
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead className="bg-[#0f172a] text-white text-[11px] font-extrabold uppercase tracking-wider">
+                    <tr>
+                      <th className="py-2.5 px-3.5 border-r border-slate-700">JABATAN</th>
+                      <th className="py-2.5 px-3.5 text-right border-r border-slate-700">MINIMAL</th>
+                      <th className="py-2.5 px-3.5 text-right">MAKSIMAL</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-xs">
+                    <tr className="hover:bg-slate-50 transition">
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">DIREKTUR</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">50.000.000</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-black text-indigo-700">TIDAK TERBATAS</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50 transition">
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">WAKIL DIREKTUR</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">2.000.000</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">50.000.000</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50 transition">
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">PEMBELIAN</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">1.000.000</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">2.000.000</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50 transition">
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">RSM &amp; NSM</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">500.000</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">1.000.000</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50 transition">
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">ALL HEAD DEPT.</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">300.000</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">500.000</td>
+                    </tr>
+                    <tr className="hover:bg-slate-50 transition bg-emerald-50/40">
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">CABANG</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">-</td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-emerald-700">300.000</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-[11px] text-slate-500 italic">
+                * Gunakan matriks batas nominal di atas sebagai rujukan dalam menentukan pejabat penyetuju yang berwenang menandatangani surat pengajuan mandiri ini.
+              </p>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 bg-white border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowNominalMatrixModal(false)}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg transition cursor-pointer"
+              >
+                Tutup
               </button>
             </div>
           </div>

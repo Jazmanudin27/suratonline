@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { MessageSquare, Save, Send, X, Shield, Check, AlertCircle, Phone } from 'lucide-react'
+import { MessageSquare, Save, Send, X, Shield, Check, AlertCircle, Phone, Database, CheckCircle2 } from 'lucide-react'
 import { notify } from '../utils/alert'
 
 export default function WhatsAppSettingsModal({ isOpen, onClose }) {
@@ -8,12 +8,20 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }) {
   const [testing, setTesting] = useState(false)
   const [testPhone, setTestPhone] = useState('')
 
-  const [settings, setSettings] = useState({
-    enabled: false,
-    provider: 'custom',
-    apiKey: '',
-    endpoint: '',
-    adminPhone: '',
+  const [settings, setSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('suratajuan_wa_settings')
+      if (saved) {
+        return { ...JSON.parse(saved), provider: 'custom' }
+      }
+    } catch {}
+    return {
+      enabled: false,
+      provider: 'custom',
+      apiKey: '',
+      endpoint: '',
+      adminPhone: '',
+    }
   })
 
   useEffect(() => {
@@ -23,10 +31,14 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }) {
       .then((res) => res.json())
       .then((json) => {
         if (json.success && json.data) {
-          setSettings((prev) => ({
-            ...prev,
+          const merged = {
             ...json.data,
-          }))
+            provider: 'custom',
+          }
+          setSettings(merged)
+          try {
+            localStorage.setItem('suratajuan_wa_settings', JSON.stringify(merged))
+          } catch {}
           if (json.data.adminPhone) {
             setTestPhone(json.data.adminPhone)
           }
@@ -38,36 +50,33 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }) {
 
   if (!isOpen) return null
 
-  const handleProviderChange = (prov) => {
-    let endpoint = 'https://api.fonnte.com/send'
-    if (prov === 'wablas') {
-      endpoint = 'https://tegal.wablas.com/api/send-message'
-    } else if (prov === 'custom') {
-      endpoint = ''
-    }
-    setSettings((prev) => ({
-      ...prev,
-      provider: prov,
-      endpoint,
-    }))
-  }
-
   const handleSave = async (e) => {
     e.preventDefault()
     setSaving(true)
     try {
+      const payload = {
+        ...settings,
+        provider: 'custom',
+      }
+
+      // 1. Simpan ke database MySQL via API backend
       const res = await fetch('/api/settings/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(payload),
       })
       const json = await res.json()
-      if (json.success) {
-        notify.success('Pengaturan Disimpan', 'Konfigurasi notifikasi WhatsApp berhasil disimpan ke database.')
-        onClose()
-      } else {
-        throw new Error(json.message || 'Gagal menyimpan pengaturan')
+      if (!json.success) {
+        throw new Error(json.message || 'Gagal menyimpan pengaturan ke database')
       }
+
+      // 2. Simpan cache lokal
+      try {
+        localStorage.setItem('suratajuan_wa_settings', JSON.stringify(payload))
+      } catch {}
+
+      notify.success('Pengaturan Disimpan', 'Konfigurasi WhatsApp berhasil disimpan secara permanen ke Database MySQL (tabel system_settings).')
+      onClose()
     } catch (err) {
       notify.error('Gagal Menyimpan', err.message)
     } finally {
@@ -153,58 +162,38 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }) {
               </label>
             </div>
 
-            {/* Provider */}
+            {/* Gateway Endpoint */}
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Penyedia / Gateway Provider:</label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'fonnte', label: 'Fonnte (Rekomendasi)' },
-                  { id: 'wablas', label: 'Wablas' },
-                  { id: 'custom', label: 'Custom API' },
-                ].map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => handleProviderChange(p.id)}
-                    className={`py-2 px-2 text-center rounded-xl border text-[11px] font-bold transition ${
-                      settings.provider === p.id
-                        ? 'bg-emerald-50 border-emerald-500 text-emerald-800 ring-2 ring-emerald-300'
-                        : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
+              <label className="block font-bold text-slate-700 mb-1">
+                Endpoint URL API Gateway: <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={settings.endpoint || ''}
+                onChange={(e) => setSettings({ ...settings, endpoint: e.target.value })}
+                placeholder="https://api.domain-gateway-anda.com/send-message"
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+              />
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                URL tujuan pengiriman pesan WhatsApp (POST JSON) dari server gateway kustom Anda
+              </span>
             </div>
 
             {/* API Key / Token */}
             <div>
               <label className="block font-bold text-slate-700 mb-1">
-                API Key / Token Gateway: <span className="text-rose-500">*</span>
+                API Key / Bearer Token:
               </label>
               <input
                 type="password"
                 value={settings.apiKey || ''}
                 onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })}
-                placeholder="Masukkan API Token Fonnte / Wablas..."
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Masukkan API Key / Secret Token..."
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
               />
               <span className="text-[10px] text-slate-400 block mt-0.5">
-                Token otorisasi yang didapat dari dashboard Fonnte / Wablas Anda
+                Token otorisasi untuk header request ke API gateway Anda
               </span>
-            </div>
-
-            {/* Gateway Endpoint */}
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Endpoint URL:</label>
-              <input
-                type="text"
-                value={settings.endpoint || ''}
-                onChange={(e) => setSettings({ ...settings, endpoint: e.target.value })}
-                placeholder="https://api.fonnte.com/send"
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
             </div>
 
             {/* Admin Phone (Fallback) */}
@@ -264,22 +253,28 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }) {
             </div>
 
             {/* Footer buttons */}
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold rounded-xl transition"
-              >
-                Tutup
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-1.5 transition shadow-xs disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
-              </button>
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200">
+              <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
+                <Database className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Penyimpanan: <strong>Database MySQL</strong></span>
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold rounded-xl transition cursor-pointer"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-1.5 transition shadow-xs disabled:opacity-50 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
+                </button>
+              </div>
             </div>
           </form>
         )}

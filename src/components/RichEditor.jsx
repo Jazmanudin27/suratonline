@@ -140,6 +140,23 @@ export default function RichEditor({
   // Detect active table when selection or click changes
   const updateActiveTable = useCallback(() => {
     if (isDraggingColumnRef.current) return;
+
+    // Prioritaskan sel yang sedang di-blok / dipilih dengan drag (.table-cell-selected)
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0) {
+      const firstCell = selectedCells[0];
+      const table = firstCell.closest("table");
+      if (table && editorRef.current?.contains(table)) {
+        setActiveTableState({
+          table,
+          cell: firstCell,
+          colIndex: firstCell.cellIndex,
+          rowIndex: firstCell.parentElement?.rowIndex ?? 0,
+        });
+        return;
+      }
+    }
+
     const selection = window.getSelection();
     if (!selection || !selection.anchorNode) {
       return;
@@ -154,7 +171,7 @@ export default function RichEditor({
         table,
         cell,
         colIndex: cell.cellIndex,
-        rowIndex: cell.parentElement.rowIndex,
+        rowIndex: cell.parentElement?.rowIndex ?? 0,
       });
     } else {
       setActiveTableState(null);
@@ -295,6 +312,153 @@ export default function RichEditor({
 
   const format = (command, val = null) => {
     if (readOnly) return;
+
+    // 1. Cek apakah ada sel tabel yang sedang di-blok / dipilih dengan drag (.table-cell-selected)
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0) {
+      saveHistorySnapshot();
+
+      // Perataan Teks Sel (Left, Center, Right, Justify)
+      if (
+        command === "justifyCenter" ||
+        command === "justifyLeft" ||
+        command === "justifyRight" ||
+        command === "justifyFull"
+      ) {
+        const alignMap = {
+          justifyCenter: "center",
+          justifyLeft: "left",
+          justifyRight: "right",
+          justifyFull: "justify",
+        };
+        const align = alignMap[command] || "left";
+        selectedCells.forEach((cell) => {
+          cell.style.textAlign = align;
+          Array.from(
+            cell.querySelectorAll("p, span, div, font, b, strong, i, u, a")
+          ).forEach((el) => {
+            el.style.textAlign = align;
+          });
+        });
+        handleInput();
+        saveHistorySnapshot();
+        return;
+      }
+
+      // Format Huruf: Bold
+      if (command === "bold") {
+        const anyNormal = Array.from(selectedCells).some(
+          (c) =>
+            c.style.fontWeight !== "bold" &&
+            c.style.fontWeight !== "700" &&
+            c.tagName.toLowerCase() !== "th"
+        );
+        selectedCells.forEach((cell) => {
+          cell.style.fontWeight = anyNormal ? "bold" : "normal";
+          Array.from(cell.querySelectorAll("p, span, div, font")).forEach((el) => {
+            el.style.fontWeight = anyNormal ? "bold" : "normal";
+          });
+        });
+        handleInput();
+        saveHistorySnapshot();
+        return;
+      }
+
+      // Format Huruf: Italic
+      if (command === "italic") {
+        const anyNonItalic = Array.from(selectedCells).some(
+          (c) => c.style.fontStyle !== "italic"
+        );
+        selectedCells.forEach((cell) => {
+          cell.style.fontStyle = anyNonItalic ? "italic" : "normal";
+          Array.from(cell.querySelectorAll("p, span, div, font")).forEach((el) => {
+            el.style.fontStyle = anyNonItalic ? "italic" : "normal";
+          });
+        });
+        handleInput();
+        saveHistorySnapshot();
+        return;
+      }
+
+      // Format Huruf: Underline
+      if (command === "underline") {
+        const anyNonUnderline = Array.from(selectedCells).some(
+          (c) => !c.style.textDecoration?.includes("underline")
+        );
+        selectedCells.forEach((cell) => {
+          cell.style.textDecoration = anyNonUnderline ? "underline" : "none";
+          Array.from(cell.querySelectorAll("p, span, div, font")).forEach((el) => {
+            el.style.textDecoration = anyNonUnderline ? "underline" : "none";
+          });
+        });
+        handleInput();
+        saveHistorySnapshot();
+        return;
+      }
+
+      // Format Huruf: Coret (StrikeThrough)
+      if (command === "strikeThrough") {
+        const anyNonStrike = Array.from(selectedCells).some(
+          (c) => !c.style.textDecoration?.includes("line-through")
+        );
+        selectedCells.forEach((cell) => {
+          cell.style.textDecoration = anyNonStrike ? "line-through" : "none";
+        });
+        handleInput();
+        saveHistorySnapshot();
+        return;
+      }
+
+      // Format Huruf: Warna Huruf
+      if (command === "foreColor" && val) {
+        selectedCells.forEach((cell) => {
+          cell.style.color = val;
+          Array.from(cell.querySelectorAll("*")).forEach((el) => (el.style.color = val));
+        });
+        handleInput();
+        saveHistorySnapshot();
+        return;
+      }
+
+      // Format Huruf: Highlight
+      if (command === "hiliteColor" && val) {
+        selectedCells.forEach((cell) => {
+          cell.style.backgroundColor = val;
+        });
+        handleInput();
+        saveHistorySnapshot();
+        return;
+      }
+    }
+
+    // 2. Cek apakah kursor aktif berada di dalam cell tabel tunggal
+    if (
+      activeTableState?.cell &&
+      (command === "justifyCenter" ||
+        command === "justifyLeft" ||
+        command === "justifyRight" ||
+        command === "justifyFull")
+    ) {
+      const alignMap = {
+        justifyCenter: "center",
+        justifyLeft: "left",
+        justifyRight: "right",
+        justifyFull: "justify",
+      };
+      const align = alignMap[command] || "left";
+      saveHistorySnapshot();
+      activeTableState.cell.style.textAlign = align;
+      Array.from(
+        activeTableState.cell.querySelectorAll("p, span, div, font, b, strong, i, u, a")
+      ).forEach((el) => {
+        el.style.textAlign = align;
+      });
+      handleInput();
+      saveHistorySnapshot();
+      return;
+    }
+
+    // 3. Fallback ke perintah native browser untuk paragraf/teks bebas biasa
     document.execCommand(command, false, val);
     if (editorRef.current) {
       editorRef.current.focus();
@@ -305,6 +469,32 @@ export default function RichEditor({
   const applyFontFamily = (fontName) => {
     if (readOnly) return;
     setFontFamily(fontName);
+
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0) {
+      saveHistorySnapshot();
+      selectedCells.forEach((c) => {
+        c.style.fontFamily = fontName;
+        c.querySelectorAll("*").forEach((el) => {
+          el.style.fontFamily = fontName;
+        });
+      });
+      handleInput();
+      saveHistorySnapshot();
+      return;
+    }
+
+    if (activeTableState?.cell) {
+      saveHistorySnapshot();
+      activeTableState.cell.style.fontFamily = fontName;
+      activeTableState.cell.querySelectorAll("*").forEach((el) => {
+        el.style.fontFamily = fontName;
+      });
+      handleInput();
+      saveHistorySnapshot();
+      return;
+    }
+
     const selection = window.getSelection();
     if (selection && !selection.isCollapsed) {
       document.execCommand("fontName", false, fontName);
@@ -325,6 +515,32 @@ export default function RichEditor({
 
   const applyFontColor = (colorHex) => {
     if (readOnly || !colorHex) return;
+
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0) {
+      saveHistorySnapshot();
+      selectedCells.forEach((c) => {
+        c.style.color = colorHex;
+        c.querySelectorAll("*").forEach((el) => {
+          el.style.color = colorHex;
+        });
+      });
+      handleInput();
+      saveHistorySnapshot();
+      return;
+    }
+
+    if (activeTableState?.cell) {
+      saveHistorySnapshot();
+      activeTableState.cell.style.color = colorHex;
+      activeTableState.cell.querySelectorAll("*").forEach((el) => {
+        el.style.color = colorHex;
+      });
+      handleInput();
+      saveHistorySnapshot();
+      return;
+    }
+
     document.execCommand("foreColor", false, colorHex);
     if (editorRef.current) {
       editorRef.current.focus();
@@ -334,6 +550,26 @@ export default function RichEditor({
 
   const applyHighlightColor = (colorHex) => {
     if (readOnly || !colorHex) return;
+
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0) {
+      saveHistorySnapshot();
+      selectedCells.forEach((c) => {
+        c.style.backgroundColor = colorHex;
+      });
+      handleInput();
+      saveHistorySnapshot();
+      return;
+    }
+
+    if (activeTableState?.cell) {
+      saveHistorySnapshot();
+      activeTableState.cell.style.backgroundColor = colorHex;
+      handleInput();
+      saveHistorySnapshot();
+      return;
+    }
+
     document.execCommand("hiliteColor", false, colorHex);
     if (editorRef.current) {
       editorRef.current.focus();
@@ -344,6 +580,32 @@ export default function RichEditor({
   const applyFontSize = (val) => {
     if (readOnly) return;
     setFontSize(val);
+
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0) {
+      saveHistorySnapshot();
+      selectedCells.forEach((c) => {
+        c.style.fontSize = val;
+        c.querySelectorAll("*").forEach((el) => {
+          el.style.fontSize = val;
+        });
+      });
+      handleInput();
+      saveHistorySnapshot();
+      return;
+    }
+
+    if (activeTableState?.cell) {
+      saveHistorySnapshot();
+      activeTableState.cell.style.fontSize = val;
+      activeTableState.cell.querySelectorAll("*").forEach((el) => {
+        el.style.fontSize = val;
+      });
+      handleInput();
+      saveHistorySnapshot();
+      return;
+    }
+
     const selection = window.getSelection();
     if (selection && !selection.isCollapsed) {
       document.execCommand("fontSize", false, "7");
@@ -469,56 +731,49 @@ export default function RichEditor({
       // Ctrl + B: Bold
       if (key === "b") {
         e.preventDefault();
-        document.execCommand("bold");
-        handleInput();
+        format("bold");
         return;
       }
 
       // Ctrl + I: Italic
       if (key === "i") {
         e.preventDefault();
-        document.execCommand("italic");
-        handleInput();
+        format("italic");
         return;
       }
 
       // Ctrl + U: Underline
       if (key === "u") {
         e.preventDefault();
-        document.execCommand("underline");
-        handleInput();
+        format("underline");
         return;
       }
 
       // Ctrl + E: Center Alignment
       if (key === "e") {
         e.preventDefault();
-        document.execCommand("justifyCenter");
-        handleInput();
+        format("justifyCenter");
         return;
       }
 
       // Ctrl + L: Left Alignment
       if (key === "l") {
         e.preventDefault();
-        document.execCommand("justifyLeft");
-        handleInput();
+        format("justifyLeft");
         return;
       }
 
       // Ctrl + R: Right Alignment
       if (key === "r") {
         e.preventDefault();
-        document.execCommand("justifyRight");
-        handleInput();
+        format("justifyRight");
         return;
       }
 
       // Ctrl + J: Justify Alignment
       if (key === "j") {
         e.preventDefault();
-        document.execCommand("justifyFull");
-        handleInput();
+        format("justifyFull");
         return;
       }
     }
@@ -1165,6 +1420,11 @@ export default function RichEditor({
 
   const alignTableCenter = () => {
     if (!activeTableState) return;
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0) {
+      format("justifyCenter");
+      return;
+    }
     const { table } = activeTableState;
     table.style.marginLeft = "auto";
     table.style.marginRight = "auto";
@@ -1174,9 +1434,28 @@ export default function RichEditor({
 
   const alignTableLeft = () => {
     if (!activeTableState) return;
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0) {
+      format("justifyLeft");
+      return;
+    }
     const { table } = activeTableState;
     table.style.marginLeft = "0";
     table.style.marginRight = "auto";
+    handleInput();
+    updateOverlayPosition();
+  };
+
+  const alignTableRight = () => {
+    if (!activeTableState) return;
+    const selectedCells = editorRef.current?.querySelectorAll(".table-cell-selected");
+    if (selectedCells && selectedCells.length > 0) {
+      format("justifyRight");
+      return;
+    }
+    const { table } = activeTableState;
+    table.style.marginLeft = "auto";
+    table.style.marginRight = "0";
     handleInput();
     updateOverlayPosition();
   };
@@ -1818,6 +2097,7 @@ export default function RichEditor({
                 <div className="flex items-center gap-0.5 mt-1">
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("bold")}
                     className="px-2 py-0.5 font-black text-xs text-slate-800 hover:bg-slate-200 rounded"
                     title="Tebal (Ctrl+B)"
@@ -1826,6 +2106,7 @@ export default function RichEditor({
                   </button>
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("italic")}
                     className="px-2 py-0.5 italic font-serif text-xs text-slate-800 hover:bg-slate-200 rounded"
                     title="Miring (Ctrl+I)"
@@ -1834,6 +2115,7 @@ export default function RichEditor({
                   </button>
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("underline")}
                     className="px-2 py-0.5 underline text-xs text-slate-800 hover:bg-slate-200 rounded"
                     title="Garis Bawah (Ctrl+U)"
@@ -1842,6 +2124,7 @@ export default function RichEditor({
                   </button>
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("strikeThrough")}
                     className="px-1.5 py-0.5 line-through text-xs text-slate-800 hover:bg-slate-200 rounded"
                     title="Coret (Strikethrough)"
@@ -1892,6 +2175,7 @@ export default function RichEditor({
                 <div className="flex items-center gap-0.5">
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("justifyLeft")}
                     className="p-1 text-slate-700 hover:bg-slate-200 rounded"
                     title="Rata Kiri"
@@ -1900,6 +2184,7 @@ export default function RichEditor({
                   </button>
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("justifyCenter")}
                     className="p-1 text-slate-700 hover:bg-slate-200 rounded"
                     title="Rata Tengah"
@@ -1908,6 +2193,7 @@ export default function RichEditor({
                   </button>
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("justifyRight")}
                     className="p-1 text-slate-700 hover:bg-slate-200 rounded"
                     title="Rata Kanan"
@@ -1916,6 +2202,7 @@ export default function RichEditor({
                   </button>
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("justifyFull")}
                     className="p-1 text-slate-700 hover:bg-slate-200 rounded"
                     title="Rata Kanan-Kiri (Justify)"
@@ -1927,6 +2214,7 @@ export default function RichEditor({
 
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("insertUnorderedList")}
                     className="p-1 text-slate-700 hover:bg-slate-200 rounded"
                     title="Daftar Bullet"
@@ -1935,6 +2223,7 @@ export default function RichEditor({
                   </button>
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => format("insertOrderedList")}
                     className="p-1 text-slate-700 hover:bg-slate-200 rounded"
                     title="Daftar Nomor"
@@ -2209,14 +2498,47 @@ export default function RichEditor({
                 </button>
               </div>
 
-              {/* Posisi & Alignment */}
+              {/* Perataan Teks Sel (Rata Kiri, Rata Tengah, Rata Kanan) */}
               <div className="flex items-center gap-1 bg-white border border-indigo-200 rounded p-0.5 shadow-2xs">
+                <span className="text-[10px] text-indigo-900 font-semibold px-1">Teks Sel:</span>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("justifyLeft")}
+                  className="p-1 text-slate-700 hover:bg-indigo-50 rounded"
+                  title="Rata Kiri Teks Sel (Ctrl+L)"
+                >
+                  <AlignLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("justifyCenter")}
+                  className="p-1 text-slate-700 hover:bg-indigo-50 rounded bg-indigo-50/50"
+                  title="Rata Tengah Teks Sel (Ctrl+E)"
+                >
+                  <AlignCenter className="w-3.5 h-3.5 text-blue-700 font-bold" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("justifyRight")}
+                  className="p-1 text-slate-700 hover:bg-indigo-50 rounded"
+                  title="Rata Kanan Teks Sel (Ctrl+R)"
+                >
+                  <AlignRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Posisi Tabel di Kertas */}
+              <div className="flex items-center gap-1 bg-white border border-indigo-200 rounded p-0.5 shadow-2xs">
+                <span className="text-[10px] text-slate-500 font-medium px-1">Posisi Tabel:</span>
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={indentTableLeft}
                   className="px-1.5 py-0.5 text-slate-700 hover:bg-indigo-50 rounded text-[11px]"
-                  title="Kurangi Indentasi Kiri"
+                  title="Geser Tabel Sedikit ke Kiri"
                 >
                   <ArrowLeft className="w-3 h-3" />
                 </button>
@@ -2225,7 +2547,7 @@ export default function RichEditor({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={alignTableLeft}
                   className="px-2 py-0.5 text-slate-700 hover:bg-indigo-50 rounded text-[11px]"
-                  title="Rata Kiri"
+                  title="Posisikan Tabel di Rata Kiri Kertas"
                 >
                   Kiri
                 </button>
@@ -2234,16 +2556,25 @@ export default function RichEditor({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={alignTableCenter}
                   className="px-2 py-0.5 text-slate-700 hover:bg-indigo-50 rounded text-[11px]"
-                  title="Rata Tengah"
+                  title="Posisikan Tabel di Tengah Kertas"
                 >
                   Tengah
                 </button>
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
+                  onClick={alignTableRight}
+                  className="px-2 py-0.5 text-slate-700 hover:bg-indigo-50 rounded text-[11px]"
+                  title="Posisikan Tabel di Rata Kanan Kertas"
+                >
+                  Kanan
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={indentTableRight}
                   className="px-1.5 py-0.5 text-slate-700 hover:bg-indigo-50 rounded text-[11px]"
-                  title="Tambah Indentasi Kanan"
+                  title="Geser Tabel Sedikit ke Kanan"
                 >
                   <ArrowRight className="w-3 h-3" />
                 </button>

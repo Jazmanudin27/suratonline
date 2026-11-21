@@ -277,11 +277,13 @@ if (typeof window !== "undefined") {
 }
 
 let isSyncing = false;
-let lastLettersHash = "";
+let lastLettersHash = "__INIT__";
 
 const processLettersSync = (lettersData) => {
   const currentLetters = getStorageItem(STORAGE_KEYS.LETTERS, []);
-  const mergedLetters = lettersData.map((remote) => {
+  const safeLettersData = Array.isArray(lettersData) ? lettersData : [];
+
+  const mergedLetters = safeLettersData.map((remote) => {
     const local = currentLetters.find((l) => l.id === remote.id);
     const remoteComments = Array.isArray(remote.comments)
       ? remote.comments
@@ -355,12 +357,12 @@ const processLettersSync = (lettersData) => {
     };
   });
 
-  // Gunakan lettersData dari database MySQL sebagai sumber kebenaran
+  // Gunakan lettersData dari database MySQL sebagai satu-satunya sumber kebenaran (Source of Truth)
   const fakeLetterIds = new Set(["ltr-001", "ltr-002", "ltr-003"]);
-  const cleanCurrentLetters = currentLetters.filter(
+  const cleanCurrentLetters = (Array.isArray(currentLetters) ? currentLetters : []).filter(
     (l) => l && l.id && !fakeLetterIds.has(l.id),
   );
-  const remoteIds = new Set(lettersData.map((r) => r.id));
+  const remoteIds = new Set(safeLettersData.map((r) => r.id));
   const currentUid = String(getCurrentUser()?.id || "");
   const localDrafts = cleanCurrentLetters.filter(
     (l) =>
@@ -373,12 +375,16 @@ const processLettersSync = (lettersData) => {
   );
   const finalLetters = [...mergedLetters, ...localDrafts];
 
-  const newHash = finalLetters
-    .map(
-      (l) =>
-        `${l.id}_${l.status}_${l.currentStep}_${l.updatedAt || ""}_${(l.comments || []).length}`,
-    )
-    .join("|");
+  const newHash =
+    finalLetters.length === 0
+      ? "__EMPTY_LETTERS_0__"
+      : finalLetters
+          .map(
+            (l) =>
+              `${l.id}_${l.status}_${l.currentStep}_${l.updatedAt || ""}_${(l.comments || []).length}`,
+          )
+          .join("|");
+
   if (newHash !== lastLettersHash) {
     lastLettersHash = newHash;
     setStorageItem(STORAGE_KEYS.LETTERS, finalLetters);
@@ -617,7 +623,7 @@ export const setCurrentUser = (user) => {
   }
   // Reset cache surat saat beralih akun agar tidak ada sisa data user sebelumnya
   lettersMemoryCache = null;
-  lastLettersHash = "";
+  lastLettersHash = "__INIT__";
   isSyncing = false;
   window.dispatchEvent(new Event("auth_change"));
   // Segera ambil data surat resmi milik akun baru dari server tanpa perlu refresh halaman
@@ -627,10 +633,17 @@ export const setCurrentUser = (user) => {
 export const clearCurrentUser = () => {
   localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   lettersMemoryCache = null;
-  lastLettersHash = "";
+  lastLettersHash = "__INIT__";
   isSyncing = false;
   localStorage.removeItem(STORAGE_KEYS.LETTERS);
   window.dispatchEvent(new Event("auth_change"));
+};
+
+export const forceRefreshFromDatabase = async () => {
+  lettersMemoryCache = null;
+  lastLettersHash = "__INIT__";
+  isSyncing = false;
+  await syncWithDatabase();
 };
 
 // Branches

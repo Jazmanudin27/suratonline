@@ -11,7 +11,10 @@ import {
   Moon,
   Sunset,
   Download,
+  RotateCw,
 } from 'lucide-react'
+import { forceRefreshFromDatabase } from '../services/storage'
+import { notify } from '../utils/alert'
 
 export default function MobileHeader({
   currentUser,
@@ -25,6 +28,20 @@ export default function MobileHeader({
   const [currentDate, setCurrentDate] = useState('')
   const [greeting, setGreeting] = useState('Selamat Pagi')
   const [timeOfDay, setTimeOfDay] = useState('morning')
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return
+    setIsRefreshing(true)
+    try {
+      await forceRefreshFromDatabase()
+      notify.success('Data Disinkronkan', 'Data surat terbaru berhasil disinkronkan langsung dari database.')
+    } catch (e) {
+      notify.error('Gagal Sinkronisasi', 'Tidak dapat mengambil data dari database.')
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500)
+    }
+  }
 
   useEffect(() => {
     const updateTime = () => {
@@ -93,6 +110,16 @@ export default function MobileHeader({
 
         {/* Quick Action Icons */}
         <div className="flex items-center gap-1.5">
+          {/* Refresh Data from DB Button */}
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className={`w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center border border-white/15 text-white/90 ${isRefreshing ? 'opacity-70 cursor-not-allowed' : ''}`}
+            title="Sinkronkan Data Langsung dari Database"
+          >
+            <RotateCw size={14} className={isRefreshing ? 'animate-spin text-emerald-300' : ''} strokeWidth={2.2} />
+          </button>
+
           {/* Install PWA Button */}
           {onOpenInstall && (
             <button

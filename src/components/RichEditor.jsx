@@ -747,15 +747,18 @@ export default function RichEditor({
 
       if (currentCell && table && table.contains(currentCell)) {
         const startCol = startCell.cellIndex;
+        const currentCol = currentCell.cellIndex;
         const startRow = startCell.parentElement.rowIndex;
         const currentRow = currentCell.parentElement.rowIndex;
 
-        // Jika drag ke bawah / atas di tabel: KUNCI seleksi HANYA pada kolom start!
-        if (startRow !== currentRow) {
+        // Seleksi sel Word: Mendukung drag ke bawah (kolom), drag ke samping (baris), dan kotak (diagonal)
+        if (startRow !== currentRow || startCol !== currentCol) {
           window.getSelection()?.removeAllRanges();
 
           const minRow = Math.min(startRow, currentRow);
           const maxRow = Math.max(startRow, currentRow);
+          const minCol = Math.min(startCol, currentCol);
+          const maxCol = Math.max(startCol, currentCol);
 
           table.querySelectorAll(".table-cell-selected").forEach((el) => {
             el.classList.remove("table-cell-selected");
@@ -763,9 +766,11 @@ export default function RichEditor({
 
           const rows = Array.from(table.rows);
           for (let r = minRow; r <= maxRow; r++) {
-            const targetCell = rows[r]?.cells[startCol];
-            if (targetCell) {
-              targetCell.classList.add("table-cell-selected");
+            for (let c = minCol; c <= maxCol; c++) {
+              const targetCell = rows[r]?.cells[c];
+              if (targetCell) {
+                targetCell.classList.add("table-cell-selected");
+              }
             }
           }
           return;
@@ -1028,6 +1033,22 @@ export default function RichEditor({
       const cell = row.cells[colIndex];
       if (cell) cell.classList.add("table-cell-selected");
     });
+  };
+
+  // Pilih seluruh sel hanya di baris aktif saat ini
+  const selectCurrentRow = () => {
+    if (!activeTableState) return;
+    const { table, rowIndex } = activeTableState;
+    window.getSelection()?.removeAllRanges();
+    if (editorRef.current) {
+      editorRef.current.querySelectorAll(".table-cell-selected").forEach((el) => {
+        el.classList.remove("table-cell-selected");
+      });
+    }
+    const row = table.rows[rowIndex];
+    if (row) {
+      Array.from(row.cells).forEach((cell) => cell.classList.add("table-cell-selected"));
+    }
   };
 
   // Geser isi sel di kolom aktif saja ke baris bawahnya (kolom lain tidak bergeser)
@@ -2135,7 +2156,7 @@ export default function RichEditor({
                 </button>
               </div>
 
-              {/* Opsi Kolom Khusus (Pilih Kolom & Geser Sel) */}
+              {/* Opsi Kolom & Baris Khusus (Pilih Kolom, Pilih Baris, Geser Sel) */}
               <div className="flex items-center gap-1 bg-white border border-blue-200 rounded p-0.5 shadow-2xs">
                 <button
                   type="button"
@@ -2145,6 +2166,15 @@ export default function RichEditor({
                   title="Pilih seluruh sel hanya pada kolom ini saja (tanpa menyentuh kolom lain)"
                 >
                   Pilih Kolom Ini
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={selectCurrentRow}
+                  className="px-2.5 py-0.5 hover:bg-blue-100 text-blue-700 rounded text-[11px] font-bold bg-blue-50 border border-blue-200"
+                  title="Pilih seluruh sel hanya pada baris ini saja (ke samping)"
+                >
+                  Pilih Baris Ini
                 </button>
                 <button
                   type="button"

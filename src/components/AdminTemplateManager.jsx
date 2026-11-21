@@ -874,9 +874,6 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
               </div>
             </div>
           ) : (
-            /* ========================================================================= */}
-            {/* 4B. TAMPILAN GRID KARTU (PILIHAN ALTERNATIF JIKA KLIK TOGGLE GRID)         */}
-            {/* ========================================================================= */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredTemplates.map((tpl) => {
                 const letterUsageCount = lettersList.filter((l) => l.templateId === tpl.id).length

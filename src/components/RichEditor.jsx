@@ -2119,419 +2119,357 @@ export default function RichEditor({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. WORD RIBBON TAB HEADERS (File, Home, Insert, Layout, Table Tools)     */}
-      {/* ========================================================================= */}
-      <div className="bg-[#2b579a] text-white px-3 flex items-center gap-0.5 text-xs select-none border-t border-[#185abd]">
-        <button
-          type="button"
-          onClick={() => setActiveTab("home")}
-          className={`px-3.5 py-1.5 font-medium transition ${
-            activeTab === "home"
-              ? "bg-[#f3f4f6] text-[#2b579a] font-bold rounded-t-sm shadow-2xs"
-              : "text-white/90 hover:bg-white/10 rounded-t-sm"
-          }`}
-        >
-          Beranda (Home)
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("insert")}
-          className={`px-3.5 py-1.5 font-medium transition ${
-            activeTab === "insert"
-              ? "bg-[#f3f4f6] text-[#2b579a] font-bold rounded-t-sm shadow-2xs"
-              : "text-white/90 hover:bg-white/10 rounded-t-sm"
-          }`}
-        >
-          Sisipkan (Insert)
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("layout")}
-          className={`px-3.5 py-1.5 font-medium transition ${
-            activeTab === "layout"
-              ? "bg-[#f3f4f6] text-[#2b579a] font-bold rounded-t-sm shadow-2xs"
-              : "text-white/90 hover:bg-white/10 rounded-t-sm"
-          }`}
-        >
-          Tata Letak (Layout)
-        </button>
-
-        {/* Tab Otomatis: Alat Tabel (Word Contextual Table Tools) */}
-        {activeTableState && (
-          <button
-            type="button"
-            onClick={() => setActiveTab("table")}
-            className={`px-3.5 py-1.5 font-bold transition flex items-center gap-1.5 ml-2 ${
-              activeTab === "table"
-                ? "bg-[#f3f4f6] text-indigo-700 rounded-t-sm shadow-2xs border-t-2 border-indigo-600"
-                : "bg-indigo-900/60 text-indigo-100 hover:bg-indigo-900/80 rounded-t-sm"
-            }`}
-          >
-            <Grid className="w-3.5 h-3.5 text-amber-300" />
-            <span>Alat Tabel (Table Tools)</span>
-          </button>
-        )}
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 3. WORD RIBBON TOOLBAR AREA                                               */}
+      {/* 2. UNIFIED WORD TOOLBAR (Papan Klip, Huruf, Paragraf, Sisipkan Format)    */}
       {/* ========================================================================= */}
       {!readOnly && (
         <div className="bg-[#f3f4f6] border-b border-slate-300 p-2 select-none shadow-2xs">
-          {/* TAB: BERANDA (HOME) */}
-          {activeTab === "home" && (
-            <div className="flex flex-wrap items-center gap-2">
-              {/* GROUP: CLIPBOARD */}
-              <div className="flex flex-col items-center border-r border-slate-300 pr-2">
-                <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* GROUP: CLIPBOARD */}
+            <div className="flex flex-col items-center border-r border-slate-300 pr-2">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleRibbonPaste}
+                  className="p-1 text-slate-700 hover:bg-slate-200 rounded flex flex-col items-center gap-0.5 text-[10px]"
+                  title="Tempel Teks (Ctrl+V)"
+                >
+                  <Clipboard className="w-4 h-4 text-amber-600" />
+                  <span>Paste</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openExcelModal}
+                  className="p-1 text-emerald-800 hover:bg-emerald-100 rounded flex flex-col items-center gap-0.5 text-[10px] font-semibold border border-emerald-300 bg-emerald-50"
+                  title="Paste Tabel dari Microsoft Excel / Spreadsheet"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <span>Excel</span>
+                </button>
+                <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
-                    onClick={handleRibbonPaste}
-                    className="p-1 text-slate-700 hover:bg-slate-200 rounded flex flex-col items-center gap-0.5 text-[10px]"
-                    title="Tempel Teks (Ctrl+V)"
-                  >
-                    <Clipboard className="w-4 h-4 text-amber-600" />
-                    <span>Paste</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={openExcelModal}
-                    className="p-1 text-emerald-800 hover:bg-emerald-100 rounded flex flex-col items-center gap-0.5 text-[10px] font-semibold border border-emerald-300 bg-emerald-50"
-                    title="Paste Tabel dari Microsoft Excel / Spreadsheet"
-                  >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                    <span>Excel</span>
-                  </button>
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      onClick={() => format("cut")}
-                      className="p-1 text-slate-700 hover:bg-slate-200 rounded"
-                      title="Potong (Cut)"
-                    >
-                      <Scissors className="w-3 h-3 text-slate-600" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => format("copy")}
-                      className="p-1 text-slate-700 hover:bg-slate-200 rounded"
-                      title="Salin (Copy)"
-                    >
-                      <Copy className="w-3 h-3 text-slate-600" />
-                    </button>
-                  </div>
-                </div>
-                <span className="text-[9px] text-slate-400 font-medium mt-1">
-                  Papan Klip
-                </span>
-              </div>
-
-              {/* GROUP: FONT */}
-              <div className="flex flex-col items-center border-r border-slate-300 pr-2">
-                {/* Baris 1: Font Family, Size, Grow/Shrink */}
-                <div className="flex items-center gap-1">
-                  <select
-                    value={fontFamily}
-                    onChange={(e) => applyFontFamily(e.target.value)}
-                    className="text-xs bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-800 font-medium w-28 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="Calibri">Calibri</option>
-                    <option value="Arial">Arial</option>
-                    <option value="Tahoma">Tahoma</option>
-                    <option value="Times New Roman">Times New Roman</option>
-                    <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
-                    <option value="Georgia">Georgia</option>
-                    <option value="Courier New">Courier New</option>
-                  </select>
-
-                  <select
-                    value={fontSize}
-                    onChange={(e) => applyFontSize(e.target.value)}
-                    className="text-xs bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800 font-medium w-16 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="9pt">9</option>
-                    <option value="10pt">10</option>
-                    <option value="10.5pt">10.5</option>
-                    <option value="11pt">11</option>
-                    <option value="12pt">12</option>
-                    <option value="14pt">14</option>
-                    <option value="16pt">16</option>
-                    <option value="18pt">18</option>
-                    <option value="20pt">20</option>
-                    <option value="24pt">24</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => changeFontSizeStep(1)}
-                    className="px-1.5 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded border border-slate-200 bg-white"
-                    title="Perbesar Huruf (Grow Font)"
-                  >
-                    A<span className="text-[9px]">▲</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => changeFontSizeStep(-1)}
-                    className="px-1.5 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded border border-slate-200 bg-white"
-                    title="Perkecil Huruf (Shrink Font)"
-                  >
-                    A<span className="text-[9px]">▼</span>
-                  </button>
-                </div>
-
-                {/* Baris 2: B, I, U, Strike, Highlight, Color */}
-                <div className="flex items-center gap-0.5 mt-1">
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => format("bold")}
-                    className={`px-2 py-0.5 font-black text-xs rounded transition ${
-                      isBold
-                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-black shadow-inner"
-                        : "text-slate-800 hover:bg-slate-200"
-                    }`}
-                    title="Tebal (Ctrl+B)"
-                  >
-                    B
-                  </button>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => format("italic")}
-                    className={`px-2 py-0.5 italic font-serif text-xs rounded transition ${
-                      isItalic
-                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-bold shadow-inner"
-                        : "text-slate-800 hover:bg-slate-200"
-                    }`}
-                    title="Miring (Ctrl+I)"
-                  >
-                    I
-                  </button>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => format("underline")}
-                    className={`px-2 py-0.5 underline text-xs rounded transition ${
-                      isUnderline
-                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-bold shadow-inner"
-                        : "text-slate-800 hover:bg-slate-200"
-                    }`}
-                    title="Garis Bawah (Ctrl+U)"
-                  >
-                    U
-                  </button>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => format("strikeThrough")}
-                    className={`px-1.5 py-0.5 line-through text-xs rounded transition ${
-                      isStrike
-                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-bold shadow-inner"
-                        : "text-slate-800 hover:bg-slate-200"
-                    }`}
-                    title="Coret (Strikethrough)"
-                  >
-                    ab
-                  </button>
-
-                  <span className="text-slate-300 mx-0.5">|</span>
-
-                  {/* Highlight Color */}
-                  <label
-                    className="p-1 hover:bg-slate-200 rounded cursor-pointer flex items-center gap-0.5"
-                    title="Warna Sorotan Teks (Highlight)"
-                  >
-                    <Highlighter className="w-3.5 h-3.5 text-amber-500" />
-                    <input
-                      type="color"
-                      defaultValue="#fef08a"
-                      onChange={(e) => applyHighlightColor(e.target.value)}
-                      className="w-3 h-3 p-0 border-0 rounded cursor-pointer bg-transparent"
-                    />
-                  </label>
-
-                  {/* Font Color */}
-                  <label
-                    className="p-1 hover:bg-slate-200 rounded cursor-pointer flex items-center gap-0.5"
-                    title="Warna Huruf (Font Color)"
-                  >
-                    <span className="text-xs font-bold text-red-600 underline">
-                      A
-                    </span>
-                    <input
-                      type="color"
-                      defaultValue="#0f172a"
-                      onChange={(e) => applyFontColor(e.target.value)}
-                      className="w-3 h-3 p-0 border-0 rounded cursor-pointer bg-transparent"
-                    />
-                  </label>
-                </div>
-                <span className="text-[9px] text-slate-400 font-medium mt-1">
-                  Huruf (Font)
-                </span>
-              </div>
-
-              {/* GROUP: PARAGRAPH */}
-              <div className="flex flex-col items-center border-r border-slate-300 pr-2">
-                {/* Baris 1: Alignment & Lists */}
-                <div className="flex items-center gap-0.5">
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => format("justifyLeft")}
-                    className={`p-1 rounded transition ${
-                      textAlign === "left"
-                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
-                        : "text-slate-700 hover:bg-slate-200"
-                    }`}
-                    title="Rata Kiri"
-                  >
-                    <AlignLeft className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => format("justifyCenter")}
-                    className={`p-1 rounded transition ${
-                      textAlign === "center"
-                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
-                        : "text-slate-700 hover:bg-slate-200"
-                    }`}
-                    title="Rata Tengah"
-                  >
-                    <AlignCenter className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => format("justifyRight")}
-                    className={`p-1 rounded transition ${
-                      textAlign === "right"
-                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
-                        : "text-slate-700 hover:bg-slate-200"
-                    }`}
-                    title="Rata Kanan"
-                  >
-                    <AlignRight className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => format("justifyFull")}
-                    className={`p-1 rounded transition ${
-                      textAlign === "justify"
-                        ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
-                        : "text-slate-700 hover:bg-slate-200"
-                    }`}
-                    title="Rata Kanan-Kiri (Justify)"
-                  >
-                    <AlignJustify className="w-3.5 h-3.5" />
-                  </button>
-
-                  <span className="text-slate-300 mx-0.5">|</span>
-
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => format("insertUnorderedList")}
+                    onClick={() => format("cut")}
                     className="p-1 text-slate-700 hover:bg-slate-200 rounded"
-                    title="Daftar Bullet"
+                    title="Potong (Cut)"
                   >
-                    <List className="w-3.5 h-3.5" />
+                    <Scissors className="w-3 h-3 text-slate-600" />
                   </button>
                   <button
                     type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => format("insertOrderedList")}
+                    onClick={() => format("copy")}
                     className="p-1 text-slate-700 hover:bg-slate-200 rounded"
-                    title="Daftar Nomor"
+                    title="Salin (Copy)"
                   >
-                    <ListOrdered className="w-3.5 h-3.5" />
+                    <Copy className="w-3 h-3 text-slate-600" />
                   </button>
                 </div>
-
-                {/* Baris 2: Line Spacing & Paragraph Spacing */}
-                <div className="flex items-center gap-1.5 mt-1 text-[11px]">
-                  <span className="text-slate-500 font-medium">Spasi:</span>
-                  <select
-                    value={lineSpacing}
-                    onChange={(e) => applyLineSpacing(e.target.value)}
-                    className="text-[11px] bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800"
-                  >
-                    <option value="1.0">1.0</option>
-                    <option value="1.15">1.15</option>
-                    <option value="1.3">1.3 (Surat)</option>
-                    <option value="1.5">1.5</option>
-                    <option value="2.0">2.0</option>
-                  </select>
-
-                  <select
-                    value={paragraphSpacing}
-                    onChange={(e) => applyParagraphSpacing(e.target.value)}
-                    className="text-[11px] bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800"
-                  >
-                    <option value="tight">Rapat (4px)</option>
-                    <option value="normal">Normal (10px)</option>
-                    <option value="loose">Renggang (18px)</option>
-                  </select>
-                </div>
-                <span className="text-[9px] text-slate-400 font-medium mt-1">
-                  Paragraf
-                </span>
               </div>
-
-              {/* GROUP: STYLES / TEMPLATE SNIPPETS */}
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={insertOfficialHeader}
-                    className="px-2.5 py-1 bg-white border border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs transition"
-                    title="Sisipkan Header Lengkap: No, Lamp, Perihal, Dari, Kepada, Tembusan"
-                  >
-                    <Layout className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Header Surat</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={insertFieldRowLayout}
-                    className="px-2.5 py-1 bg-white border border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs transition"
-                    title="Sisipkan Kolom Biodata Rapi (Titik dua sejajar otomatis)"
-                  >
-                    <Columns className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Kolom Rapi (Tab)</span>
-                  </button>
-                </div>
-                <span className="text-[9px] text-slate-400 font-medium mt-1">
-                  Format Surat Resmi
-                </span>
-              </div>
+              <span className="text-[9px] text-slate-400 font-medium mt-1">
+                Papan Klip
+              </span>
             </div>
-          )}
 
-          {/* TAB: SISIPKAN (INSERT) */}
-          {activeTab === "insert" && (
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Insert Table Quick */}
-              <div className="flex items-center gap-1.5 border-r border-slate-300 pr-3">
+            {/* GROUP: FONT */}
+            <div className="flex flex-col items-center border-r border-slate-300 pr-2">
+              {/* Baris 1: Font Family, Size, Grow/Shrink */}
+              <div className="flex items-center gap-1">
+                <select
+                  value={fontFamily}
+                  onChange={(e) => applyFontFamily(e.target.value)}
+                  className="text-xs bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-800 font-medium w-28 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="Calibri">Calibri</option>
+                  <option value="Arial">Arial</option>
+                  <option value="Tahoma">Tahoma</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Courier New">Courier New</option>
+                </select>
+
+                <select
+                  value={fontSize}
+                  onChange={(e) => applyFontSize(e.target.value)}
+                  className="text-xs bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800 font-medium w-16 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="9pt">9</option>
+                  <option value="10pt">10</option>
+                  <option value="10.5pt">10.5</option>
+                  <option value="11pt">11</option>
+                  <option value="12pt">12</option>
+                  <option value="14pt">14</option>
+                  <option value="16pt">16</option>
+                  <option value="18pt">18</option>
+                  <option value="20pt">20</option>
+                  <option value="24pt">24</option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => changeFontSizeStep(1)}
+                  className="px-1.5 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded border border-slate-200 bg-white"
+                  title="Perbesar Huruf (Grow Font)"
+                >
+                  A<span className="text-[9px]">▲</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeFontSizeStep(-1)}
+                  className="px-1.5 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded border border-slate-200 bg-white"
+                  title="Perkecil Huruf (Shrink Font)"
+                >
+                  A<span className="text-[9px]">▼</span>
+                </button>
+              </div>
+
+              {/* Baris 2: B, I, U, Strike, Highlight, Color */}
+              <div className="flex items-center gap-0.5 mt-1">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("bold")}
+                  className={`px-2 py-0.5 font-black text-xs rounded transition ${
+                    isBold
+                      ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-black shadow-inner"
+                      : "text-slate-800 hover:bg-slate-200"
+                  }`}
+                  title="Tebal (Ctrl+B)"
+                >
+                  B
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("italic")}
+                  className={`px-2 py-0.5 italic font-serif text-xs rounded transition ${
+                    isItalic
+                      ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-bold shadow-inner"
+                      : "text-slate-800 hover:bg-slate-200"
+                  }`}
+                  title="Miring (Ctrl+I)"
+                >
+                  I
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("underline")}
+                  className={`px-2 py-0.5 underline text-xs rounded transition ${
+                    isUnderline
+                      ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-bold shadow-inner"
+                      : "text-slate-800 hover:bg-slate-200"
+                  }`}
+                  title="Garis Bawah (Ctrl+U)"
+                >
+                  U
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("strikeThrough")}
+                  className={`px-1.5 py-0.5 line-through text-xs rounded transition ${
+                    isStrike
+                      ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 font-bold shadow-inner"
+                      : "text-slate-800 hover:bg-slate-200"
+                  }`}
+                  title="Coret (Strikethrough)"
+                >
+                  ab
+                </button>
+
+                <span className="text-slate-300 mx-0.5">|</span>
+
+                {/* Highlight Color */}
+                <label
+                  className="p-1 hover:bg-slate-200 rounded cursor-pointer flex items-center gap-0.5"
+                  title="Warna Sorotan Teks (Highlight)"
+                >
+                  <Highlighter className="w-3.5 h-3.5 text-amber-500" />
+                  <input
+                    type="color"
+                    defaultValue="#fef08a"
+                    onChange={(e) => applyHighlightColor(e.target.value)}
+                    className="w-3 h-3 p-0 border-0 rounded cursor-pointer bg-transparent"
+                  />
+                </label>
+
+                {/* Font Color */}
+                <label
+                  className="p-1 hover:bg-slate-200 rounded cursor-pointer flex items-center gap-0.5"
+                  title="Warna Huruf (Font Color)"
+                >
+                  <span className="text-xs font-bold text-red-600 underline">
+                    A
+                  </span>
+                  <input
+                    type="color"
+                    defaultValue="#0f172a"
+                    onChange={(e) => applyFontColor(e.target.value)}
+                    className="w-3 h-3 p-0 border-0 rounded cursor-pointer bg-transparent"
+                  />
+                </label>
+              </div>
+              <span className="text-[9px] text-slate-400 font-medium mt-1">
+                Huruf (Font)
+              </span>
+            </div>
+
+            {/* GROUP: PARAGRAPH */}
+            <div className="flex flex-col items-center border-r border-slate-300 pr-2">
+              {/* Baris 1: Alignment & Lists */}
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("justifyLeft")}
+                  className={`p-1 rounded transition ${
+                    textAlign === "left"
+                      ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
+                      : "text-slate-700 hover:bg-slate-200"
+                  }`}
+                  title="Rata Kiri"
+                >
+                  <AlignLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("justifyCenter")}
+                  className={`p-1 rounded transition ${
+                    textAlign === "center"
+                      ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
+                      : "text-slate-700 hover:bg-slate-200"
+                  }`}
+                  title="Rata Tengah"
+                >
+                  <AlignCenter className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("justifyRight")}
+                  className={`p-1 rounded transition ${
+                    textAlign === "right"
+                      ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
+                      : "text-slate-700 hover:bg-slate-200"
+                  }`}
+                  title="Rata Kanan"
+                >
+                  <AlignRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("justifyFull")}
+                  className={`p-1 rounded transition ${
+                    textAlign === "justify"
+                      ? "bg-blue-200 text-blue-800 ring-1 ring-blue-400 shadow-inner"
+                      : "text-slate-700 hover:bg-slate-200"
+                  }`}
+                  title="Rata Kanan-Kiri (Justify)"
+                >
+                  <AlignJustify className="w-3.5 h-3.5" />
+                </button>
+
+                <span className="text-slate-300 mx-0.5">|</span>
+
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("insertUnorderedList")}
+                  className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                  title="Daftar Bullet"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => format("insertOrderedList")}
+                  className="p-1 text-slate-700 hover:bg-slate-200 rounded"
+                  title="Daftar Nomor"
+                >
+                  <ListOrdered className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Baris 2: Line Spacing & Paragraph Spacing */}
+              <div className="flex items-center gap-1.5 mt-1 text-[11px]">
+                <span className="text-slate-500 font-medium">Spasi:</span>
+                <select
+                  value={lineSpacing}
+                  onChange={(e) => applyLineSpacing(e.target.value)}
+                  className="text-[11px] bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800"
+                >
+                  <option value="1.0">1.0</option>
+                  <option value="1.15">1.15</option>
+                  <option value="1.3">1.3 (Surat)</option>
+                  <option value="1.5">1.5</option>
+                  <option value="2.0">2.0</option>
+                </select>
+
+                <select
+                  value={paragraphSpacing}
+                  onChange={(e) => applyParagraphSpacing(e.target.value)}
+                  className="text-[11px] bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800"
+                >
+                  <option value="tight">Rapat (4px)</option>
+                  <option value="normal">Normal (10px)</option>
+                  <option value="loose">Renggang (18px)</option>
+                </select>
+              </div>
+              <span className="text-[9px] text-slate-400 font-medium mt-1">
+                Paragraf
+              </span>
+            </div>
+
+            {/* GROUP: SISIPKAN & FORMAT DOKUMEN */}
+            <div className="flex flex-col items-center">
+              {/* Baris 1: Header Surat, Kolom Rapi, Gambar */}
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={insertOfficialHeader}
+                  className="px-2.5 py-1 bg-white border border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs transition"
+                  title="Sisipkan Header Lengkap: No, Lamp, Perihal, Dari, Kepada"
+                >
+                  <Layout className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Header Surat</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={insertFieldRowLayout}
+                  className="px-2.5 py-1 bg-white border border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs transition"
+                  title="Sisipkan Kolom Biodata Rapi (Titik dua sejajar otomatis)"
+                >
+                  <Columns className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Kolom Rapi (Tab)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={insertImage}
+                  className="px-2.5 py-1 bg-white border border-slate-300 hover:border-sky-500 hover:bg-sky-50 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs transition"
+                  title="Sisipkan Gambar dari URL"
+                >
+                  <ImageIcon className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Gambar</span>
+                </button>
+              </div>
+
+              {/* Baris 2: Tabel 3x3, Kustom Tabel, Paste Excel, Variabel */}
+              <div className="flex items-center gap-1 mt-1">
                 <button
                   type="button"
                   onClick={() => insertTable(3, 3)}
-                  className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-semibold text-slate-800 flex items-center gap-1.5 shadow-2xs"
+                  className="px-2 py-0.5 bg-white border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs transition"
                   title="Sisipkan Tabel 3x3 Standar"
                 >
-                  <TableIcon className="w-4 h-4 text-emerald-600" />
-                  <span>Tabel (3x3)</span>
+                  <TableIcon className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>+ Tabel (3x3)</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => insertTable(4, 4)}
-                  className="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs"
-                  title="Sisipkan Tabel 4x4"
-                >
-                  <span>4x4</span>
-                </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -2539,84 +2477,38 @@ export default function RichEditor({
                     const c = prompt("Jumlah Kolom:", "3");
                     if (r && c) insertTable(parseInt(r, 10), parseInt(c, 10));
                   }}
-                  className="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-semibold text-slate-800 flex items-center gap-1 shadow-2xs"
-                  title="Kustom Baris & Kolom"
+                  className="px-2 py-0.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs text-slate-700 shadow-2xs"
+                  title="Kustom Baris & Kolom Tabel"
                 >
                   <span>Kustom...</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={openExcelModal}
-                  className="px-3 py-1.5 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 rounded text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition"
-                  title="Paste / Impor Tabel dari Microsoft Excel atau Google Sheets"
-                >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  <span>Paste Excel</span>
-                </button>
-              </div>
 
-              {/* Insert Image */}
-              <div className="flex items-center gap-1.5 border-r border-slate-300 pr-3">
-                <button
-                  type="button"
-                  onClick={insertImage}
-                  className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 rounded text-xs font-semibold text-slate-800 flex items-center gap-1.5 shadow-2xs"
-                  title="Sisipkan Gambar dari URL"
-                >
-                  <ImageIcon className="w-4 h-4 text-sky-600" />
-                  <span>Gambar (Picture)</span>
-                </button>
-              </div>
-
-              {/* Insert Variables */}
-              {availableVariables.length > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-600">
-                    Variabel Sistem:
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {availableVariables.slice(0, 5).map((v) => (
+                {availableVariables.length > 0 && (
+                  <div className="flex items-center gap-1 pl-1 border-l border-slate-300">
+                    <span className="text-[10px] text-slate-400 font-medium">Var:</span>
+                    {availableVariables.slice(0, 3).map((v) => (
                       <button
                         key={v.key}
                         type="button"
                         onClick={() => insertVariable(v.key)}
-                        className="px-2 py-1 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-700 rounded text-[11px] font-medium shadow-2xs"
+                        className="px-1.5 py-0.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-700 rounded text-[10px] font-medium shadow-2xs"
+                        title={`Sisipkan variabel ${v.label}`}
                       >
                         +{v.label}
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
 
-          {/* TAB: TATA LETAK (LAYOUT) */}
-          {activeTab === "layout" && (
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              <div className="flex items-center gap-2 border-r border-slate-300 pr-3">
-                <span className="font-bold text-slate-700">Ukuran Kertas:</span>
-                <span className="bg-white border border-slate-300 px-2.5 py-1 rounded font-semibold text-slate-800">
-                  A4 (210 × 297 mm)
-                </span>
-              </div>
-              <div className="flex items-center gap-2 border-r border-slate-300 pr-3">
-                <span className="font-bold text-slate-700">Margin:</span>
-                <span className="bg-white border border-slate-300 px-2.5 py-1 rounded font-semibold text-slate-800">
-                  Normal (2.5 cm / 1 inch)
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-700">Orientasi:</span>
-                <span className="bg-white border border-slate-300 px-2.5 py-1 rounded font-semibold text-slate-800">
-                  Potret (Portrait)
-                </span>
-              </div>
+              <span className="text-[9px] text-slate-400 font-medium mt-1">
+                Sisipkan &amp; Format Dokumen
+              </span>
             </div>
-          )}
+          </div>
 
           {/* TAB KONTEKSTUAL: ALAT TABEL (TABLE TOOLS) */}
-          {(activeTab === "table" || activeTableState) && (
+          {activeTableState && (
             <div className="bg-indigo-50/80 -m-2 mt-1.5 p-2 border-t border-indigo-200 flex flex-wrap items-center gap-2 text-xs animate-fadeIn">
               <div className="flex items-center gap-1 font-bold text-indigo-900 pr-2 border-r border-indigo-200">
                 <Grid className="w-4 h-4 text-indigo-600" />
@@ -3092,6 +2984,8 @@ export default function RichEditor({
           <span>Halaman 1 dari 1</span>
           <span>&bull;</span>
           <span>{wordCount} kata</span>
+          <span>&bull;</span>
+          <span>A4 Potret (2.5 cm)</span>
           <span>&bull;</span>
           <span>Indonesia</span>
         </div>

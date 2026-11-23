@@ -67,6 +67,14 @@ export default function LetterFormBuilder({
     currentUser?.branchId === "PST" ||
     (currentUser?.branchName &&
       currentUser.branchName.toLowerCase().includes("pusat"));
+  const isUserOM =
+    /operation\s*manager|\bOM\b/i.test(currentUser?.position || "") ||
+    currentUser?.kodeJabatan === "J08" ||
+    /operation\s*manager|\bOM\b/i.test(currentUser?.roleLabel || "");
+  const isUserSMM =
+    /sales\s*marketing|\bSMM\b/i.test(currentUser?.position || "") ||
+    currentUser?.kodeJabatan === "J07" ||
+    /sales\s*marketing|\bSMM\b/i.test(currentUser?.roleLabel || "");
   const isMandiri =
     template?.id === "custom_blank" ||
     template?.code === "MANDIRI" ||
@@ -163,8 +171,22 @@ export default function LetterFormBuilder({
       return Boolean(initialLetter.includeKnownBy);
     if (initialLetter?.fieldValues?.includeKnownBy !== undefined)
       return Boolean(initialLetter.fieldValues.includeKnownBy);
-    return !isPST; // Default: Cabang wajib/aktif, Pusat (PST) opsional/default false
+    // Aturan khusus: Jika OM mengajukan maka default aktif (harus ada yang mengetahui), jika SMM maka default non-aktif
+    if (isUserOM) return true;
+    if (isUserSMM) return false;
+    return !isPST; // Default umum: Cabang aktif, Pusat (PST) non-aktif
   });
+
+  // Sinkronkan otomatis default Mengetahui jika akun / peran aktif berganti saat membuat surat baru
+  useEffect(() => {
+    if (!initialLetter) {
+      if (isUserOM) {
+        setIncludeKnownBy(true);
+      } else if (isUserSMM) {
+        setIncludeKnownBy(false);
+      }
+    }
+  }, [currentUser?.id, currentUser?.position, currentUser?.kodeJabatan, initialLetter, isUserOM, isUserSMM]);
 
   // Cari rekan manager di cabang yang sama dari database
   const defaultBranchManager = React.useMemo(() => {
@@ -683,6 +705,23 @@ export default function LetterFormBuilder({
       if (approvalSection) {
         approvalSection.scrollIntoView({ behavior: "smooth", block: "center" });
       }
+      return false;
+    }
+
+    // Validasi Pihak Mengetahui: OM wajib menyertakan pihak mengetahui
+    if (isUserOM && !includeKnownBy) {
+      notify.warning(
+        "Pihak Mengetahui Wajib Ada",
+        "Pengajuan dari Operation Manager (OM) wajib menyertakan tanda tangan pihak Mengetahui (SMM Cabang).",
+      );
+      return false;
+    }
+
+    if (includeKnownBy && !knownByName?.trim()) {
+      notify.warning(
+        "Pejabat Mengetahui Wajib Dipilih",
+        "Tanda tangan Mengetahui diaktifkan. Silakan pilih Pejabat Mengetahui terlebih dahulu.",
+      );
       return false;
     }
 
@@ -1570,6 +1609,16 @@ export default function LetterFormBuilder({
                   <span className="text-xs font-extrabold text-slate-900 truncate">
                     Tanda Tangan "Mengetahui"
                   </span>
+                  {isUserOM && (
+                    <span className="text-[10px] text-amber-700 bg-amber-100 font-bold px-1.5 py-0.5 rounded ml-1 border border-amber-300 shrink-0">
+                      Wajib OM
+                    </span>
+                  )}
+                  {isUserSMM && (
+                    <span className="text-[10px] text-slate-600 bg-slate-200/80 font-medium px-1.5 py-0.5 rounded ml-1 shrink-0">
+                      Opsional SMM
+                    </span>
+                  )}
                 </div>
 
                 {/* Toggle Switch */}

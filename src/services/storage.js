@@ -1541,7 +1541,13 @@ export const saveLetter = (letterData, isSubmit = false) => {
       includeKnownBy:
         letterData.includeKnownBy !== undefined
           ? letterData.includeKnownBy
-          : currentUser.branchId !== "PST",
+          : (
+              (/operation\s*manager|\bOM\b/i.test(currentUser.position || "") || currentUser.kodeJabatan === "J08")
+                ? true
+                : ((/sales\s*marketing|\bSMM\b/i.test(currentUser.position || "") || currentUser.kodeJabatan === "J07")
+                    ? false
+                    : currentUser.branchId !== "PST")
+            ),
       knownByName: letterData.knownByName || "",
       knownByPosition: letterData.knownByPosition || "",
       fieldValues: {

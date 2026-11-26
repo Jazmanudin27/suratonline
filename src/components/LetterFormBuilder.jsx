@@ -2036,7 +2036,7 @@ export default function LetterFormBuilder({
                         {isStepBypassed ? (
                           <div className="flex-1 min-w-0 flex items-center justify-between text-xs py-1 px-1">
                             <span className="font-semibold text-slate-500 truncate">
-                              {step.title || step.approverRole || `Tingkat ${idx + 1}`}
+                              {step.approverRole || step.specificUserName || "Pejabat Penyetuju"}
                             </span>
                             <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">
                               Dilewati (Nominal di bawah limit)
@@ -2044,11 +2044,8 @@ export default function LetterFormBuilder({
                           </div>
                         ) : (
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-0.5">
-                              <span className="text-[10px] text-slate-500 font-bold truncate">
-                                {step.title || `Tingkat ${idx + 1}`}
-                              </span>
-                              <div className="flex items-center gap-1">
+                            {(isFinalActiveStep || currentNominal > 0) && (
+                              <div className="flex items-center justify-end gap-1 mb-0.5">
                                 {isFinalActiveStep && (
                                   <span className="text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 rounded font-extrabold">
                                     Pengesahan Akhir
@@ -2070,7 +2067,7 @@ export default function LetterFormBuilder({
                                   />
                                 )}
                               </div>
-                            </div>
+                            )}
                             <SearchableSelect
                               size="sm"
                               value={step.specificUserId || ""}

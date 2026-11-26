@@ -1957,37 +1957,6 @@ export default function LetterFormBuilder({
                 </div>
               </div>
 
-              {/* Info Banner Aturan Limit Nominal Jika Nominal Diisi */}
-              {currentNominal > 0 ? (
-                <div className="p-2.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-lg text-xs space-y-1 shadow-2xs animate-fadeIn">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-extrabold text-amber-950 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span>Jalur Persetujuan Disesuaikan Otomatis</span>
-                    </span>
-                    <span className="font-mono font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded text-[11px] border border-amber-200 shrink-0">
-                      Nilai Ajuan: Rp {Number(currentNominal).toLocaleString("id-ID")}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-amber-800 leading-tight">
-                    {activeApprovalSteps.length < customApprovalSteps.length ? (
-                      <>
-                        Sesuai nilai ajuan Rp {Number(currentNominal).toLocaleString("id-ID")}, persetujuan <strong>cukup sampai Tingkat {activeApprovalSteps.length} ({activeApprovalSteps[activeApprovalSteps.length - 1]?.approverRole || activeApprovalSteps[activeApprovalSteps.length - 1]?.title})</strong>. Pejabat di atasnya otomatis dilewati.
-                      </>
-                    ) : (
-                      <>
-                        Nilai pengajuan memerlukan persetujuan hingga tingkat tertinggi ({activeApprovalSteps[activeApprovalSteps.length - 1]?.approverRole || activeApprovalSteps[activeApprovalSteps.length - 1]?.title}).
-                      </>
-                    )}
-                  </p>
-                </div>
-              ) : (
-                <div className="px-2.5 py-1.5 bg-slate-100/80 border border-slate-200 rounded-lg text-[11px] text-slate-600 flex items-center justify-between">
-                  <span>Isi <strong>Nominal Pengajuan</strong> di atas untuk mengotomatiskan tingkat persetujuan pejabat.</span>
-                  <span className="text-slate-400 italic">Bebas limit / 0</span>
-                </div>
-              )}
-
               {/* List Tingkat Persetujuan yang bisa diedit */}
               <div className="space-y-2.5">
                 {customApprovalSteps.map((step, idx) => {

@@ -123,10 +123,13 @@ export default function LetterFormBuilder({
   });
   const [costItems, setCostItems] = useState(
     () =>
-      initialLetter?.fieldValues?.rincian_biaya || [
-        { item: "Uang Harian / Uang Makan", amount: 300000 },
-        { item: "Transportasi PP", amount: 500000 },
-      ],
+      initialLetter?.fieldValues?.rincian_biaya ||
+      (template?.fields?.some((f) => f.type === "table_costs")
+        ? [
+            { item: "Uang Harian / Uang Makan", amount: 300000 },
+            { item: "Transportasi PP", amount: 500000 },
+          ]
+        : []),
   );
   const [attachments, setAttachments] = useState(
     () =>
@@ -417,6 +420,13 @@ export default function LetterFormBuilder({
       if (initialLetter.fieldValues?.rincian_biaya) {
         setCostItems(initialLetter.fieldValues.rincian_biaya);
       }
+      if (initialLetter.nominal) {
+        setNominalInputValue(Number(initialLetter.nominal).toLocaleString("id-ID"));
+      } else if (initialLetter.fieldValues?.nominal_pengajuan) {
+        setNominalInputValue(Number(initialLetter.fieldValues.nominal_pengajuan).toLocaleString("id-ID"));
+      } else if (initialLetter.fieldValues?.nominal) {
+        setNominalInputValue(Number(initialLetter.fieldValues.nominal).toLocaleString("id-ID"));
+      }
       if (initialLetter.imageLayout || initialLetter.fieldValues?.imageLayout) {
         setImageLayout(
           initialLetter.imageLayout || initialLetter.fieldValues?.imageLayout,
@@ -497,6 +507,23 @@ export default function LetterFormBuilder({
 
   // Hitung nominal aktual untuk evaluasi limit wewenang persetujuan
   const currentNominal = React.useMemo(() => {
+    // 1. Prioritas utama: input manual nominal pengajuan pada header form
+    if (nominalInputValue) {
+      const clean = parseInt(String(nominalInputValue).replace(/[^0-9]/g, ""), 10);
+      if (!isNaN(clean) && clean > 0) return clean;
+    }
+    if (fieldValues.nominal_pengajuan) {
+      const clean =
+        typeof fieldValues.nominal_pengajuan === "number"
+          ? fieldValues.nominal_pengajuan
+          : parseInt(String(fieldValues.nominal_pengajuan).replace(/[^0-9]/g, ""), 10);
+      if (!isNaN(clean) && clean > 0) return clean;
+    }
+
+    // 2. Prioritas kedua: total rincian biaya (jika ada tabel biaya terisi)
+    if (totalCost > 0) return totalCost;
+
+    // 3. Prioritas ketiga: kolom form dinamis sesuai setting template
     if (
       template?.nominalField &&
       template.nominalField !== "total_biaya" &&
@@ -505,19 +532,20 @@ export default function LetterFormBuilder({
     ) {
       const val = fieldValues[template.nominalField];
       if (typeof val === "number") return val;
-      if (typeof val === "string")
-        return parseFloat(val.replace(/[^0-9.-]+/g, "")) || 0;
+      if (typeof val === "string") {
+        const clean = parseInt(String(val).replace(/[^0-9]/g, ""), 10);
+        return clean || 0;
+      }
       return 0;
     }
-    if (totalCost > 0) return totalCost;
-    if (nominalInputValue) {
-      const parsed = parseFloat(String(nominalInputValue).replace(/[^0-9.-]+/g, ""));
-      if (!isNaN(parsed) && parsed > 0) return parsed;
+
+    const manual = fieldValues.nominal;
+    if (manual) {
+      const clean = parseInt(String(manual).replace(/[^0-9]/g, ""), 10);
+      return clean || 0;
     }
-    const manual = fieldValues.nominal_pengajuan || fieldValues.nominal;
-    if (manual) return Number(manual) || 0;
     return 0;
-  }, [template, fieldValues, totalCost, nominalInputValue]);
+  }, [nominalInputValue, fieldValues, totalCost, template]);
 
   // Evaluasi jalur persetujuan yang aktif berdasarkan batas nominal
   const activeApprovalSteps = React.useMemo(() => {
@@ -1853,7 +1881,7 @@ export default function LetterFormBuilder({
                   {currentNominal > 0 ? (
                     <div className="px-2 py-0.5 text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1 shadow-2xs">
                       <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Limit: Rp {Number(currentNominal).toLocaleString("id-ID")}</span>
+                      <span>Ajuan: Rp {Number(currentNominal).toLocaleString("id-ID")}</span>
                     </div>
                   ) : (
                     <div className="px-2 py-0.5 text-xs font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1">

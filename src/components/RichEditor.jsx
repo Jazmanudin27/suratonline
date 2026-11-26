@@ -256,23 +256,42 @@ export default function RichEditor({
       }
     } catch (e) {}
 
-    // 2. Detect Font Family at caret
+    // 2. Detect Font Family at caret (HANYA sinkronkan jika ada font-family eksplisit pada elemen teks)
     try {
-      const computedStyle = window.getComputedStyle(node);
-      const fam = (computedStyle.fontFamily || "").toLowerCase();
-      const standardFonts = [
-        "Calibri",
-        "Arial",
-        "Tahoma",
-        "Times New Roman",
-        "Plus Jakarta Sans",
-        "Georgia",
-        "Courier New",
-      ];
-      for (const f of standardFonts) {
-        if (fam.includes(f.toLowerCase())) {
-          setFontFamily(f);
+      let curr = node;
+      let explicitFont = null;
+      while (curr && curr !== editorRef.current && curr.nodeType === 1) {
+        if (curr.style && curr.style.fontFamily) {
+          explicitFont = curr.style.fontFamily;
           break;
+        }
+        if (
+          curr.tagName &&
+          curr.tagName.toLowerCase() === "font" &&
+          curr.getAttribute("face")
+        ) {
+          explicitFont = curr.getAttribute("face");
+          break;
+        }
+        curr = curr.parentElement;
+      }
+
+      if (explicitFont) {
+        const fam = explicitFont.toLowerCase();
+        const standardFonts = [
+          "Calibri",
+          "Arial",
+          "Tahoma",
+          "Times New Roman",
+          "Plus Jakarta Sans",
+          "Georgia",
+          "Courier New",
+        ];
+        for (const f of standardFonts) {
+          if (fam.includes(f.toLowerCase())) {
+            setFontFamily(f);
+            break;
+          }
         }
       }
     } catch (e) {}
@@ -2896,18 +2915,36 @@ export default function RichEditor({
               font-family: ${fontFamily}, Calibri, Tahoma, Arial, sans-serif !important;
               color: #000000 !important;
             }
+            .rich-editor-sheet *:not([style*="font-family"]):not([face]) {
+              font-family: inherit !important;
+            }
+            .rich-editor-sheet b,
+            .rich-editor-sheet strong {
+              font-weight: 700 !important;
+              font-family: inherit !important;
+            }
+            .rich-editor-sheet i,
+            .rich-editor-sheet em {
+              font-style: italic !important;
+              font-family: inherit !important;
+            }
+            .rich-editor-sheet u {
+              text-decoration: underline !important;
+              font-family: inherit !important;
+            }
+            .rich-editor-sheet s,
+            .rich-editor-sheet strike {
+              text-decoration: line-through !important;
+              font-family: inherit !important;
+            }
             .rich-editor-sheet,
             .rich-editor-sheet p,
             .rich-editor-sheet span,
             .rich-editor-sheet td,
             .rich-editor-sheet th,
-            .rich-editor-sheet strong,
             .rich-editor-sheet li,
-            .rich-editor-sheet table,
-            .rich-editor-sheet table tr,
-            .rich-editor-sheet table td,
-            .rich-editor-sheet table th {
-              font-family: ${fontFamily}, Calibri, Tahoma, Arial, sans-serif !important;
+            .rich-editor-sheet div,
+            .rich-editor-sheet table {
               line-height: ${lineSpacing};
               color: #000000;
             }
@@ -2917,6 +2954,8 @@ export default function RichEditor({
             .rich-editor-sheet table td,
             .rich-editor-sheet table th,
             .rich-editor-sheet table td strong,
+            .rich-editor-sheet table td b,
+            .rich-editor-sheet table td i,
             .rich-editor-sheet table td span {
               font-family: inherit !important;
             }

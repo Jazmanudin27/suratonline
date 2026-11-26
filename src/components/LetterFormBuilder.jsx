@@ -89,7 +89,9 @@ export default function LetterFormBuilder({
   const [showAttachmentManager, setShowAttachmentManager] = useState(false);
   const [showNominalMatrixModal, setShowNominalMatrixModal] = useState(false);
   const [fieldValues, setFieldValues] = useState(() => {
-    const base = initialLetter?.fieldValues ? { ...initialLetter.fieldValues } : {};
+    const base = initialLetter?.fieldValues
+      ? { ...initialLetter.fieldValues }
+      : {};
     if (!isMandiri && template?.name) {
       if (!base.perihal && !base.f_perihal) {
         base.perihal = template.name.toUpperCase();
@@ -118,7 +120,8 @@ export default function LetterFormBuilder({
     return isMandiri ? "<p><br></p>" : "";
   });
   const [letterNumber, setLetterNumber] = useState(() => {
-    if (initialLetter?.letterNumber && !initialLetter.isDuplicate) return initialLetter.letterNumber;
+    if (initialLetter?.letterNumber && !initialLetter.isDuplicate)
+      return initialLetter.letterNumber;
     return generateLetterNumber(template, currentUser?.branchId) || "";
   });
   const [costItems, setCostItems] = useState(
@@ -151,7 +154,10 @@ export default function LetterFormBuilder({
 
   // State Goresan Paraf / Tanda Tangan Pemohon
   const [submitterSignature] = useState(
-    () => initialLetter?.submitterSignature || initialLetter?.fieldValues?.submitterSignature || null
+    () =>
+      initialLetter?.submitterSignature ||
+      initialLetter?.fieldValues?.submitterSignature ||
+      null,
   );
 
   // State Layar Penuh (Word Fullscreen Mode)
@@ -191,7 +197,14 @@ export default function LetterFormBuilder({
         setIncludeKnownBy(false);
       }
     }
-  }, [currentUser?.id, currentUser?.position, currentUser?.kodeJabatan, initialLetter, isUserOM, isUserSMM]);
+  }, [
+    currentUser?.id,
+    currentUser?.position,
+    currentUser?.kodeJabatan,
+    initialLetter,
+    isUserOM,
+    isUserSMM,
+  ]);
 
   // Cari rekan manager di cabang yang sama dari database
   const defaultBranchManager = React.useMemo(() => {
@@ -313,9 +326,16 @@ export default function LetterFormBuilder({
 
   // State Input Form Nominal Pengajuan (Menentukan limit persetujuan secara otomatis)
   const [nominalInputValue, setNominalInputValue] = useState(() => {
-    if (initialLetter?.nominal) return Number(initialLetter.nominal).toLocaleString("id-ID");
-    if (initialLetter?.fieldValues?.nominal_pengajuan) return Number(initialLetter.fieldValues.nominal_pengajuan).toLocaleString("id-ID");
-    if (initialLetter?.fieldValues?.total_biaya) return Number(initialLetter.fieldValues.total_biaya).toLocaleString("id-ID");
+    if (initialLetter?.nominal)
+      return Number(initialLetter.nominal).toLocaleString("id-ID");
+    if (initialLetter?.fieldValues?.nominal_pengajuan)
+      return Number(initialLetter.fieldValues.nominal_pengajuan).toLocaleString(
+        "id-ID",
+      );
+    if (initialLetter?.fieldValues?.total_biaya)
+      return Number(initialLetter.fieldValues.total_biaya).toLocaleString(
+        "id-ID",
+      );
     return "";
   });
 
@@ -421,11 +441,19 @@ export default function LetterFormBuilder({
         setCostItems(initialLetter.fieldValues.rincian_biaya);
       }
       if (initialLetter.nominal) {
-        setNominalInputValue(Number(initialLetter.nominal).toLocaleString("id-ID"));
+        setNominalInputValue(
+          Number(initialLetter.nominal).toLocaleString("id-ID"),
+        );
       } else if (initialLetter.fieldValues?.nominal_pengajuan) {
-        setNominalInputValue(Number(initialLetter.fieldValues.nominal_pengajuan).toLocaleString("id-ID"));
+        setNominalInputValue(
+          Number(initialLetter.fieldValues.nominal_pengajuan).toLocaleString(
+            "id-ID",
+          ),
+        );
       } else if (initialLetter.fieldValues?.nominal) {
-        setNominalInputValue(Number(initialLetter.fieldValues.nominal).toLocaleString("id-ID"));
+        setNominalInputValue(
+          Number(initialLetter.fieldValues.nominal).toLocaleString("id-ID"),
+        );
       }
       if (initialLetter.imageLayout || initialLetter.fieldValues?.imageLayout) {
         setImageLayout(
@@ -474,7 +502,9 @@ export default function LetterFormBuilder({
 
     setFieldValues((prev) => ({ ...prev, [name]: formattedValue }));
     if ((name === "perihal" || name === "f_perihal") && letterContent) {
-      setLetterContent((prev) => (prev ? syncPerihalInHtml(prev, formattedValue) : ""));
+      setLetterContent((prev) =>
+        prev ? syncPerihalInHtml(prev, formattedValue) : "",
+      );
     }
   };
 
@@ -509,14 +539,20 @@ export default function LetterFormBuilder({
   const currentNominal = React.useMemo(() => {
     // 1. Prioritas utama: input manual nominal pengajuan pada header form
     if (nominalInputValue) {
-      const clean = parseInt(String(nominalInputValue).replace(/[^0-9]/g, ""), 10);
+      const clean = parseInt(
+        String(nominalInputValue).replace(/[^0-9]/g, ""),
+        10,
+      );
       if (!isNaN(clean) && clean > 0) return clean;
     }
     if (fieldValues.nominal_pengajuan) {
       const clean =
         typeof fieldValues.nominal_pengajuan === "number"
           ? fieldValues.nominal_pengajuan
-          : parseInt(String(fieldValues.nominal_pengajuan).replace(/[^0-9]/g, ""), 10);
+          : parseInt(
+              String(fieldValues.nominal_pengajuan).replace(/[^0-9]/g, ""),
+              10,
+            );
       if (!isNaN(clean) && clean > 0) return clean;
     }
 
@@ -643,7 +679,9 @@ export default function LetterFormBuilder({
   };
 
   const perihalFromFields =
-    fieldValues["perihal"] || fieldValues["f_perihal"] || (!isMandiri && template?.name ? template.name : "");
+    fieldValues["perihal"] ||
+    fieldValues["f_perihal"] ||
+    (!isMandiri && template?.name ? template.name : "");
   const rawTitle = decodeHtmlEntities(
     (perihalFromFields && perihalFromFields.trim()) ||
       extractPerihal(letterContent) ||
@@ -754,11 +792,20 @@ export default function LetterFormBuilder({
       }
 
       // Abaikan nama pemohon dan keperluan
-      if (n === "keperluan" || l === "keperluan" || l.includes("keperluan") || n === "nama_pemohon" || l.includes("nama pemohon"))
+      if (
+        n === "keperluan" ||
+        l === "keperluan" ||
+        l.includes("keperluan") ||
+        n === "nama_pemohon" ||
+        l.includes("nama pemohon")
+      )
         return false;
 
       // Jika bukan mandiri, perihal otomatis terisi dari judul template
-      if (!isMandiri && (n === "perihal" || n === "f_perihal" || l.includes("perihal")))
+      if (
+        !isMandiri &&
+        (n === "perihal" || n === "f_perihal" || l.includes("perihal"))
+      )
         return false;
 
       return f.required && !String(fieldValues[f.name] || "").trim();
@@ -779,7 +826,8 @@ export default function LetterFormBuilder({
     }
 
     // Validasi Jalur Persetujuan Pejabat: Setiap tingkat aktif WAJIB memilih Pejabat Penyetuju
-    const stepsToValidate = currentNominal > 0 ? activeApprovalSteps : customApprovalSteps;
+    const stepsToValidate =
+      currentNominal > 0 ? activeApprovalSteps : customApprovalSteps;
     if (!stepsToValidate || stepsToValidate.length === 0) {
       notify.warning(
         "Pejabat Penyetuju Wajib Diisi",
@@ -835,7 +883,14 @@ export default function LetterFormBuilder({
     if (!letterNumber) setLetterNumber(currentNumber);
 
     if (isMandiri) {
-      const perihal = (fieldValues.perihal || fieldValues.f_perihal || effectiveTitle || "").trim().toUpperCase();
+      const perihal = (
+        fieldValues.perihal ||
+        fieldValues.f_perihal ||
+        effectiveTitle ||
+        ""
+      )
+        .trim()
+        .toUpperCase();
       const isBoilerplate =
         !letterContent ||
         letterContent.trim() === "<p><br></p>" ||
@@ -845,7 +900,11 @@ export default function LetterFormBuilder({
         letterContent.includes("Sehubungan dengan kebutuhan operasional") ||
         letterContent.includes("[Tulis uraian");
 
-      if (isBoilerplate || !letterContent || !letterContent.includes("<table")) {
+      if (
+        isBoilerplate ||
+        !letterContent ||
+        !letterContent.includes("<table")
+      ) {
         setLetterContent(buildMandiriHeaderHtml(currentNumber, perihal));
       } else {
         setLetterContent((prev) => {
@@ -906,7 +965,14 @@ export default function LetterFormBuilder({
     if (!letterNumber) setLetterNumber(currentNumber);
 
     if (isMandiri) {
-      const perihal = (fieldValues.perihal || fieldValues.f_perihal || effectiveTitle || "").trim().toUpperCase();
+      const perihal = (
+        fieldValues.perihal ||
+        fieldValues.f_perihal ||
+        effectiveTitle ||
+        ""
+      )
+        .trim()
+        .toUpperCase();
       const isBoilerplate =
         !letterContent ||
         letterContent.trim() === "<p><br></p>" ||
@@ -916,7 +982,11 @@ export default function LetterFormBuilder({
         letterContent.includes("Sehubungan dengan kebutuhan operasional") ||
         letterContent.includes("[Tulis uraian");
 
-      if (isBoilerplate || !letterContent || !letterContent.includes("<table")) {
+      if (
+        isBoilerplate ||
+        !letterContent ||
+        !letterContent.includes("<table")
+      ) {
         setLetterContent(buildMandiriHeaderHtml(currentNumber, perihal));
       } else {
         setLetterContent((prev) => {
@@ -999,7 +1069,8 @@ export default function LetterFormBuilder({
       submitterSignature: submitterSignature || null,
       nominal: currentNominal,
       hasNominalLimit: currentNominal > 0,
-      approvalHistory: currentNominal > 0 ? activeApprovalSteps : customApprovalSteps,
+      approvalHistory:
+        currentNominal > 0 ? activeApprovalSteps : customApprovalSteps,
       fieldValues: {
         ...fieldValues,
         nominal: currentNominal,
@@ -1110,7 +1181,8 @@ export default function LetterFormBuilder({
       submitterSignature: submitterSignature || null,
       nominal: currentNominal,
       hasNominalLimit: currentNominal > 0,
-      approvalHistory: currentNominal > 0 ? activeApprovalSteps : customApprovalSteps,
+      approvalHistory:
+        currentNominal > 0 ? activeApprovalSteps : customApprovalSteps,
       fieldValues: {
         ...fieldValues,
         nominal: currentNominal,
@@ -1198,7 +1270,10 @@ export default function LetterFormBuilder({
             syncPerihalInHtml(letterContent, effectiveTitle),
             initialLetter?.letterNumber || letterNumber || "DRAFT/NO-NUMBER",
           )
-        : buildMandiriHeaderHtml(initialLetter?.letterNumber || letterNumber, effectiveTitle)
+        : buildMandiriHeaderHtml(
+            initialLetter?.letterNumber || letterNumber,
+            effectiveTitle,
+          )
       : lockLetterNumberInHtml(
           syncPerihalInHtml(
             letterContent ||
@@ -1299,7 +1374,11 @@ export default function LetterFormBuilder({
               title="Simpan dokumen sebagai draf sementara"
             >
               <Save className="w-3.5 h-3.5 text-white" />
-              <span>{initialLetter && !initialLetter.isDuplicate ? "Simpan Perubahan" : "Simpan Draft"}</span>
+              <span>
+                {initialLetter && !initialLetter.isDuplicate
+                  ? "Simpan Perubahan"
+                  : "Simpan Draft"}
+              </span>
             </button>
 
             <button
@@ -1310,7 +1389,8 @@ export default function LetterFormBuilder({
             >
               <Send className="w-3.5 h-3.5" />
               <span>
-                {initialLetter?.status === "pending" && !initialLetter.isDuplicate
+                {initialLetter?.status === "pending" &&
+                !initialLetter.isDuplicate
                   ? "Perbarui Surat"
                   : "Kirim Ajuan"}
               </span>
@@ -1322,14 +1402,21 @@ export default function LetterFormBuilder({
         {initialLetter?.isDuplicate && (
           <div className="bg-sky-50 border border-sky-200 text-sky-950 px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between gap-2 shadow-2xs">
             <div className="flex items-center gap-2">
-              <span className="p-1 rounded-md bg-sky-200 text-sky-800 font-black">📋</span>
+              <span className="p-1 rounded-md bg-sky-200 text-sky-800 font-black">
+                📋
+              </span>
               <span>
-                <strong>Mode Ajukan Ulang:</strong> Template dan format teks disalin dari surat <strong>{initialLetter.duplicatedFromNumber || 'sebelumnya'}</strong>. Nomor surat baru telah dibuat otomatis. Anda dapat mengedit isian atau teks sesuai keperluan sebelum mengirim.
+                <strong>Mode Ajukan Ulang:</strong> Template dan format teks
+                disalin dari surat{" "}
+                <strong>
+                  {initialLetter.duplicatedFromNumber || "sebelumnya"}
+                </strong>
+                . Nomor surat baru telah dibuat otomatis. Anda dapat mengedit
+                isian atau teks sesuai keperluan sebelum mengirim.
               </span>
             </div>
           </div>
         )}
-      </div>
 
         {/* Top Control Bar di Halaman Review (Sticky bersama header saat preview) */}
         {activeTab === "preview" && (
@@ -1347,8 +1434,6 @@ export default function LetterFormBuilder({
                 untuk mengubah isi teks.
               </span>
             </div>
-
-        </div>
 
             <div className="flex items-center gap-2">
               {/* Tombol Edit Isi Surat (Word) */}
@@ -1374,11 +1459,7 @@ export default function LetterFormBuilder({
                 <span>Kelola Lampiran &amp; Foto ({attachments.length})</span>
               </button>
             </div>
-
-        </div>
           </div>
-
-        </div>
         )}
       </div>
 
@@ -1397,8 +1478,6 @@ export default function LetterFormBuilder({
                   Otomatis
                 </span>
               </div>
-
-        </div>
               <input
                 type="text"
                 value={letterNumber}
@@ -1416,13 +1495,12 @@ export default function LetterFormBuilder({
               />
             </div>
 
-        </div>
-
             {/* Kolom Keperluan / Perihal Surat */}
             <div className="md:col-span-6 bg-slate-50/90 p-2.5 rounded-lg border border-slate-300 space-y-1.5 flex flex-col justify-between">
               <div className="flex items-center justify-between gap-2">
                 <label className="block text-xs font-extrabold text-slate-800">
-                  Keperluan / Perihal Surat <span className="text-rose-600">*</span>:
+                  Keperluan / Perihal Surat{" "}
+                  <span className="text-rose-600">*</span>:
                 </label>
                 {!isMandiri && (
                   <span className="text-[10px] bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full font-semibold">
@@ -1430,8 +1508,6 @@ export default function LetterFormBuilder({
                   </span>
                 )}
               </div>
-
-        </div>
               <input
                 type="text"
                 name="perihal"
@@ -1440,15 +1516,15 @@ export default function LetterFormBuilder({
                     ? fieldValues.perihal
                     : fieldValues.f_perihal !== undefined
                       ? fieldValues.f_perihal
-                      : (!isMandiri && template?.name ? template.name.toUpperCase() : "")
+                      : !isMandiri && template?.name
+                        ? template.name.toUpperCase()
+                        : ""
                 }
                 onChange={(e) => handleFieldChange("perihal", e.target.value)}
                 placeholder="Tulis Keperluan / Perihal Surat..."
                 className="w-full text-xs font-bold text-slate-900 uppercase bg-white px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
               />
             </div>
-
-        </div>
 
             {/* Kolom Form Nominal Pengajuan (Otomatis Menentukan Jalur Persetujuan) */}
             <div className="md:col-span-3 bg-gradient-to-br from-amber-50 to-orange-50/70 p-2.5 rounded-lg border border-amber-300 space-y-1.5 flex flex-col justify-between shadow-2xs">
@@ -1467,8 +1543,6 @@ export default function LetterFormBuilder({
                   {currentNominal > 0 ? "Limit Aktif" : "Bebas / 0"}
                 </span>
               </div>
-
-        </div>
               <div className="relative">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-900 select-none">
                   Rp
@@ -1480,21 +1554,17 @@ export default function LetterFormBuilder({
                   onChange={(e) => {
                     const raw = e.target.value.replace(/[^0-9]/g, "");
                     const num = raw ? parseInt(raw, 10) : 0;
-                    setNominalInputValue(raw ? num.toLocaleString("id-ID") : "");
+                    setNominalInputValue(
+                      raw ? num.toLocaleString("id-ID") : "",
+                    );
                     handleFieldChange("nominal_pengajuan", num);
                   }}
                   placeholder="0 (Tanpa limit nominal)"
                   className="w-full pl-8 pr-2.5 py-1.5 rounded-lg border border-amber-300 bg-white font-mono font-bold text-xs text-slate-900 shadow-inner focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
-
-        </div>
             </div>
-
-        </div>
           </div>
-
-        </div>
 
           {/* Dynamic Form Fields */}
           {template.fields?.filter((f) => {
@@ -1618,8 +1688,6 @@ export default function LetterFormBuilder({
                           </button>
                         </div>
 
-        </div>
-
                         <div className="border border-slate-300 rounded-lg overflow-hidden shadow-2xs bg-white">
                           <table className="w-full text-xs">
                             <thead className="bg-slate-100 border-b border-slate-300 text-slate-800">
@@ -1703,11 +1771,7 @@ export default function LetterFormBuilder({
                             </tfoot>
                           </table>
                         </div>
-
-        </div>
                       </div>
-
-        </div>
                     );
                   }
 
@@ -1775,13 +1839,9 @@ export default function LetterFormBuilder({
                         />
                       )}
                     </div>
-
-        </div>
                   );
                 })}
             </div>
-
-        </div>
           )}
 
           {/* Kolom Berdampingan: Tanda Tangan Mengetahui (Kiri) & Jalur Persetujuan (Kanan) */}
@@ -1793,8 +1853,6 @@ export default function LetterFormBuilder({
                   <div className="p-0.5 rounded-md bg-indigo-100 text-indigo-700">
                     <UserCheck className="w-3.5 h-3.5 shrink-0" />
                   </div>
-
-        </div>
                   <span className="text-xs font-extrabold text-slate-900 truncate">
                     Tanda Tangan "Mengetahui"
                   </span>
@@ -1810,8 +1868,6 @@ export default function LetterFormBuilder({
                   )}
                 </div>
 
-        </div>
-
                 {/* Toggle Switch */}
                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
                   <input
@@ -1826,8 +1882,6 @@ export default function LetterFormBuilder({
                   </span>
                 </label>
               </div>
-
-        </div>
 
               {/* Jika Toggle Aktif: Pilih User Yang Mengetahui */}
               {includeKnownBy ? (
@@ -1903,19 +1957,13 @@ export default function LetterFormBuilder({
                       isClearable
                     />
                   </div>
-
-        </div>
                 </div>
-
-        </div>
               ) : (
                 <p className="text-xs text-slate-500 italic pt-1">
                   Surat tidak mencantumkan tanda tangan pihak "Mengetahui".
                 </p>
               )}
             </div>
-
-        </div>
 
             {/* SISI KANAN: Jalur Pejabat Penyetuju */}
             <div
@@ -1927,32 +1975,27 @@ export default function LetterFormBuilder({
                   <div className="p-0.5 rounded-md bg-indigo-100 text-indigo-700">
                     <Users className="w-3.5 h-3.5 shrink-0" />
                   </div>
-
-        </div>
                   <span className="text-xs font-extrabold text-slate-900 truncate">
                     Jalur Persetujuan
                     <span className="text-rose-600 font-bold">*</span>
                   </span>
                 </div>
 
-        </div>
-
                 <div className="flex items-center gap-1.5 shrink-0">
                   {/* Status Limit Nominal */}
                   {currentNominal > 0 ? (
                     <div className="px-2 py-0.5 text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1 shadow-2xs">
                       <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Ajuan: Rp {Number(currentNominal).toLocaleString("id-ID")}</span>
+                      <span>
+                        Ajuan: Rp{" "}
+                        {Number(currentNominal).toLocaleString("id-ID")}
+                      </span>
                     </div>
-
-        </div>
                   ) : (
                     <div className="px-2 py-0.5 text-xs font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
                       <span>Tanpa Limit</span>
                     </div>
-
-        </div>
                   )}
 
                   <button
@@ -1981,7 +2024,8 @@ export default function LetterFormBuilder({
                           s.assignmentType ||
                           (s.specificUserId ? "user" : "role"),
                         approverName: s.approverName || null,
-                        maxAmount: s.maxAmount !== undefined ? s.maxAmount : null,
+                        maxAmount:
+                          s.maxAmount !== undefined ? s.maxAmount : null,
                         status: "pending",
                         notes: "",
                         date: null,
@@ -2020,11 +2064,7 @@ export default function LetterFormBuilder({
                     <span>Tambah</span>
                   </button>
                 </div>
-
-        </div>
               </div>
-
-        </div>
 
               {/* List Tingkat Persetujuan yang bisa diedit */}
               <div className="space-y-2.5">
@@ -2033,7 +2073,8 @@ export default function LetterFormBuilder({
                     currentNominal > 0 && idx >= activeApprovalSteps.length,
                   );
                   const isFinalActiveStep = Boolean(
-                    currentNominal > 0 && idx === activeApprovalSteps.length - 1,
+                    currentNominal > 0 &&
+                    idx === activeApprovalSteps.length - 1,
                   );
 
                   const handleUserSelect = (userId) => {
@@ -2102,19 +2143,17 @@ export default function LetterFormBuilder({
                           {idx + 1}
                         </div>
 
-        </div>
-
                         {isStepBypassed ? (
                           <div className="flex-1 min-w-0 flex items-center justify-between text-xs py-1 px-1">
                             <span className="font-semibold text-slate-500 truncate">
-                              {step.approverRole || step.specificUserName || "Pejabat Penyetuju"}
+                              {step.approverRole ||
+                                step.specificUserName ||
+                                "Pejabat Penyetuju"}
                             </span>
                             <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">
                               Dilewati (Nominal di bawah limit)
                             </span>
                           </div>
-
-        </div>
                         ) : (
                           <div className="flex-1 min-w-0">
                             {(isFinalActiveStep || currentNominal > 0) && (
@@ -2129,7 +2168,10 @@ export default function LetterFormBuilder({
                                     type="number"
                                     value={step.maxAmount ?? ""}
                                     onChange={(e) => {
-                                      const val = e.target.value === "" ? null : Number(e.target.value);
+                                      const val =
+                                        e.target.value === ""
+                                          ? null
+                                          : Number(e.target.value);
                                       const updated = [...customApprovalSteps];
                                       updated[idx].maxAmount = val;
                                       setCustomApprovalSteps(updated);
@@ -2140,8 +2182,6 @@ export default function LetterFormBuilder({
                                   />
                                 )}
                               </div>
-
-        </div>
                             )}
                             <SearchableSelect
                               size="sm"
@@ -2181,8 +2221,6 @@ export default function LetterFormBuilder({
                               isClearable
                             />
                           </div>
-
-        </div>
                         )}
 
                         {!isStepBypassed && customApprovalSteps.length > 1 && (
@@ -2196,22 +2234,12 @@ export default function LetterFormBuilder({
                           </button>
                         )}
                       </div>
-
-        </div>
                     </div>
-
-        </div>
                   );
                 })}
               </div>
-
-        </div>
             </div>
-
-        </div>
           </div>
-
-        </div>
 
           {/* Hak Akses Tambahan / Tembusan */}
           <div className="p-2.5 sm:p-3 bg-slate-50/90 border border-slate-300 rounded-lg space-y-1.5 shadow-2xs">
@@ -2220,8 +2248,6 @@ export default function LetterFormBuilder({
                 <div className="p-0.5 rounded-md bg-indigo-100 text-indigo-700">
                   <Eye className="w-3.5 h-3.5 shrink-0" />
                 </div>
-
-        </div>
                 <span className="text-xs font-extrabold text-slate-900 truncate">
                   Hak Akses / Tembusan (
                   {
@@ -2236,8 +2262,6 @@ export default function LetterFormBuilder({
                   (Pilih user tambahan yang berhak membaca surat ini)
                 </span>
               </div>
-
-        </div>
               <button
                 type="button"
                 onClick={() => setShowViewerModal(true)}
@@ -2247,8 +2271,6 @@ export default function LetterFormBuilder({
                 <span>Tambah / Pilih Pembaca</span>
               </button>
             </div>
-
-        </div>
 
             {/* Hanya tampilkan user tambahan manual di luar, user auto-checklist disembunyikan sesuai preferensi */}
             {(() => {
@@ -2299,8 +2321,6 @@ export default function LetterFormBuilder({
                       );
                     })}
                   </div>
-
-        </div>
                 );
               }
 
@@ -2313,8 +2333,6 @@ export default function LetterFormBuilder({
             })()}
           </div>
 
-        </div>
-
           {/* Action Buttons Step 1 */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
             <div className="text-xs font-medium text-slate-600 flex items-center gap-2">
@@ -2324,8 +2342,6 @@ export default function LetterFormBuilder({
                 resmi.
               </span>
             </div>
-
-        </div>
 
             <div className="flex items-center gap-2.5">
               <button
@@ -2337,13 +2353,7 @@ export default function LetterFormBuilder({
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
-
-        </div>
           </div>
-
-        </div>
-        </div>
-
         </div>
       )}
 
@@ -2360,8 +2370,6 @@ export default function LetterFormBuilder({
                     <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                       <Paperclip className="w-4 h-4 text-white" />
                     </div>
-
-        </div>
                     <div>
                       <h3 className="text-sm font-bold leading-tight">
                         Kelola Berkas Lampiran &amp; Foto Surat
@@ -2371,11 +2379,7 @@ export default function LetterFormBuilder({
                         gambar pada halaman lampiran
                       </p>
                     </div>
-
-        </div>
                   </div>
-
-        </div>
                   <button
                     type="button"
                     onClick={() => setShowAttachmentManager(false)}
@@ -2386,8 +2390,6 @@ export default function LetterFormBuilder({
                   </button>
                 </div>
 
-        </div>
-
                 {/* Body Modal Lampiran (Scrollable) */}
                 <div className="p-4 overflow-y-auto space-y-4 flex-1">
                   <AttachmentUploader
@@ -2395,8 +2397,6 @@ export default function LetterFormBuilder({
                     onChange={setAttachments}
                   />
                 </div>
-
-        </div>
 
                 {/* Footer Modal Lampiran */}
                 <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
@@ -2416,14 +2416,8 @@ export default function LetterFormBuilder({
                     <span>Selesai &amp; Simpan Pengaturan</span>
                   </button>
                 </div>
-
-        </div>
               </div>
-
-        </div>
             </div>
-
-        </div>
           )}
 
           {/* Lembar Dokumen Surat (Halaman 1, 2, 3) */}
@@ -2432,8 +2426,6 @@ export default function LetterFormBuilder({
             isBuilderPreview={true}
             onUpdateImageLayout={(newLayout) => setImageLayout(newLayout)}
           />
-        </div>
-
         </div>
       )}
 
@@ -2445,17 +2437,10 @@ export default function LetterFormBuilder({
           availableVariables={availableVariables}
           letterNumber={letterNumber}
           perihal={
-            effectiveTitle ||
-            fieldValues.perihal ||
-            fieldValues.f_perihal ||
-            ""
+            effectiveTitle || fieldValues.perihal || fieldValues.f_perihal || ""
           }
-          submitterName={
-            currentUser?.name || fieldValues.nama_pemohon || ""
-          }
-          submitterPosition={
-            currentUser?.position || fieldValues.jabatan || ""
-          }
+          submitterName={currentUser?.name || fieldValues.nama_pemohon || ""}
+          submitterPosition={currentUser?.position || fieldValues.jabatan || ""}
           isFullscreen={true}
           onSave={handleSaveDraft}
           onClose={() => {
@@ -2475,8 +2460,6 @@ export default function LetterFormBuilder({
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                   <Users className="w-4 h-4 text-white" />
                 </div>
-
-        </div>
                 <div>
                   <h3 className="text-sm font-bold leading-tight">
                     Pilih Pembaca &amp; Tembusan Surat
@@ -2486,11 +2469,7 @@ export default function LetterFormBuilder({
                     ini
                   </p>
                 </div>
-
-        </div>
               </div>
-
-        </div>
               <button
                 type="button"
                 onClick={() => setShowViewerModal(false)}
@@ -2499,8 +2478,6 @@ export default function LetterFormBuilder({
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-        </div>
 
             {/* Modal Toolbar: Search */}
             <div className="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
@@ -2514,16 +2491,10 @@ export default function LetterFormBuilder({
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
                 />
               </div>
-
-        </div>
               <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-[11px] font-semibold text-indigo-700">
                 <span>🏢 Khusus Kantor Pusat</span>
               </div>
-
-        </div>
             </div>
-
-        </div>
 
             {/* Modal Body: List Users Grouped by Branch & Sorted by Jabatan */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3 divide-y divide-slate-100">
@@ -2562,8 +2533,6 @@ export default function LetterFormBuilder({
                     <div className="text-center py-10 text-slate-400 text-xs">
                       Tidak ditemukan akun user yang sesuai kriteria pencarian.
                     </div>
-
-        </div>
                   );
                 }
 
@@ -2710,8 +2679,6 @@ export default function LetterFormBuilder({
                         </button>
                       </div>
 
-        </div>
-
                       {/* User Items */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-1">
                         {branchUsers.map((u) => {
@@ -2789,8 +2756,6 @@ export default function LetterFormBuilder({
                                     </span>
                                   )}
                                 </div>
-
-        </div>
                                 <div className="text-[10px] text-slate-500 truncate flex items-center gap-1">
                                   <span className="font-semibold text-indigo-600">
                                     {u.position || u.roleLabel || "Pejabat"}
@@ -2798,26 +2763,16 @@ export default function LetterFormBuilder({
                                   <span>&bull;</span>
                                   <span>{u.kodeJabatan || "-"}</span>
                                 </div>
-
-        </div>
                               </div>
-
-        </div>
                             </label>
                           );
                         })}
                       </div>
-
-        </div>
                     </div>
-
-        </div>
                   );
                 });
               })()}
             </div>
-
-        </div>
 
             {/* Modal Footer */}
             <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
@@ -2837,13 +2792,7 @@ export default function LetterFormBuilder({
                 <span>Selesai Memilih</span>
               </button>
             </div>
-
-        </div>
           </div>
-
-        </div>
-        </div>
-
         </div>
       )}
 
@@ -2857,8 +2806,6 @@ export default function LetterFormBuilder({
                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-400/30 flex items-center justify-center">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
-
-        </div>
                 <div>
                   <h3 className="font-extrabold text-sm sm:text-base leading-tight">
                     Matriks Batas Nominal Persetujuan
@@ -2867,11 +2814,7 @@ export default function LetterFormBuilder({
                     Standar Otorisasi &amp; Strata Pejabat Penyetuju
                   </p>
                 </div>
-
-        </div>
               </div>
-
-        </div>
               <button
                 type="button"
                 onClick={() => setShowNominalMatrixModal(false)}
@@ -2881,61 +2824,97 @@ export default function LetterFormBuilder({
               </button>
             </div>
 
-        </div>
-
             {/* Modal Body */}
             <div className="p-4 sm:p-5 space-y-3.5 bg-slate-50">
               <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead className="bg-[#0f172a] text-white text-[11px] font-extrabold uppercase tracking-wider">
                     <tr>
-                      <th className="py-2.5 px-3.5 border-r border-slate-700">JABATAN</th>
-                      <th className="py-2.5 px-3.5 text-right border-r border-slate-700">MINIMAL</th>
+                      <th className="py-2.5 px-3.5 border-r border-slate-700">
+                        JABATAN
+                      </th>
+                      <th className="py-2.5 px-3.5 text-right border-r border-slate-700">
+                        MINIMAL
+                      </th>
                       <th className="py-2.5 px-3.5 text-right">MAKSIMAL</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-xs">
                     <tr className="hover:bg-slate-50 transition">
-                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">DIREKTUR</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">50.000.000</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-black text-indigo-700">TIDAK TERBATAS</td>
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">
+                        DIREKTUR
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">
+                        50.000.000
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-black text-indigo-700">
+                        TIDAK TERBATAS
+                      </td>
                     </tr>
                     <tr className="hover:bg-slate-50 transition">
-                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">WAKIL DIREKTUR</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">2.000.000</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">50.000.000</td>
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">
+                        WAKIL DIREKTUR
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">
+                        2.000.000
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">
+                        50.000.000
+                      </td>
                     </tr>
                     <tr className="hover:bg-slate-50 transition">
-                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">PEMBELIAN</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">1.000.000</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">2.000.000</td>
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">
+                        PEMBELIAN
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">
+                        1.000.000
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">
+                        2.000.000
+                      </td>
                     </tr>
                     <tr className="hover:bg-slate-50 transition">
-                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">RSM &amp; NSM</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">500.000</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">1.000.000</td>
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">
+                        RSM &amp; NSM
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">
+                        500.000
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">
+                        1.000.000
+                      </td>
                     </tr>
                     <tr className="hover:bg-slate-50 transition">
-                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">ALL HEAD DEPT.</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">300.000</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">500.000</td>
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">
+                        ALL HEAD DEPT.
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">
+                        300.000
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-slate-900">
+                        500.000
+                      </td>
                     </tr>
                     <tr className="hover:bg-slate-50 transition bg-emerald-50/40">
-                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">CABANG</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">-</td>
-                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-emerald-700">300.000</td>
+                      <td className="py-2.5 px-3.5 font-bold text-slate-900 border-r border-slate-200">
+                        CABANG
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-semibold text-slate-700 border-r border-slate-200">
+                        -
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right font-mono font-bold text-emerald-700">
+                        300.000
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-
-        </div>
               <p className="text-[11px] text-slate-500 italic">
-                * Gunakan matriks batas nominal di atas sebagai rujukan dalam menentukan pejabat penyetuju yang berwenang menandatangani surat pengajuan mandiri ini.
+                * Gunakan matriks batas nominal di atas sebagai rujukan dalam
+                menentukan pejabat penyetuju yang berwenang menandatangani surat
+                pengajuan mandiri ini.
               </p>
             </div>
-
-        </div>
 
             {/* Modal Footer */}
             <div className="p-3 bg-white border-t border-slate-200 flex justify-end">
@@ -2947,16 +2926,9 @@ export default function LetterFormBuilder({
                 Tutup
               </button>
             </div>
-
-        </div>
           </div>
-
-        </div>
-        </div>
-
         </div>
       )}
-
     </div>
   );
 }

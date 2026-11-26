@@ -28,6 +28,7 @@ import {
   Search,
   Check,
   ShieldCheck,
+  Info,
 } from "lucide-react";
 import RichEditor from "./RichEditor";
 import LetterDocumentView from "./LetterDocumentView";
@@ -492,7 +493,10 @@ export default function LetterFormBuilder({
         return parseFloat(val.replace(/[^0-9.-]+/g, "")) || 0;
       return 0;
     }
-    return totalCost;
+    if (totalCost > 0) return totalCost;
+    const manual = fieldValues.nominal_pengajuan || fieldValues.nominal;
+    if (manual) return Number(manual) || 0;
+    return 0;
   }, [useNominalLimit, template, fieldValues, totalCost]);
 
   // Evaluasi jalur persetujuan yang aktif berdasarkan batas nominal
@@ -1845,9 +1849,22 @@ export default function LetterFormBuilder({
                       <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span>Aturan Limit Nominal Aktif</span>
                     </span>
-                    <span className="font-mono font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded text-[11px] border border-amber-200 shrink-0">
-                      Nilai Ajuan: Rp {Number(currentNominal || 0).toLocaleString("id-ID")}
-                    </span>
+                    {totalCost > 0 ? (
+                      <span className="font-mono font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded text-[11px] border border-amber-200 shrink-0">
+                        Nilai Ajuan: Rp {Number(currentNominal || 0).toLocaleString("id-ID")}
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[11px] font-bold text-amber-900">Nilai Ajuan: Rp</span>
+                        <input
+                          type="number"
+                          value={fieldValues.nominal_pengajuan ?? ""}
+                          onChange={(e) => handleFieldChange("nominal_pengajuan", e.target.value)}
+                          placeholder="Nominal..."
+                          className="w-28 px-1.5 py-0.5 bg-white border border-amber-300 rounded text-xs font-mono font-bold text-slate-800 outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs"
+                        />
+                      </div>
+                    )}
                   </div>
                   <p className="text-[11px] text-amber-800 leading-tight">
                     {activeApprovalSteps.length < customApprovalSteps.length ? (

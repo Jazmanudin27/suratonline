@@ -29,6 +29,7 @@ import {
   Check,
   ShieldCheck,
   Info,
+  Coins,
 } from "lucide-react";
 import RichEditor from "./RichEditor";
 import LetterDocumentView from "./LetterDocumentView";
@@ -307,6 +308,14 @@ export default function LetterFormBuilder({
     });
   });
 
+  // State Input Form Nominal Pengajuan (Menentukan limit persetujuan secara otomatis)
+  const [nominalInputValue, setNominalInputValue] = useState(() => {
+    if (initialLetter?.nominal) return Number(initialLetter.nominal).toLocaleString("id-ID");
+    if (initialLetter?.fieldValues?.nominal_pengajuan) return Number(initialLetter.fieldValues.nominal_pengajuan).toLocaleString("id-ID");
+    if (initialLetter?.fieldValues?.total_biaya) return Number(initialLetter.fieldValues.total_biaya).toLocaleString("id-ID");
+    return "";
+  });
+
   // Opsi Limit Nominal Persetujuan (bisa diaktifkan/dinonaktifkan per ajuan baik ada template maupun surat mandiri)
   const [useNominalLimit, setUseNominalLimit] = useState(() => {
     if (initialLetter?.hasNominalLimit !== undefined) {
@@ -479,13 +488,20 @@ export default function LetterFormBuilder({
     0,
   );
 
+  // Sync otomatis saat tabel rincian biaya berubah
+  useEffect(() => {
+    if (totalCost > 0) {
+      setNominalInputValue(Number(totalCost).toLocaleString("id-ID"));
+    }
+  }, [totalCost]);
+
   // Hitung nominal aktual untuk evaluasi limit wewenang persetujuan
   const currentNominal = React.useMemo(() => {
-    if (!useNominalLimit) return 0;
     if (
       template?.nominalField &&
       template.nominalField !== "total_biaya" &&
-      template.nominalField !== "auto"
+      template.nominalField !== "auto" &&
+      template.nominalField !== "nominal_pengajuan"
     ) {
       const val = fieldValues[template.nominalField];
       if (typeof val === "number") return val;
@@ -494,14 +510,19 @@ export default function LetterFormBuilder({
       return 0;
     }
     if (totalCost > 0) return totalCost;
+    if (nominalInputValue) {
+      const parsed = parseFloat(String(nominalInputValue).replace(/[^0-9.-]+/g, ""));
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
     const manual = fieldValues.nominal_pengajuan || fieldValues.nominal;
     if (manual) return Number(manual) || 0;
     return 0;
-  }, [useNominalLimit, template, fieldValues, totalCost]);
+  }, [template, fieldValues, totalCost, nominalInputValue]);
 
   // Evaluasi jalur persetujuan yang aktif berdasarkan batas nominal
   const activeApprovalSteps = React.useMemo(() => {
-    if (!useNominalLimit) {
+    // Jika nominal kosong atau 0, semua pejabat bertahap normal
+    if (!currentNominal || currentNominal <= 0) {
       return customApprovalSteps;
     }
     // Jika surat sudah diajukan/berjalan (bukan draft baru), jangan potong riwayat persetujuannya
@@ -513,25 +534,55 @@ export default function LetterFormBuilder({
     ) {
       return customApprovalSteps;
     }
-    if (!currentNominal || currentNominal <= 0) {
-      return customApprovalSteps;
-    }
+
     let targetIdx = -1;
     for (let i = 0; i < customApprovalSteps.length; i++) {
-      const stepMax = Number(customApprovalSteps[i].maxAmount);
+      const step = customApprovalSteps[i];
+      let stepMax = Number(step.maxAmount);
+
+      // Default batas maksimal cerdas jika belum diatur di template
+      if (!stepMax || isNaN(stepMax) || stepMax <= 0) {
+        const role = (step.approverRole || step.title || "").toUpperCase();
+        if (role.includes("DIREKTUR") || role.includes("DIRECTOR")) {
+          stepMax = Infinity;
+        } else if (
+          role.includes("GENERAL MANAGER") ||
+          role.includes("GM") ||
+          role.includes("WAKIL DIREKTUR") ||
+          role.includes("RSM") ||
+          role.includes("REGIONAL")
+        ) {
+          stepMax = 5000000;
+        } else if (
+          role.includes("MANAGER") ||
+          role.includes("MANAJER") ||
+          role.includes("HEAD") ||
+          role.includes("SMM") ||
+          role.includes("OM") ||
+          role.includes("KACAB") ||
+          role.includes("KEPALA CABANG")
+        ) {
+          stepMax = 500000;
+        } else {
+          stepMax = 300000;
+        }
+      }
+
       if (stepMax && stepMax > 0 && currentNominal <= stepMax) {
         targetIdx = i;
         break;
       }
     }
+
     if (targetIdx === -1) {
       targetIdx = customApprovalSteps.length - 1;
     }
+
     return customApprovalSteps.slice(0, targetIdx + 1).map((s, idx) => ({
       ...s,
       step: idx + 1,
     }));
-  }, [useNominalLimit, customApprovalSteps, currentNominal, initialLetter]);
+  }, [customApprovalSteps, currentNominal, initialLetter]);
 
   const decodeHtmlEntities = (str) => {
     if (!str) return "";
@@ -700,7 +751,7 @@ export default function LetterFormBuilder({
     }
 
     // Validasi Jalur Persetujuan Pejabat: Setiap tingkat aktif WAJIB memilih Pejabat Penyetuju
-    const stepsToValidate = useNominalLimit ? activeApprovalSteps : customApprovalSteps;
+    const stepsToValidate = currentNominal > 0 ? activeApprovalSteps : customApprovalSteps;
     if (!stepsToValidate || stepsToValidate.length === 0) {
       notify.warning(
         "Pejabat Penyetuju Wajib Diisi",
@@ -918,11 +969,14 @@ export default function LetterFormBuilder({
       allowedViewers,
       imageLayout,
       submitterSignature: submitterSignature || null,
-      hasNominalLimit: useNominalLimit,
-      approvalHistory: useNominalLimit ? activeApprovalSteps : customApprovalSteps,
+      nominal: currentNominal,
+      hasNominalLimit: currentNominal > 0,
+      approvalHistory: currentNominal > 0 ? activeApprovalSteps : customApprovalSteps,
       fieldValues: {
         ...fieldValues,
-        hasNominalLimit: useNominalLimit,
+        nominal: currentNominal,
+        nominal_pengajuan: currentNominal,
+        hasNominalLimit: currentNominal > 0,
         submitterSignature: submitterSignature || null,
         rincian_biaya: costItems,
         total_biaya: totalCost,
@@ -1026,11 +1080,14 @@ export default function LetterFormBuilder({
       allowedViewers,
       imageLayout,
       submitterSignature: submitterSignature || null,
-      hasNominalLimit: useNominalLimit,
-      approvalHistory: useNominalLimit ? activeApprovalSteps : customApprovalSteps,
+      nominal: currentNominal,
+      hasNominalLimit: currentNominal > 0,
+      approvalHistory: currentNominal > 0 ? activeApprovalSteps : customApprovalSteps,
       fieldValues: {
         ...fieldValues,
-        hasNominalLimit: useNominalLimit,
+        nominal: currentNominal,
+        nominal_pengajuan: currentNominal,
+        hasNominalLimit: currentNominal > 0,
         submitterSignature: submitterSignature || null,
         rincian_biaya: costItems,
         total_biaya: totalCost,
@@ -1281,10 +1338,10 @@ export default function LetterFormBuilder({
       {/* STEP 1: FORM ISIAN */}
       {activeTab === "form" && (
         <div className="bg-white border border-slate-300/80 rounded-xl p-3 sm:p-4 shadow-lg shadow-slate-900/5 space-y-3">
-          {/* Baris 1: No. Surat berdampingan satu baris dengan Keperluan / Perihal Surat */}
+          {/* Baris 1: No. Surat, Keperluan / Perihal Surat, dan Form Nominal Pengajuan */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-stretch">
-            {/* Kolom No. Surat (Di pinggir Perihal) */}
-            <div className="md:col-span-4 bg-slate-50/90 p-2.5 rounded-lg border border-slate-300 space-y-1.5 flex flex-col justify-between">
+            {/* Kolom No. Surat */}
+            <div className="md:col-span-3 bg-slate-50/90 p-2.5 rounded-lg border border-slate-300 space-y-1.5 flex flex-col justify-between">
               <div className="flex items-center justify-between gap-1">
                 <label className="block text-xs font-extrabold text-slate-800">
                   No. Surat:
@@ -1311,14 +1368,14 @@ export default function LetterFormBuilder({
             </div>
 
             {/* Kolom Keperluan / Perihal Surat */}
-            <div className="md:col-span-8 bg-slate-50/90 p-2.5 rounded-lg border border-slate-300 space-y-1.5 flex flex-col justify-between">
+            <div className="md:col-span-6 bg-slate-50/90 p-2.5 rounded-lg border border-slate-300 space-y-1.5 flex flex-col justify-between">
               <div className="flex items-center justify-between gap-2">
                 <label className="block text-xs font-extrabold text-slate-800">
                   Keperluan / Perihal Surat <span className="text-rose-600">*</span>:
                 </label>
                 {!isMandiri && (
                   <span className="text-[10px] bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full font-semibold">
-                    Otomatis terisi (dapat diedit)
+                    Otomatis terisi
                   </span>
                 )}
               </div>
@@ -1336,6 +1393,43 @@ export default function LetterFormBuilder({
                 placeholder="Tulis Keperluan / Perihal Surat..."
                 className="w-full text-xs font-bold text-slate-900 uppercase bg-white px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
               />
+            </div>
+
+            {/* Kolom Form Nominal Pengajuan (Otomatis Menentukan Jalur Persetujuan) */}
+            <div className="md:col-span-3 bg-gradient-to-br from-amber-50 to-orange-50/70 p-2.5 rounded-lg border border-amber-300 space-y-1.5 flex flex-col justify-between shadow-2xs">
+              <div className="flex items-center justify-between gap-1">
+                <label className="block text-xs font-black text-amber-950 flex items-center gap-1">
+                  <Coins className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Nominal Pengajuan:</span>
+                </label>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${
+                    currentNominal > 0
+                      ? "bg-amber-600 text-white shadow-2xs"
+                      : "bg-slate-200 text-slate-600"
+                  }`}
+                >
+                  {currentNominal > 0 ? "Limit Aktif" : "Bebas / 0"}
+                </span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-900 select-none">
+                  Rp
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={nominalInputValue}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, "");
+                    const num = raw ? parseInt(raw, 10) : 0;
+                    setNominalInputValue(raw ? num.toLocaleString("id-ID") : "");
+                    handleFieldChange("nominal_pengajuan", num);
+                  }}
+                  placeholder="0 (Tanpa limit nominal)"
+                  className="w-full pl-8 pr-2.5 py-1.5 rounded-lg border border-amber-300 bg-white font-mono font-bold text-xs text-slate-900 shadow-inner focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
             </div>
           </div>
 
@@ -1755,24 +1849,18 @@ export default function LetterFormBuilder({
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {/* Toggle Pakai Limit Nominal */}
-                  <button
-                    type="button"
-                    onClick={() => setUseNominalLimit(!useNominalLimit)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition flex items-center gap-1 shadow-2xs cursor-pointer ${
-                      useNominalLimit
-                        ? "text-amber-900 bg-amber-100 hover:bg-amber-200 border-amber-300 ring-1 ring-amber-400"
-                        : "text-slate-600 bg-slate-100 hover:bg-slate-200 border-slate-300"
-                    }`}
-                    title={
-                      useNominalLimit
-                        ? "Limit nominal aktif: Persetujuan disesuaikan dengan nilai nominal ajuan (Klik untuk non-aktifkan)"
-                        : "Limit nominal non-aktif: Semua pejabat harus menyetujui secara berurutan (Klik untuk aktifkan limit nominal)"
-                    }
-                  >
-                    <ShieldCheck className={`w-3.5 h-3.5 ${useNominalLimit ? "text-amber-700" : "text-slate-400"}`} />
-                    <span>Limit Nominal: {useNominalLimit ? "Aktif" : "Mati"}</span>
-                  </button>
+                  {/* Status Limit Nominal */}
+                  {currentNominal > 0 ? (
+                    <div className="px-2 py-0.5 text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1 shadow-2xs">
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Limit: Rp {Number(currentNominal).toLocaleString("id-ID")}</span>
+                    </div>
+                  ) : (
+                    <div className="px-2 py-0.5 text-xs font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Tanpa Limit</span>
+                    </div>
+                  )}
 
                   <button
                     type="button"
@@ -1841,35 +1929,22 @@ export default function LetterFormBuilder({
                 </div>
               </div>
 
-              {/* Info Banner Aturan Limit Nominal Jika Diaktifkan */}
-              {useNominalLimit && (
-                <div className="p-2.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-lg text-xs space-y-1 shadow-2xs">
+              {/* Info Banner Aturan Limit Nominal Jika Nominal Diisi */}
+              {currentNominal > 0 ? (
+                <div className="p-2.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-lg text-xs space-y-1 shadow-2xs animate-fadeIn">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-extrabold text-amber-950 flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span>Aturan Limit Nominal Aktif</span>
+                      <span>Jalur Persetujuan Disesuaikan Otomatis</span>
                     </span>
-                    {totalCost > 0 ? (
-                      <span className="font-mono font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded text-[11px] border border-amber-200 shrink-0">
-                        Nilai Ajuan: Rp {Number(currentNominal || 0).toLocaleString("id-ID")}
-                      </span>
-                    ) : (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[11px] font-bold text-amber-900">Nilai Ajuan: Rp</span>
-                        <input
-                          type="number"
-                          value={fieldValues.nominal_pengajuan ?? ""}
-                          onChange={(e) => handleFieldChange("nominal_pengajuan", e.target.value)}
-                          placeholder="Nominal..."
-                          className="w-28 px-1.5 py-0.5 bg-white border border-amber-300 rounded text-xs font-mono font-bold text-slate-800 outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs"
-                        />
-                      </div>
-                    )}
+                    <span className="font-mono font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded text-[11px] border border-amber-200 shrink-0">
+                      Nilai Ajuan: Rp {Number(currentNominal).toLocaleString("id-ID")}
+                    </span>
                   </div>
                   <p className="text-[11px] text-amber-800 leading-tight">
                     {activeApprovalSteps.length < customApprovalSteps.length ? (
                       <>
-                        Sesuai nilai ajuan, persetujuan <strong>cukup sampai Tingkat {activeApprovalSteps.length} ({activeApprovalSteps[activeApprovalSteps.length - 1]?.approverRole || activeApprovalSteps[activeApprovalSteps.length - 1]?.title})</strong>. Tingkat di atasnya dilewati otomatis.
+                        Sesuai nilai ajuan Rp {Number(currentNominal).toLocaleString("id-ID")}, persetujuan <strong>cukup sampai Tingkat {activeApprovalSteps.length} ({activeApprovalSteps[activeApprovalSteps.length - 1]?.approverRole || activeApprovalSteps[activeApprovalSteps.length - 1]?.title})</strong>. Pejabat di atasnya otomatis dilewati.
                       </>
                     ) : (
                       <>
@@ -1878,20 +1953,21 @@ export default function LetterFormBuilder({
                     )}
                   </p>
                 </div>
+              ) : (
+                <div className="px-2.5 py-1.5 bg-slate-100/80 border border-slate-200 rounded-lg text-[11px] text-slate-600 flex items-center justify-between">
+                  <span>Isi <strong>Nominal Pengajuan</strong> di atas untuk mengotomatiskan tingkat persetujuan pejabat.</span>
+                  <span className="text-slate-400 italic">Bebas limit / 0</span>
+                </div>
               )}
 
               {/* List Tingkat Persetujuan yang bisa diedit */}
               <div className="space-y-2.5">
                 {customApprovalSteps.map((step, idx) => {
                   const isStepBypassed = Boolean(
-                    useNominalLimit &&
-                      currentNominal > 0 &&
-                      idx >= activeApprovalSteps.length,
+                    currentNominal > 0 && idx >= activeApprovalSteps.length,
                   );
                   const isFinalActiveStep = Boolean(
-                    useNominalLimit &&
-                      currentNominal > 0 &&
-                      idx === activeApprovalSteps.length - 1,
+                    currentNominal > 0 && idx === activeApprovalSteps.length - 1,
                   );
 
                   const handleUserSelect = (userId) => {
@@ -1981,7 +2057,7 @@ export default function LetterFormBuilder({
                                     Pengesahan Akhir
                                   </span>
                                 )}
-                                {useNominalLimit && (
+                                {currentNominal > 0 && (
                                   <input
                                     type="number"
                                     value={step.maxAmount ?? ""}

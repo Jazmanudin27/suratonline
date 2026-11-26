@@ -1620,14 +1620,70 @@ export const saveLetter = (letterData, isSubmit = false) => {
   return saved;
 };
 
-// Hapus Dokumen Surat (Khusus status draft)
-export const deleteLetter = (letterId) => {
+// Cek apakah user berhak menghapus surat (Khusus Draft atau Surat Pengajuan yang BELUM ada approval satupun)
+export const canUserDeleteLetter = (letter, currentUser) => {
+  if (!letter || !currentUser) return false;
+
+  // Cek apakah user adalah pembuat surat atau Admin IT/CRM
+  const isCreator =
+    (currentUser.id && String(letter.userId) === String(currentUser.id)) ||
+    (currentUser.name && (
+      String(letter.userName || "").trim().toLowerCase() === String(currentUser.name).trim().toLowerCase() ||
+      String(letter.createdBy || "").trim().toLowerCase() === String(currentUser.name).trim().toLowerCase()
+    ));
+
+  const isIT =
+    currentUser.kodeJabatan === "J27" ||
+    (currentUser.role && currentUser.role.includes("admin")) ||
+    (currentUser.position && currentUser.position.toLowerCase().includes("it"));
+
+  if (!isCreator && !isIT) return false;
+
+  // 1. Jika masih draft, selalu boleh dihapus
+  if (letter.status === "draft") return true;
+
+  // 2. Jika sudah disetujui penuh, tidak boleh dihapus
+  if (letter.status === "approved") return false;
+
+  // 3. Cek apakah sudah ada yang approve (Pihak Mengetahui atau Approver tingkat manapun)
+  const isKnownApproved = Boolean(
+    letter.knownByApproved ||
+    letter.knownByStatus === "approved" ||
+    letter.fieldValues?.knownByApproved ||
+    letter.fieldValues?.knownByStatus === "approved"
+  );
+  const hasStepApproved =
+    Array.isArray(letter.approvalHistory) &&
+    letter.approvalHistory.some((s) => s.status === "approved");
+
+  // Jika sudah ada salah satu pihak yang approve, tidak boleh dihapus
+  if (isKnownApproved || hasStepApproved) {
+    return false;
+  }
+
+  // Jika belum ada approval sama sekali (masih pending awal), pemohon masih bisa hapus
+  return true;
+};
+
+// Hapus Dokumen Surat (Boleh jika Draft ATAU Surat Pending yang belum di-approve oleh siapapun)
+export const deleteLetter = (letterId, currentUser = null) => {
   const letters = getLetters();
   const idx = letters.findIndex((l) => l.id === letterId);
   if (idx === -1) return false;
 
   const letter = letters[idx];
-  if (letter.status !== "draft") {
+  const isKnownApproved = Boolean(
+    letter.knownByApproved ||
+    letter.knownByStatus === "approved" ||
+    letter.fieldValues?.knownByApproved ||
+    letter.fieldValues?.knownByStatus === "approved"
+  );
+  const hasStepApproved =
+    Array.isArray(letter.approvalHistory) &&
+    letter.approvalHistory.some((s) => s.status === "approved");
+
+  // Tolak jika sudah disetujui penuh atau sudah ada pejabat yang approve
+  if (letter.status === "approved" || (letter.status !== "draft" && (isKnownApproved || hasStepApproved))) {
     return false;
   }
 

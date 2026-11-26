@@ -37,6 +37,7 @@ import {
   getLetters,
   canUserAccessLetterChat,
   isLetterVisibleToUser,
+  canUserDeleteLetter,
   deleteLetter,
   isLetterAwaitingKnownBy,
   isUserLetterKnownBy,
@@ -240,16 +241,22 @@ export default function LetterList({
     return isLetterVisibleToUser(l, currentUser)
   })
 
-  const handleDeleteDraft = async (letter) => {
-    if (letter.status !== 'draft') {
-      notify.warning('Perhatian', 'Hanya surat berstatus Draf yang dapat dihapus.')
+  const handleDeleteLetter = async (letter) => {
+    if (!canUserDeleteLetter(letter, currentUser)) {
+      notify.warning(
+        'Perhatian',
+        'Surat tidak dapat dihapus karena sudah ada pejabat yang menyetujui atau Anda tidak berhak.'
+      )
       return
     }
 
+    const isDraft = letter.status === 'draft'
     const confirmed = await notify.confirm({
-      title: 'Hapus Draf Surat?',
-      text: `Apakah Anda yakin ingin menghapus draf ${letter.letterNumber || letter.title}? Tindakan ini tidak dapat dibatalkan.`,
-      confirmText: 'Ya, Hapus Draf',
+      title: isDraft ? 'Hapus Draf Surat?' : 'Batalkan & Hapus Surat?',
+      text: isDraft
+        ? `Apakah Anda yakin ingin menghapus draf ${letter.letterNumber || letter.title}? Tindakan ini tidak dapat dibatalkan.`
+        : `Surat ini belum disetujui oleh pejabat manapun. Apakah Anda yakin ingin membatalkan dan menghapus pengajuan ${letter.letterNumber || letter.title}?`,
+      confirmText: isDraft ? 'Ya, Hapus Draf' : 'Ya, Batalkan & Hapus',
       cancelText: 'Batal',
       confirmColor: '#dc2626',
       icon: 'warning',
@@ -257,11 +264,14 @@ export default function LetterList({
 
     if (!confirmed) return
 
-    const success = deleteLetter(letter.id)
+    const success = deleteLetter(letter.id, currentUser)
     if (success) {
-      notify.success('Draf Dihapus', `Draf surat ${letter.letterNumber || ''} berhasil dihapus.`)
+      notify.success(
+        'Surat Dihapus',
+        isDraft ? `Draf surat ${letter.letterNumber || ''} berhasil dihapus.` : `Pengajuan surat ${letter.letterNumber || ''} berhasil dibatalkan dan dihapus.`
+      )
     } else {
-      notify.error('Gagal', 'Gagal menghapus draf surat.')
+      notify.error('Gagal', 'Gagal menghapus surat.')
     }
   }
 
@@ -1045,12 +1055,16 @@ export default function LetterList({
                             )
                           })()}
 
-                          {/* Tombol Hapus (Merah/Rose - Icon Only, HANYA jika masih status Draf / belum diajukan) */}
-                          {l.status === 'draft' && (
+                          {/* Tombol Hapus (Merah/Rose - Icon Only, HANYA jika Draf atau Belum Di-approve oleh Pejabat manapun) */}
+                          {canUserDeleteLetter(l, currentUser) && (
                             <button
-                              onClick={() => handleDeleteDraft(l)}
-                              className="p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition shadow-xs flex items-center justify-center"
-                              title="Hapus Draf Surat"
+                              onClick={() => handleDeleteLetter(l)}
+                              className="p-2 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-lg transition shadow-xs flex items-center justify-center cursor-pointer"
+                              title={
+                                l.status === 'draft'
+                                  ? 'Hapus Draf Surat'
+                                  : 'Batalkan & Hapus Pengajuan Surat (Belum ada approval)'
+                              }
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

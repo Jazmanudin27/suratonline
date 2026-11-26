@@ -17,12 +17,14 @@ import {
   Check,
   Share2,
   Download,
+  Trash2,
 } from 'lucide-react'
 import { canUserApproveLetter } from '../components/ApproverInbox'
 import MobileApprovalModal from './MobileApprovalModal'
 import ShareLetterModal from '../components/ShareLetterModal'
-import { formatDateId } from '../services/storage'
+import { formatDateId, canUserDeleteLetter, deleteLetter } from '../services/storage'
 import { exportLettersToExcel } from '../utils/excelExport'
+import { notify } from '../utils/alert'
 
 export default function MobileLetterList({
   currentUser,
@@ -399,6 +401,32 @@ export default function MobileLetterList({
                   </div>
 
                   <div className="flex items-center gap-1.5">
+                    {/* Tombol Hapus jika belum ada approval */}
+                    {canUserDeleteLetter(letter, currentUser) && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const isDraft = letter.status === 'draft'
+                          const confirmed = await notify.confirm({
+                            title: isDraft ? 'Hapus Draf?' : 'Hapus Pengajuan?',
+                            text: isDraft
+                              ? `Hapus draf ${letter.letterNumber || letter.title}?`
+                              : `Surat ini belum disetujui pejabat manapun. Batalkan & hapus ${letter.letterNumber || letter.title}?`,
+                            confirmText: 'Ya, Hapus',
+                            confirmColor: '#dc2626',
+                          })
+                          if (confirmed) {
+                            deleteLetter(letter.id, currentUser)
+                            notify.success('Dihapus', 'Surat berhasil dihapus.')
+                          }
+                        }}
+                        className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center text-xs transition active:scale-95"
+                        title="Hapus Surat (Belum ada approval)"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+
                     {/* Tombol Quick Approve jika user approver surat ini */}
                     {isPendingThisUser && onApproveLetter && (
                       <button

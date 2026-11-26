@@ -2164,12 +2164,12 @@ app.post("/api/letters/:id/decision", async (req, res) => {
   }
 });
 
-// Hapus surat (Hanya jika masih berstatus draft)
+// Hapus surat (Boleh jika Draf ATAU Pengajuan yang belum disetujui sama sekali oleh pejabat manapun)
 app.delete("/api/letters/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.query(
-      `SELECT id, status, letter_number FROM letters WHERE id = ?`,
+      `SELECT id, status, letter_number, field_values, approval_history FROM letters WHERE id = ?`,
       [id],
     );
     if (rows.length === 0) {
@@ -2179,10 +2179,22 @@ app.delete("/api/letters/:id", async (req, res) => {
     }
 
     const letter = rows[0];
-    if (letter.status !== "draft") {
+    let fVals = {};
+    let history = [];
+    try {
+      fVals = typeof letter.field_values === "string" ? JSON.parse(letter.field_values) : letter.field_values || {};
+    } catch {}
+    try {
+      history = typeof letter.approval_history === "string" ? JSON.parse(letter.approval_history) : letter.approval_history || [];
+    } catch {}
+
+    const isKnownApproved = Boolean(fVals.knownByApproved || fVals.knownByStatus === "approved");
+    const hasStepApproved = Array.isArray(history) && history.some((s) => s.status === "approved");
+
+    if (letter.status === "approved" || (letter.status !== "draft" && (isKnownApproved || hasStepApproved))) {
       return res.status(400).json({
         success: false,
-        message: "Hanya surat berstatus Draf yang dapat dihapus.",
+        message: "Surat tidak dapat dihapus karena sudah ada pejabat yang menyetujui.",
       });
     }
 
@@ -2191,7 +2203,7 @@ app.delete("/api/letters/:id", async (req, res) => {
 
     res.json({
       success: true,
-      message: `Draf surat ${letter.letter_number || id} berhasil dihapus`,
+      message: `Surat ${letter.letter_number || id} berhasil dihapus`,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

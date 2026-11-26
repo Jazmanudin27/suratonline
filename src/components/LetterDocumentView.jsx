@@ -1044,7 +1044,6 @@ export default function LetterDocumentView({
                       )
                     })()}
                   </div>
-                </div>
                 {/* Single Border Line Pembatas Kop Surat */}
                 <div className="border-t-2 border-slate-900 mt-3"></div>
               </div>

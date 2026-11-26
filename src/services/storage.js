@@ -1435,6 +1435,12 @@ export const saveLetter = (letterData, isSubmit = false) => {
       saved = {
         ...existing,
         ...letterData,
+        hasNominalLimit:
+          letterData.hasNominalLimit !== undefined
+            ? Boolean(letterData.hasNominalLimit)
+            : (letterData.fieldValues?.hasNominalLimit !== undefined
+                ? Boolean(letterData.fieldValues.hasNominalLimit)
+                : Boolean(existing.hasNominalLimit)),
         title: targetTitle,
         letterNumber: targetNumber,
         attachments: persistentAttachments,
@@ -1535,6 +1541,12 @@ export const saveLetter = (letterData, isSubmit = false) => {
       status: isSubmit ? "pending" : "draft",
       currentStep: 1,
       totalSteps: stepsCount,
+      hasNominalLimit:
+        letterData.hasNominalLimit !== undefined
+          ? Boolean(letterData.hasNominalLimit)
+          : (letterData.fieldValues?.hasNominalLimit !== undefined
+              ? Boolean(letterData.fieldValues.hasNominalLimit)
+              : Boolean(template?.hasNominalLimit)),
       title: (letterData.title || `${template.name} - ${currentUser.name}`)
         .trim()
         .toUpperCase(),

@@ -199,11 +199,38 @@ export default function RichEditor({
 
     // 1. Detect Font Size at caret / selection
     try {
-      const computedStyle = window.getComputedStyle(node);
-      const computedPx = parseFloat(computedStyle.fontSize);
-      if (computedPx && !isNaN(computedPx)) {
-        // 1pt = 4/3 px => pt = px * 0.75
-        const ptVal = computedPx * 0.75;
+      // Prioritaskan inline style jika ada pada node atau parent-nya
+      let curr = node;
+      let explicitPt = null;
+      while (curr && curr !== editorRef.current && curr.nodeType === 1) {
+        if (curr.style && curr.style.fontSize) {
+          const raw = curr.style.fontSize.trim();
+          if (raw.endsWith("pt")) {
+            explicitPt = parseFloat(raw);
+            break;
+          } else if (raw.endsWith("px")) {
+            explicitPt = parseFloat(raw) * 0.75;
+            break;
+          }
+        }
+        if (curr.tagName && curr.tagName.toLowerCase() === "font" && curr.getAttribute("size")) {
+          const sizeMap = { "1": 7.5, "2": 10, "3": 12, "4": 13.5, "5": 18, "6": 24, "7": 36 };
+          explicitPt = sizeMap[curr.getAttribute("size")] || 12;
+          break;
+        }
+        curr = curr.parentElement;
+      }
+
+      let ptVal = explicitPt;
+      if (!ptVal) {
+        const computedStyle = window.getComputedStyle(node.nodeType === 1 ? node : node.parentElement || node);
+        const computedPx = parseFloat(computedStyle.fontSize);
+        if (computedPx && !isNaN(computedPx)) {
+          ptVal = computedPx * 0.75;
+        }
+      }
+
+      if (ptVal && !isNaN(ptVal)) {
         const standardSizes = [
           { label: "9pt", val: 9 },
           { label: "10pt", val: 10 },
@@ -1640,7 +1667,7 @@ export default function RichEditor({
     const dariDisplay = submitterName || "[Nama Pemohon]";
 
     const html = `
-<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: inherit; font-size: 11pt; table-layout: fixed;">
+<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: inherit; font-size: inherit; table-layout: fixed;">
   <tr>
     <td style="width: 15%; vertical-align: top; padding: 2px 0;"><strong>Nomor</strong></td>
     <td style="width: 3%; vertical-align: top; padding: 2px 0;">:</td>
@@ -2897,6 +2924,14 @@ export default function RichEditor({
               color: #000000 !important;
               font-family: inherit !important;
             }
+            /* Pastikan seluruh teks & sel tanpa inline font-size memiliki ukuran seragam */
+            .rich-editor-sheet p:not([style*="font-size"]),
+            .rich-editor-sheet td:not([style*="font-size"]),
+            .rich-editor-sheet th:not([style*="font-size"]),
+            .rich-editor-sheet li:not([style*="font-size"]),
+            .rich-editor-sheet div:not([style*="font-size"]) {
+              font-size: ${fontSize || "11pt"};
+            }
             ${
               paragraphSpacing === "tight"
                 ? `
@@ -2963,7 +2998,7 @@ export default function RichEditor({
             }}
             onMouseMove={handleEditorMouseMove}
             onMouseDown={handleEditorMouseDown}
-            className={`rich-editor-sheet outline-none leading-relaxed prose prose-slate max-w-none min-h-[900px] text-[11pt] focus:ring-0 ${
+            className={`rich-editor-sheet outline-none leading-relaxed max-w-none min-h-[900px] text-[11pt] focus:ring-0 ${
               readOnly
                 ? "cursor-default select-text"
                 : "cursor-text select-text"

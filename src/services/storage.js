@@ -682,7 +682,7 @@ export const getBranches = () => {
       id: code,
       code,
       name: b.name || b.nama_cabang || code,
-      pt: b.pt || b.nama_pt || "",
+      pt: code === "PST" ? "CV MAKMUR PERMATA" : (b.pt || b.nama_pt || ""),
       address: b.address || b.alamat_cabang || "",
       phone: b.phone || b.telepon_cabang || "",
       email: b.email || "",

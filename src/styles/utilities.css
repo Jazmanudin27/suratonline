@@ -283,32 +283,17 @@ div[contenteditable="true"] table td:hover::after {
   pointer-events: none;
 }
 
-/* Watermark Background Dokumen Resmi */
+/* Watermark Background Dokumen Resmi (Dinonaktifkan) */
 .page-sheet {
   position: relative;
 }
 
 .page-watermark {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 440px;
-  height: 440px;
-  pointer-events: none;
-  user-select: none;
-  opacity: 0.12;
-  z-index: 0;
-  background-image: url('/Logo.jpeg');
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: contain;
+  display: none !important;
 }
 
 @media print {
   .page-watermark {
-    opacity: 0.13 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+    display: none !important;
   }
 }

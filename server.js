@@ -116,6 +116,14 @@ pool
       // Ignore if table letters doesn't exist yet
     }
     try {
+      await conn.query(
+        `UPDATE cabang SET nama_pt = 'CV MAKMUR PERMATA' WHERE kode_cabang = 'PST'`,
+      );
+      console.log(" [MySQL] Ensured cabang PST nama_pt is CV MAKMUR PERMATA");
+    } catch (e) {
+      // Ignore
+    }
+    try {
       await conn.query(`
         CREATE TABLE IF NOT EXISTS system_settings (
           key_name VARCHAR(100) NOT NULL PRIMARY KEY,
@@ -173,7 +181,8 @@ app.get("/api/cabang", async (req, res) => {
     const [rows] = await pool.query(
       `SELECT kode_cabang AS id, kode_cabang AS code, nama_cabang AS name,
               alamat_cabang AS address, telepon_cabang AS phone,
-              nama_pt AS pt, kode_pt, status_aktif_cabang, email, urutan
+              CASE WHEN kode_cabang = 'PST' THEN 'CV MAKMUR PERMATA' ELSE nama_pt END AS pt,
+              kode_pt, status_aktif_cabang, email, urutan
        FROM cabang
        WHERE status_aktif_cabang = '1'
        ORDER BY urutan ASC, kode_cabang ASC`,
@@ -455,7 +464,8 @@ app.post("/api/login", async (req, res) => {
 
     const [rows] = await pool.query(
       `SELECT u.id, u.name, u.username, u.email, u.password, u.kode_cabang AS branchId,
-              c.nama_cabang AS branchName, c.nama_pt AS pt,
+              c.nama_cabang AS branchName,
+              CASE WHEN c.kode_cabang = 'PST' THEN 'CV MAKMUR PERMATA' ELSE c.nama_pt END AS pt,
               u.kode_jabatan AS kodeJabatan, j.nama_jabatan AS position,
               u.status,
               CASE
@@ -535,7 +545,8 @@ app.get("/api/users", async (req, res) => {
     const rows = await getCachedOrFetch("users", 30000, async () => {
       const [r] = await pool.query(
         `SELECT u.id, u.name, u.username, u.email, u.kode_cabang AS branchId,
-                c.nama_cabang AS branchName, c.nama_pt AS pt,
+                c.nama_cabang AS branchName,
+                CASE WHEN c.kode_cabang = 'PST' THEN 'CV MAKMUR PERMATA' ELSE c.nama_pt END AS pt,
                 u.kode_jabatan AS kodeJabatan, j.nama_jabatan AS position,
                 u.status,
                 CASE

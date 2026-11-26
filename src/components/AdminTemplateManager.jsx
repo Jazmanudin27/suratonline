@@ -406,8 +406,8 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
     const sampleValues = {
       nama_pemohon: 'Jazmanudin',
       jabatan: 'IT & Administrator Sistem',
-      nama_cabang: 'Cabang Tasikmalaya',
-      cabang: 'Cabang Tasikmalaya',
+      nama_cabang: 'PUSAT',
+      cabang: 'PUSAT',
       perihal: tpl.name || 'Permohonan Operasional',
       ringkasan: 'Sehubungan dengan kebutuhan peningkatan efisiensi sistem, bersama ini kami mengajukan permohonan persetujuan resmi sesuai template yang telah dirancang.',
     }
@@ -424,14 +424,14 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
       ? tpl.numberFormat
           .replace('{{seq}}', '001')
           .replace('{{code}}', tpl.code || 'SP')
-          .replace('{{branch_code}}', 'TSM')
+          .replace('{{branch_code}}', 'PST')
           .replace('{{roman_month}}', 'X')
           .replace('{{year}}', new Date().getFullYear())
-      : '001/SP/TSM/X/2026'
+      : '001/SP/PST/X/2026'
 
     const compiledContent = compileTemplateContent(tpl, sampleValues, {
       nomor_surat: sampleNumber,
-      nama_cabang: 'Cabang Tasikmalaya',
+      nama_cabang: 'PUSAT',
       tanggal_surat: formatDateId(new Date()),
     })
 
@@ -453,8 +453,8 @@ export default function AdminTemplateManager({ onSelectTemplateForLetter }) {
       title: tpl.name || 'Pratinjau Surat Resmi',
       userName: 'Jazmanudin',
       userPosition: 'IT & Administrator Sistem',
-      branchName: 'Cabang Tasikmalaya',
-      branchId: 'TSM',
+      branchName: 'PUSAT',
+      branchId: 'PST',
       status: 'approved',
       createdAt: new Date().toISOString(),
       attachments: tpl.attachments || [],

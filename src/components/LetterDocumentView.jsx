@@ -999,28 +999,22 @@ export default function LetterDocumentView({
               {/* ==================== HALAMAN 1: SURAT PERMOHONAN ==================== */}
               <div
                 className="page-sheet a4-page bg-white w-full max-w-[794px] p-8 sm:p-12 shadow-lg rounded-sm border border-slate-300 text-slate-900 leading-normal min-h-[1123px] flex flex-col justify-between relative overflow-hidden"
-                style={{ fontFamily: "Tahoma, Arial, sans-serif", fontSize: "11pt" }}
+                style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: "11pt" }}
               >
-                {/* Watermark Logo Perusahaan */}
-                <div className="page-watermark" aria-hidden="true" />
                 {renderSecurityWatermark()}
 
             <div className="relative z-10">
-              {/* KOP SURAT RESMI PERUSAHAAN (SESUAI CABANG & PT) */}
+              {/* KOP SURAT RESMI PERUSAHAAN (SESUAI CABANG & PT) - TANPA LOGO */}
               <div className="pb-2 mb-6">
-                <div className="flex items-center gap-4">
-                  <img
-                    src="/Logo.jpeg"
-                    alt="Logo"
-                    className="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0"
-                  />
-                  <div className="text-center flex-1">
-                    <h1 className="text-lg sm:text-2xl font-extrabold uppercase tracking-wide text-slate-950 m-0">
-                      {currentBranch?.pt ||
-                        (letter.branchName?.includes('Banten')
+                <div className="text-center w-full">
+                  <h1 className="text-lg sm:text-2xl font-extrabold uppercase tracking-wide text-slate-950 m-0">
+                    {currentBranch?.code === 'PST' || letter?.branchId === 'PST' || letter?.branchName === 'PUSAT'
+                      ? 'CV MAKMUR PERMATA'
+                      : (currentBranch?.pt ||
+                        (letter?.branchName?.includes('Banten')
                           ? 'PT. BANTEN MAJU JAYA'
-                          : 'CV Makmur Permata')}
-                    </h1>
+                          : 'CV MAKMUR PERMATA'))}
+                  </h1>
                     {(() => {
                       const rawAddr = currentBranch?.address || 'Jl Raya Banten Lingkungan Kelanggaran Kel Unyur Kec Serang Kota Serang Banten'
                       // Pisahkan: kata Kota / Kab ke sana nya pindah ke baris bawah
@@ -1189,10 +1183,8 @@ export default function LetterDocumentView({
           {/* ==================== HALAMAN 2: LEMBAR PERSETUJUAN ==================== */}
           <div
             className="page-sheet a4-page bg-white w-full max-w-[794px] p-8 sm:p-12 shadow-lg rounded-sm border border-slate-300 text-slate-900 leading-normal min-h-[1123px] flex flex-col justify-between relative overflow-hidden"
-            style={{ fontFamily: "Tahoma, Arial, sans-serif", fontSize: "11pt" }}
+            style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: "11pt" }}
           >
-            {/* Watermark Logo Perusahaan */}
-            <div className="page-watermark" aria-hidden="true" />
             {renderSecurityWatermark()}
 
             <div className="relative z-10">
@@ -1372,7 +1364,7 @@ export default function LetterDocumentView({
 
               <div
                 className="page-sheet a4-page bg-white w-full max-w-[794px] p-8 sm:p-12 shadow-lg rounded-sm border border-slate-300 text-slate-900 leading-normal min-h-[1123px] flex flex-col justify-between relative overflow-hidden"
-                style={{ fontFamily: "Tahoma, Arial, sans-serif", fontSize: "11pt" }}
+                style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: "11pt" }}
               >
                 {renderSecurityWatermark()}
                 <div>

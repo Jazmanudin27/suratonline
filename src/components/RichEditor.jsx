@@ -80,7 +80,7 @@ export default function RichEditor({
   const [lineSpacing, setLineSpacing] = useState("1.3");
   const [paragraphSpacing, setParagraphSpacing] = useState("tight");
   const [zoomLevel, setZoomLevel] = useState(105);
-  const [fontFamily, setFontFamily] = useState("Calibri");
+  const [fontFamily, setFontFamily] = useState("Arial");
   const [fontSize, setFontSize] = useState("11pt");
   const [wordCount, setWordCount] = useState(0);
 
@@ -1686,7 +1686,7 @@ export default function RichEditor({
     const dariDisplay = submitterName || "[Nama Pemohon]";
 
     const html = `
-<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: inherit; font-size: inherit; table-layout: fixed;">
+<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 14px; font-family: Arial, Helvetica, sans-serif; font-size: inherit; table-layout: fixed;">
   <tr>
     <td style="width: 15%; vertical-align: top; padding: 2px 0;"><strong>Nomor</strong></td>
     <td style="width: 3%; vertical-align: top; padding: 2px 0;">:</td>
@@ -1724,7 +1724,7 @@ export default function RichEditor({
     if (readOnly) return;
     saveHistorySnapshot();
     const html = `
-<table style="width: 100%; border: none; border-collapse: collapse; margin: 12px 0; font-family: inherit; font-size: 11pt; line-height: 1.6; table-layout: fixed;">
+<table style="width: 100%; border: none; border-collapse: collapse; margin: 12px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.6; table-layout: fixed;">
   <tr>
     <td style="width: 25%; padding: 3px 0;">Nama Lengkap</td>
     <td style="width: 3%; text-align: center; padding: 3px 0;">:</td>
@@ -1760,7 +1760,7 @@ export default function RichEditor({
     const widthPct = (100 / colNum).toFixed(1);
 
     let tableHtml =
-      '<table style="width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: inherit; font-size: 11pt; table-layout: fixed;">';
+      '<table style="width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: Arial, Helvetica, sans-serif; font-size: 11pt; table-layout: fixed;">';
     for (let r = 0; r < rowNum; r++) {
       tableHtml += "<tr>";
       for (let c = 0; c < colNum; c++) {
@@ -1842,7 +1842,7 @@ export default function RichEditor({
     if (maxCols <= 1 && matrix.length <= 1) return "";
 
     const widthPct = (100 / maxCols).toFixed(1);
-    let html = `<table style="width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: inherit; font-size: 11pt; table-layout: auto;">`;
+    let html = `<table style="width: 100%; border-collapse: collapse; margin: 12px 0; border: 1px solid #cbd5e1; font-family: Arial, Helvetica, sans-serif; font-size: 11pt; table-layout: auto;">`;
 
     matrix.forEach((row, rowIdx) => {
       html += `<tr>`;
@@ -2217,26 +2217,12 @@ export default function RichEditor({
 
             {/* GROUP: FONT */}
             <div className="flex flex-col items-center border-r border-slate-300 pr-2">
-              {/* Baris 1: Font Family, Size, Grow/Shrink */}
+              {/* Baris 1: Font Size, Grow/Shrink (Font dikunci standar Arial) */}
               <div className="flex items-center gap-1">
-                <select
-                  value={fontFamily}
-                  onChange={(e) => applyFontFamily(e.target.value)}
-                  className="text-xs bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-800 font-medium w-28 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="Calibri">Calibri</option>
-                  <option value="Arial">Arial</option>
-                  <option value="Tahoma">Tahoma</option>
-                  <option value="Times New Roman">Times New Roman</option>
-                  <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
-                  <option value="Georgia">Georgia</option>
-                  <option value="Courier New">Courier New</option>
-                </select>
-
                 <select
                   value={fontSize}
                   onChange={(e) => applyFontSize(e.target.value)}
-                  className="text-xs bg-white border border-slate-300 rounded px-1 py-0.5 text-slate-800 font-medium w-16 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="text-xs bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-800 font-medium w-16 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="9pt">9</option>
                   <option value="10pt">10</option>
@@ -2911,31 +2897,48 @@ export default function RichEditor({
 
           {/* Scoped CSS for Word-like table formatting and smooth selection */}
           <style>{`
+            .rich-editor-sheet,
+            .rich-editor-sheet *,
+            .rich-editor-sheet p,
+            .rich-editor-sheet span,
+            .rich-editor-sheet td,
+            .rich-editor-sheet th,
+            .rich-editor-sheet b,
+            .rich-editor-sheet strong,
+            .rich-editor-sheet i,
+            .rich-editor-sheet em,
+            .rich-editor-sheet u,
+            .rich-editor-sheet s,
+            .rich-editor-sheet strike,
+            .rich-editor-sheet li,
+            .rich-editor-sheet div,
+            .rich-editor-sheet table {
+              font-family: Arial, Helvetica, sans-serif !important;
+            }
             .rich-editor-sheet {
-              font-family: ${fontFamily}, Calibri, Tahoma, Arial, sans-serif !important;
               color: #000000 !important;
             }
             .rich-editor-sheet *:not([style*="font-family"]):not([face]) {
-              font-family: inherit !important;
+              font-family: Arial, Helvetica, sans-serif !important;
             }
             .rich-editor-sheet b,
             .rich-editor-sheet strong {
               font-weight: 700 !important;
-              font-family: inherit !important;
+              font-family: Arial, Helvetica, sans-serif !important;
             }
             .rich-editor-sheet i,
             .rich-editor-sheet em {
               font-style: italic !important;
-              font-family: inherit !important;
+              font-family: Arial, Helvetica, sans-serif !important;
             }
             .rich-editor-sheet u {
               text-decoration: underline !important;
-              font-family: inherit !important;
+              font-family: Arial, Helvetica, sans-serif !important;
             }
             .rich-editor-sheet s,
             .rich-editor-sheet strike {
               text-decoration: line-through !important;
-              font-family: inherit !important;
+              font-family: Arial, Helvetica, sans-serif !important;
             }
             .rich-editor-sheet,
             .rich-editor-sheet p,

@@ -32,6 +32,7 @@ import {
   updateLetterApprovalNotes,
   canUserEditLetter,
 } from './services/storage'
+import { Copy } from 'lucide-react'
 import { notify } from './utils/alert'
 import { isCrmOrIt, isDirekturUser } from './utils'
 
@@ -323,6 +324,69 @@ export default function App() {
     }
   }
 
+  const handleDuplicateLetter = (sourceLetter) => {
+    if (!sourceLetter) return
+
+    let tpl =
+      templates.find((t) => t.id === sourceLetter.templateId) ||
+      templates.find((t) => t.name === sourceLetter.templateName || t.code === sourceLetter.templateCode)
+
+    if (!tpl) {
+      if (sourceLetter.templateId === 'custom_blank' || sourceLetter.templateCode === 'MANDIRI') {
+        tpl = BLANK_TEMPLATE
+      } else {
+        tpl = templates[0] || BLANK_TEMPLATE
+      }
+    }
+
+    // Reset nomor surat lama di teks isi surat menjadi {{nomor_surat}} agar otomatis terisi nomor baru
+    let duplicateContent = sourceLetter.content || ''
+    if (sourceLetter.letterNumber && duplicateContent.includes(sourceLetter.letterNumber)) {
+      duplicateContent = duplicateContent.replaceAll(sourceLetter.letterNumber, '{{nomor_surat}}')
+    }
+
+    const duplicatedLetter = {
+      ...sourceLetter,
+      id: null,
+      letterNumber: '',
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      userId: currentUser?.id || sourceLetter.userId,
+      userName: currentUser?.name || sourceLetter.userName,
+      branchId: currentUser?.branchId || sourceLetter.branchId,
+      branchName: currentUser?.branchName || sourceLetter.branchName,
+      approvalHistory: null,
+      currentStep: 1,
+      submitterSignature: null,
+      knownBySignature: null,
+      knownByStatus: 'pending',
+      comments: [],
+      attachments: Array.isArray(sourceLetter.attachments) ? [...sourceLetter.attachments] : [],
+      fieldValues: {
+        ...(sourceLetter.fieldValues || {}),
+        submitterSignature: null,
+        knownBySignature: null,
+      },
+      content: duplicateContent,
+      isDuplicate: true,
+      duplicatedFromNumber: sourceLetter.letterNumber || '',
+    }
+
+    setSelectedTemplateForNew(tpl)
+    setEditingLetter(duplicatedLetter)
+    setPreviewingLetter(null)
+    if (tpl.id) {
+      localStorage.setItem('suratajuan_active_builder_template_id', tpl.id)
+    }
+    localStorage.removeItem('suratajuan_active_builder_letter_id')
+    setActiveMenu('builder')
+    notify.info(
+      'Ajukan Ulang Surat',
+      `Format dan isi surat ${sourceLetter.letterNumber || ''} berhasil dimuat. Silakan sesuaikan data lalu kirim ajuan.`
+    )
+  }
+
   const handleLetterSavedOrSubmitted = (savedLetter) => {
     localStorage.removeItem('suratajuan_active_builder_template_id')
     localStorage.removeItem('suratajuan_active_builder_letter_id')
@@ -422,6 +486,10 @@ export default function App() {
             }
           }}
           onOpenInstall={() => setShowInstallModal(true)}
+          onDuplicateLetter={(ltr) => {
+            switchToDesktop()
+            handleDuplicateLetter(ltr)
+          }}
         />
 
         {/* Banner / Modal Pasang Aplikasi PWA */}
@@ -513,6 +581,7 @@ export default function App() {
           templates={templates}
           onOpenLetter={(ltr) => setPreviewingLetter(ltr)}
           onEditLetter={handleEditLetter}
+          onDuplicateLetter={handleDuplicateLetter}
           onDirectPrint={handleDirectPrint}
         />
       )}
@@ -526,6 +595,7 @@ export default function App() {
           isInboxView={true}
           onOpenLetter={(ltr) => setPreviewingLetter(ltr)}
           onEditLetter={handleEditLetter}
+          onDuplicateLetter={handleDuplicateLetter}
           onDirectPrint={handleDirectPrint}
         />
       )}
@@ -539,6 +609,7 @@ export default function App() {
           initialStatusFilter="pending"
           onOpenLetter={(ltr) => setPreviewingLetter(ltr)}
           onEditLetter={handleEditLetter}
+          onDuplicateLetter={handleDuplicateLetter}
           onDirectPrint={handleDirectPrint}
         />
       )}
@@ -613,6 +684,10 @@ export default function App() {
                   setPreviewingLetter(null)
                   handleEditLetter(ltr)
                 }}
+                onDuplicate={(ltr) => {
+                  setPreviewingLetter(null)
+                  handleDuplicateLetter(ltr)
+                }}
               />
             </div>
             {/* Modal Footer: Action Bar di Bawah */}
@@ -635,6 +710,20 @@ export default function App() {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Tombol Ajukan Ulang / Gunakan Teks & Template Ini */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const ltr = previewingLetter
+                    handleDuplicateLetter(ltr)
+                  }}
+                  className="px-3 py-1.5 text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1.5 active:scale-95"
+                  title="Gunakan teks dan format surat ini untuk mengajukan surat baru (bisa diedit)"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Gunakan Lagi (Ajukan Serupa)</span>
+                </button>
+
                 {canUserEditLetter(previewingLetter, currentUser) && (
                   <button
                     onClick={() => {

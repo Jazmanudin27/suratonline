@@ -25,6 +25,7 @@ export default function MobileLayout({
   onRequestRevision,
   onUpdateNotes,
   onOpenInstall,
+  onDuplicateLetter,
 }) {
   const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard' | 'archive' | 'inbox' | 'memo' | 'products' | 'profile'
   const [chattingLetter, setChattingLetter] = useState(null)
@@ -74,6 +75,7 @@ export default function MobileLayout({
               onApproveLetter={onApproveLetter}
               onRejectLetter={onRejectLetter}
               onRequestRevision={onRequestRevision}
+              onDuplicateLetter={onDuplicateLetter}
             />
           )}
 
@@ -129,6 +131,7 @@ export default function MobileLayout({
             branches={branches}
             onClose={() => setPreviewingLetter(null)}
             onOpenChat={(l) => setChattingLetter(l)}
+            onDuplicate={onDuplicateLetter}
             onApprove={(id, note) => {
               if (onApproveLetter) onApproveLetter(id, note)
             }}

@@ -23,6 +23,7 @@ import {
   CheckCheck,
   Check,
   Download,
+  Copy,
 } from 'lucide-react'
 import ShareLetterModal from './ShareLetterModal'
 import { exportLettersToExcel } from '../utils/excelExport'
@@ -63,6 +64,7 @@ export default function LetterList({
   isInboxView = false,
   onOpenLetter,
   onEditLetter,
+  onDuplicateLetter,
   onDirectPrint,
 }) {
   const users = getUsers()
@@ -980,10 +982,22 @@ export default function LetterList({
                           {canUserEditLetter(l, currentUser) && (
                             <button
                               onClick={() => onEditLetter(l)}
-                              className="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition shadow-xs flex items-center justify-center"
+                              className="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition shadow-xs flex items-center justify-center cursor-pointer"
                               title="Edit Isi Dokumen Surat"
                             >
                               <Edit className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {/* Tombol Gunakan Lagi / Duplikat Ajuan (Biru Sky - Icon Only) */}
+                          {onDuplicateLetter && (
+                            <button
+                              type="button"
+                              onClick={() => onDuplicateLetter(l)}
+                              className="p-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-lg transition shadow-xs flex items-center justify-center cursor-pointer"
+                              title="Gunakan format dan teks surat ini untuk membuat ajuan baru (Ajukan Serupa)"
+                            >
+                              <Copy className="w-4 h-4" />
                             </button>
                           )}
 

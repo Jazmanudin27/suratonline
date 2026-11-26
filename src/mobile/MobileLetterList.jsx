@@ -18,6 +18,7 @@ import {
   Share2,
   Download,
   Trash2,
+  Copy,
 } from 'lucide-react'
 import { canUserApproveLetter } from '../components/ApproverInbox'
 import MobileApprovalModal from './MobileApprovalModal'
@@ -35,6 +36,7 @@ export default function MobileLetterList({
   onApproveLetter,
   onRejectLetter,
   onRequestRevision,
+  onDuplicateLetter,
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all') // all, pending, approved, revision
@@ -436,6 +438,18 @@ export default function MobileLetterList({
                         title="Proses Persetujuan"
                       >
                         <Check size={16} strokeWidth={2.5} />
+                      </button>
+                    )}
+
+                    {/* Tombol Gunakan Lagi / Ajukan Serupa */}
+                    {onDuplicateLetter && (
+                      <button
+                        type="button"
+                        onClick={() => onDuplicateLetter(letter)}
+                        className="w-8 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center justify-center text-xs transition active:scale-95"
+                        title="Gunakan format dan teks surat ini untuk ajuan baru"
+                      >
+                        <Copy size={14} />
                       </button>
                     )}
 

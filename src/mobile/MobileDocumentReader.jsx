@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { ShieldCheck, MessageSquare, Share2 } from 'lucide-react'
+import { ShieldCheck, MessageSquare, Share2, Copy } from 'lucide-react'
 import LetterDocumentView from '../components/LetterDocumentView'
 import MobileApprovalModal from './MobileApprovalModal'
 import ShareLetterModal from '../components/ShareLetterModal'
@@ -12,6 +12,7 @@ export default function MobileDocumentReader({
   branches = [],
   onClose,
   onOpenChat,
+  onDuplicate,
   onApprove,
   onReject,
   onRequestRevision,
@@ -213,6 +214,17 @@ export default function MobileDocumentReader({
 
         {/* Row Tombol Bagikan, Diskusi & Tutup */}
         <div className="flex items-center gap-2">
+          {onDuplicate && (
+            <button
+              type="button"
+              onClick={() => onDuplicate(currentLetter)}
+              className="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-xs"
+              title="Gunakan teks dan format surat ini untuk mengajukan surat baru"
+            >
+              <Copy size={13} />
+              <span>Gunakan Lagi</span>
+            </button>
+          )}
           {(() => {
             const currentUid = String(currentUser?.id || '')
             const currentName = (currentUser?.name || currentUser?.username || '').trim().toLowerCase()

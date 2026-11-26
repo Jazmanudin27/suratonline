@@ -30,6 +30,7 @@ import {
   FileText,
   Share2,
   Mail,
+  Copy,
 } from 'lucide-react'
 import AttachmentUploader from './AttachmentUploader'
 import { renderPdfToPages } from '../utils/pdfRenderer'
@@ -58,6 +59,7 @@ export default function LetterDocumentView({
   onPrint,
   onClose,
   onEdit,
+  onDuplicate,
   isBuilderPreview = false,
   hideTopBar = false,
   onUpdateImageLayout,
@@ -837,6 +839,19 @@ export default function LetterDocumentView({
 
           <div className="flex items-center gap-2">
             {getStatusBadge(letter.status)}
+
+            {/* Tombol Gunakan Lagi / Ajukan Serupa */}
+            {onDuplicate && !isBuilderPreview && (
+              <button
+                type="button"
+                onClick={() => onDuplicate(letter)}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-xs active:scale-95 cursor-pointer"
+                title="Gunakan format dan teks surat ini untuk membuat ajuan baru"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Gunakan Lagi</span>
+              </button>
+            )}
 
             {/* Tombol Bagikan Surat */}
             {letter.status !== 'draft' && (() => {

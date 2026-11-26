@@ -84,7 +84,7 @@ export default function LetterFormBuilder({
     template?.isCustom;
 
   const [activeTab, setActiveTab] = useState(() =>
-    initialLetter ? "preview" : "form",
+    initialLetter && !initialLetter.isDuplicate ? "preview" : "form",
   );
   const [showAttachmentManager, setShowAttachmentManager] = useState(false);
   const [showNominalMatrixModal, setShowNominalMatrixModal] = useState(false);
@@ -118,7 +118,7 @@ export default function LetterFormBuilder({
     return isMandiri ? "<p><br></p>" : "";
   });
   const [letterNumber, setLetterNumber] = useState(() => {
-    if (initialLetter?.letterNumber) return initialLetter.letterNumber;
+    if (initialLetter?.letterNumber && !initialLetter.isDuplicate) return initialLetter.letterNumber;
     return generateLetterNumber(template, currentUser?.branchId) || "";
   });
   const [costItems, setCostItems] = useState(
@@ -987,7 +987,7 @@ export default function LetterFormBuilder({
     });
 
     const payload = {
-      id: initialLetter?.id,
+      id: initialLetter?.isDuplicate ? null : initialLetter?.id,
       templateId: template.id,
       letterNumber: letterNumber || "",
       title: effectiveTitle,
@@ -1098,7 +1098,7 @@ export default function LetterFormBuilder({
     });
 
     const payload = {
-      id: initialLetter?.id,
+      id: initialLetter?.isDuplicate ? null : initialLetter?.id,
       templateId: template.id,
       letterNumber: letterNumber || "",
       title: effectiveTitle,
@@ -1299,7 +1299,7 @@ export default function LetterFormBuilder({
               title="Simpan dokumen sebagai draf sementara"
             >
               <Save className="w-3.5 h-3.5 text-white" />
-              <span>{initialLetter ? "Simpan Perubahan" : "Simpan Draft"}</span>
+              <span>{initialLetter && !initialLetter.isDuplicate ? "Simpan Perubahan" : "Simpan Draft"}</span>
             </button>
 
             <button
@@ -1310,13 +1310,26 @@ export default function LetterFormBuilder({
             >
               <Send className="w-3.5 h-3.5" />
               <span>
-                {initialLetter?.status === "pending"
+                {initialLetter?.status === "pending" && !initialLetter.isDuplicate
                   ? "Perbarui Surat"
                   : "Kirim Ajuan"}
               </span>
             </button>
           </div>
         </div>
+
+        {/* Banner Notifikasi Mode Ajukan Ulang / Duplikasi */}
+        {initialLetter?.isDuplicate && (
+          <div className="bg-sky-50 border border-sky-200 text-sky-950 px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between gap-2 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <span className="p-1 rounded-md bg-sky-200 text-sky-800 font-black">📋</span>
+              <span>
+                <strong>Mode Ajukan Ulang:</strong> Template dan format teks disalin dari surat <strong>{initialLetter.duplicatedFromNumber || 'sebelumnya'}</strong>. Nomor surat baru telah dibuat otomatis. Anda dapat mengedit isian atau teks sesuai keperluan sebelum mengirim.
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
         {/* Top Control Bar di Halaman Review (Sticky bersama header saat preview) */}
         {activeTab === "preview" && (
@@ -1334,6 +1347,8 @@ export default function LetterFormBuilder({
                 untuk mengubah isi teks.
               </span>
             </div>
+
+        </div>
 
             <div className="flex items-center gap-2">
               {/* Tombol Edit Isi Surat (Word) */}
@@ -1359,7 +1374,11 @@ export default function LetterFormBuilder({
                 <span>Kelola Lampiran &amp; Foto ({attachments.length})</span>
               </button>
             </div>
+
+        </div>
           </div>
+
+        </div>
         )}
       </div>
 
@@ -1378,6 +1397,8 @@ export default function LetterFormBuilder({
                   Otomatis
                 </span>
               </div>
+
+        </div>
               <input
                 type="text"
                 value={letterNumber}
@@ -1395,6 +1416,8 @@ export default function LetterFormBuilder({
               />
             </div>
 
+        </div>
+
             {/* Kolom Keperluan / Perihal Surat */}
             <div className="md:col-span-6 bg-slate-50/90 p-2.5 rounded-lg border border-slate-300 space-y-1.5 flex flex-col justify-between">
               <div className="flex items-center justify-between gap-2">
@@ -1407,6 +1430,8 @@ export default function LetterFormBuilder({
                   </span>
                 )}
               </div>
+
+        </div>
               <input
                 type="text"
                 name="perihal"
@@ -1422,6 +1447,8 @@ export default function LetterFormBuilder({
                 className="w-full text-xs font-bold text-slate-900 uppercase bg-white px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
               />
             </div>
+
+        </div>
 
             {/* Kolom Form Nominal Pengajuan (Otomatis Menentukan Jalur Persetujuan) */}
             <div className="md:col-span-3 bg-gradient-to-br from-amber-50 to-orange-50/70 p-2.5 rounded-lg border border-amber-300 space-y-1.5 flex flex-col justify-between shadow-2xs">
@@ -1440,6 +1467,8 @@ export default function LetterFormBuilder({
                   {currentNominal > 0 ? "Limit Aktif" : "Bebas / 0"}
                 </span>
               </div>
+
+        </div>
               <div className="relative">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-900 select-none">
                   Rp
@@ -1458,8 +1487,14 @@ export default function LetterFormBuilder({
                   className="w-full pl-8 pr-2.5 py-1.5 rounded-lg border border-amber-300 bg-white font-mono font-bold text-xs text-slate-900 shadow-inner focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
+
+        </div>
             </div>
+
+        </div>
           </div>
+
+        </div>
 
           {/* Dynamic Form Fields */}
           {template.fields?.filter((f) => {
@@ -1583,6 +1618,8 @@ export default function LetterFormBuilder({
                           </button>
                         </div>
 
+        </div>
+
                         <div className="border border-slate-300 rounded-lg overflow-hidden shadow-2xs bg-white">
                           <table className="w-full text-xs">
                             <thead className="bg-slate-100 border-b border-slate-300 text-slate-800">
@@ -1666,7 +1703,11 @@ export default function LetterFormBuilder({
                             </tfoot>
                           </table>
                         </div>
+
+        </div>
                       </div>
+
+        </div>
                     );
                   }
 
@@ -1734,9 +1775,13 @@ export default function LetterFormBuilder({
                         />
                       )}
                     </div>
+
+        </div>
                   );
                 })}
             </div>
+
+        </div>
           )}
 
           {/* Kolom Berdampingan: Tanda Tangan Mengetahui (Kiri) & Jalur Persetujuan (Kanan) */}
@@ -1748,6 +1793,8 @@ export default function LetterFormBuilder({
                   <div className="p-0.5 rounded-md bg-indigo-100 text-indigo-700">
                     <UserCheck className="w-3.5 h-3.5 shrink-0" />
                   </div>
+
+        </div>
                   <span className="text-xs font-extrabold text-slate-900 truncate">
                     Tanda Tangan "Mengetahui"
                   </span>
@@ -1763,6 +1810,8 @@ export default function LetterFormBuilder({
                   )}
                 </div>
 
+        </div>
+
                 {/* Toggle Switch */}
                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
                   <input
@@ -1777,6 +1826,8 @@ export default function LetterFormBuilder({
                   </span>
                 </label>
               </div>
+
+        </div>
 
               {/* Jika Toggle Aktif: Pilih User Yang Mengetahui */}
               {includeKnownBy ? (
@@ -1852,13 +1903,19 @@ export default function LetterFormBuilder({
                       isClearable
                     />
                   </div>
+
+        </div>
                 </div>
+
+        </div>
               ) : (
                 <p className="text-xs text-slate-500 italic pt-1">
                   Surat tidak mencantumkan tanda tangan pihak "Mengetahui".
                 </p>
               )}
             </div>
+
+        </div>
 
             {/* SISI KANAN: Jalur Pejabat Penyetuju */}
             <div
@@ -1870,11 +1927,15 @@ export default function LetterFormBuilder({
                   <div className="p-0.5 rounded-md bg-indigo-100 text-indigo-700">
                     <Users className="w-3.5 h-3.5 shrink-0" />
                   </div>
+
+        </div>
                   <span className="text-xs font-extrabold text-slate-900 truncate">
                     Jalur Persetujuan
                     <span className="text-rose-600 font-bold">*</span>
                   </span>
                 </div>
+
+        </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   {/* Status Limit Nominal */}
@@ -1883,11 +1944,15 @@ export default function LetterFormBuilder({
                       <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
                       <span>Ajuan: Rp {Number(currentNominal).toLocaleString("id-ID")}</span>
                     </div>
+
+        </div>
                   ) : (
                     <div className="px-2 py-0.5 text-xs font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
                       <span>Tanpa Limit</span>
                     </div>
+
+        </div>
                   )}
 
                   <button
@@ -1955,7 +2020,11 @@ export default function LetterFormBuilder({
                     <span>Tambah</span>
                   </button>
                 </div>
+
+        </div>
               </div>
+
+        </div>
 
               {/* List Tingkat Persetujuan yang bisa diedit */}
               <div className="space-y-2.5">
@@ -2033,6 +2102,8 @@ export default function LetterFormBuilder({
                           {idx + 1}
                         </div>
 
+        </div>
+
                         {isStepBypassed ? (
                           <div className="flex-1 min-w-0 flex items-center justify-between text-xs py-1 px-1">
                             <span className="font-semibold text-slate-500 truncate">
@@ -2042,6 +2113,8 @@ export default function LetterFormBuilder({
                               Dilewati (Nominal di bawah limit)
                             </span>
                           </div>
+
+        </div>
                         ) : (
                           <div className="flex-1 min-w-0">
                             {(isFinalActiveStep || currentNominal > 0) && (
@@ -2067,6 +2140,8 @@ export default function LetterFormBuilder({
                                   />
                                 )}
                               </div>
+
+        </div>
                             )}
                             <SearchableSelect
                               size="sm"
@@ -2106,6 +2181,8 @@ export default function LetterFormBuilder({
                               isClearable
                             />
                           </div>
+
+        </div>
                         )}
 
                         {!isStepBypassed && customApprovalSteps.length > 1 && (
@@ -2119,12 +2196,22 @@ export default function LetterFormBuilder({
                           </button>
                         )}
                       </div>
+
+        </div>
                     </div>
+
+        </div>
                   );
                 })}
               </div>
+
+        </div>
             </div>
+
+        </div>
           </div>
+
+        </div>
 
           {/* Hak Akses Tambahan / Tembusan */}
           <div className="p-2.5 sm:p-3 bg-slate-50/90 border border-slate-300 rounded-lg space-y-1.5 shadow-2xs">
@@ -2133,6 +2220,8 @@ export default function LetterFormBuilder({
                 <div className="p-0.5 rounded-md bg-indigo-100 text-indigo-700">
                   <Eye className="w-3.5 h-3.5 shrink-0" />
                 </div>
+
+        </div>
                 <span className="text-xs font-extrabold text-slate-900 truncate">
                   Hak Akses / Tembusan (
                   {
@@ -2147,6 +2236,8 @@ export default function LetterFormBuilder({
                   (Pilih user tambahan yang berhak membaca surat ini)
                 </span>
               </div>
+
+        </div>
               <button
                 type="button"
                 onClick={() => setShowViewerModal(true)}
@@ -2156,6 +2247,8 @@ export default function LetterFormBuilder({
                 <span>Tambah / Pilih Pembaca</span>
               </button>
             </div>
+
+        </div>
 
             {/* Hanya tampilkan user tambahan manual di luar, user auto-checklist disembunyikan sesuai preferensi */}
             {(() => {
@@ -2206,6 +2299,8 @@ export default function LetterFormBuilder({
                       );
                     })}
                   </div>
+
+        </div>
                 );
               }
 
@@ -2218,6 +2313,8 @@ export default function LetterFormBuilder({
             })()}
           </div>
 
+        </div>
+
           {/* Action Buttons Step 1 */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
             <div className="text-xs font-medium text-slate-600 flex items-center gap-2">
@@ -2227,6 +2324,8 @@ export default function LetterFormBuilder({
                 resmi.
               </span>
             </div>
+
+        </div>
 
             <div className="flex items-center gap-2.5">
               <button
@@ -2238,7 +2337,13 @@ export default function LetterFormBuilder({
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
+
+        </div>
           </div>
+
+        </div>
+        </div>
+
         </div>
       )}
 
@@ -2255,6 +2360,8 @@ export default function LetterFormBuilder({
                     <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                       <Paperclip className="w-4 h-4 text-white" />
                     </div>
+
+        </div>
                     <div>
                       <h3 className="text-sm font-bold leading-tight">
                         Kelola Berkas Lampiran &amp; Foto Surat
@@ -2264,7 +2371,11 @@ export default function LetterFormBuilder({
                         gambar pada halaman lampiran
                       </p>
                     </div>
+
+        </div>
                   </div>
+
+        </div>
                   <button
                     type="button"
                     onClick={() => setShowAttachmentManager(false)}
@@ -2275,6 +2386,8 @@ export default function LetterFormBuilder({
                   </button>
                 </div>
 
+        </div>
+
                 {/* Body Modal Lampiran (Scrollable) */}
                 <div className="p-4 overflow-y-auto space-y-4 flex-1">
                   <AttachmentUploader
@@ -2282,6 +2395,8 @@ export default function LetterFormBuilder({
                     onChange={setAttachments}
                   />
                 </div>
+
+        </div>
 
                 {/* Footer Modal Lampiran */}
                 <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
@@ -2301,8 +2416,14 @@ export default function LetterFormBuilder({
                     <span>Selesai &amp; Simpan Pengaturan</span>
                   </button>
                 </div>
+
+        </div>
               </div>
+
+        </div>
             </div>
+
+        </div>
           )}
 
           {/* Lembar Dokumen Surat (Halaman 1, 2, 3) */}
@@ -2311,6 +2432,8 @@ export default function LetterFormBuilder({
             isBuilderPreview={true}
             onUpdateImageLayout={(newLayout) => setImageLayout(newLayout)}
           />
+        </div>
+
         </div>
       )}
 
@@ -2352,6 +2475,8 @@ export default function LetterFormBuilder({
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                   <Users className="w-4 h-4 text-white" />
                 </div>
+
+        </div>
                 <div>
                   <h3 className="text-sm font-bold leading-tight">
                     Pilih Pembaca &amp; Tembusan Surat
@@ -2361,7 +2486,11 @@ export default function LetterFormBuilder({
                     ini
                   </p>
                 </div>
+
+        </div>
               </div>
+
+        </div>
               <button
                 type="button"
                 onClick={() => setShowViewerModal(false)}
@@ -2370,6 +2499,8 @@ export default function LetterFormBuilder({
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+        </div>
 
             {/* Modal Toolbar: Search */}
             <div className="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
@@ -2383,10 +2514,16 @@ export default function LetterFormBuilder({
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
                 />
               </div>
+
+        </div>
               <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-[11px] font-semibold text-indigo-700">
                 <span>🏢 Khusus Kantor Pusat</span>
               </div>
+
+        </div>
             </div>
+
+        </div>
 
             {/* Modal Body: List Users Grouped by Branch & Sorted by Jabatan */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3 divide-y divide-slate-100">
@@ -2425,6 +2562,8 @@ export default function LetterFormBuilder({
                     <div className="text-center py-10 text-slate-400 text-xs">
                       Tidak ditemukan akun user yang sesuai kriteria pencarian.
                     </div>
+
+        </div>
                   );
                 }
 
@@ -2571,6 +2710,8 @@ export default function LetterFormBuilder({
                         </button>
                       </div>
 
+        </div>
+
                       {/* User Items */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-1">
                         {branchUsers.map((u) => {
@@ -2648,6 +2789,8 @@ export default function LetterFormBuilder({
                                     </span>
                                   )}
                                 </div>
+
+        </div>
                                 <div className="text-[10px] text-slate-500 truncate flex items-center gap-1">
                                   <span className="font-semibold text-indigo-600">
                                     {u.position || u.roleLabel || "Pejabat"}
@@ -2655,16 +2798,26 @@ export default function LetterFormBuilder({
                                   <span>&bull;</span>
                                   <span>{u.kodeJabatan || "-"}</span>
                                 </div>
+
+        </div>
                               </div>
+
+        </div>
                             </label>
                           );
                         })}
                       </div>
+
+        </div>
                     </div>
+
+        </div>
                   );
                 });
               })()}
             </div>
+
+        </div>
 
             {/* Modal Footer */}
             <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
@@ -2684,7 +2837,13 @@ export default function LetterFormBuilder({
                 <span>Selesai Memilih</span>
               </button>
             </div>
+
+        </div>
           </div>
+
+        </div>
+        </div>
+
         </div>
       )}
 
@@ -2698,6 +2857,8 @@ export default function LetterFormBuilder({
                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-400/30 flex items-center justify-center">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
+
+        </div>
                 <div>
                   <h3 className="font-extrabold text-sm sm:text-base leading-tight">
                     Matriks Batas Nominal Persetujuan
@@ -2706,7 +2867,11 @@ export default function LetterFormBuilder({
                     Standar Otorisasi &amp; Strata Pejabat Penyetuju
                   </p>
                 </div>
+
+        </div>
               </div>
+
+        </div>
               <button
                 type="button"
                 onClick={() => setShowNominalMatrixModal(false)}
@@ -2715,6 +2880,8 @@ export default function LetterFormBuilder({
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+        </div>
 
             {/* Modal Body */}
             <div className="p-4 sm:p-5 space-y-3.5 bg-slate-50">
@@ -2761,10 +2928,14 @@ export default function LetterFormBuilder({
                   </tbody>
                 </table>
               </div>
+
+        </div>
               <p className="text-[11px] text-slate-500 italic">
                 * Gunakan matriks batas nominal di atas sebagai rujukan dalam menentukan pejabat penyetuju yang berwenang menandatangani surat pengajuan mandiri ini.
               </p>
             </div>
+
+        </div>
 
             {/* Modal Footer */}
             <div className="p-3 bg-white border-t border-slate-200 flex justify-end">
@@ -2776,7 +2947,13 @@ export default function LetterFormBuilder({
                 Tutup
               </button>
             </div>
+
+        </div>
           </div>
+
+        </div>
+        </div>
+
         </div>
       )}
 
